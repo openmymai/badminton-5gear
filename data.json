@@ -1,2286 +1,6 @@
 {
   "matches": [
     {
-      "id": "M_80_A_CU_KU",
-      "category": "80",
-      "group": "A",
-      "court": "5",
-      "teamA": {
-        "university": "CU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "1rzno1qtd",
-            "name": "นายแดงแดง",
-            "role": "starter"
-          },
-          {
-            "id": "m3nois4ol",
-            "name": "นายดำ",
-            "role": "starter"
-          },
-          {
-            "id": "bbduc2nwv",
-            "name": "นายขาว",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "wfruegcit",
-            "name": "นายเขียว",
-            "role": "starter"
-          },
-          {
-            "id": "ic3ub0t52",
-            "name": "นายฟ้า",
-            "role": "starter"
-          },
-          {
-            "id": "nvtrtqttj",
-            "name": "นายเหลือง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 1,
-        "s1b": 21,
-        "s2a": 21,
-        "s2b": 0
-      },
-      "isFinished": true
-    },
-    {
-      "id": "M_80_A_CU_KKU",
-      "category": "80",
-      "group": "A",
-      "court": "2",
-      "teamA": {
-        "university": "CU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "1rzno1qtd",
-            "name": "นายแดงแดง",
-            "role": "starter"
-          },
-          {
-            "id": "m3nois4ol",
-            "name": "นายดำ",
-            "role": "starter"
-          },
-          {
-            "id": "bbduc2nwv",
-            "name": "นายขาว",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KKU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "vvg1t321f",
-            "name": "นายม่วง",
-            "role": "starter"
-          },
-          {
-            "id": "u747qnj3r",
-            "name": "นายแสด",
-            "role": "starter"
-          },
-          {
-            "id": "tfm6jny94",
-            "name": "นายชมพู",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 19,
-        "s1b": 21,
-        "s2a": 4,
-        "s2b": 21
-      },
-      "isFinished": true
-    },
-    {
-      "id": "M_80_A_CU_PSU",
-      "category": "80",
-      "group": "A",
-      "court": "6",
-      "teamA": {
-        "university": "CU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "1rzno1qtd",
-            "name": "นายแดงแดง",
-            "role": "starter"
-          },
-          {
-            "id": "m3nois4ol",
-            "name": "นายดำ",
-            "role": "starter"
-          },
-          {
-            "id": "bbduc2nwv",
-            "name": "นายขาว",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "x57vkh2qz",
-            "name": "นายทอง",
-            "role": "starter"
-          },
-          {
-            "id": "unr9jkfe7",
-            "name": "นายเงิน",
-            "role": "starter"
-          },
-          {
-            "id": "hxqnl4eg3",
-            "name": "นายนาค",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_A_CU_CMU",
-      "category": "80",
-      "group": "A",
-      "court": "4",
-      "teamA": {
-        "university": "CU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "1rzno1qtd",
-            "name": "นายแดงแดง",
-            "role": "starter"
-          },
-          {
-            "id": "m3nois4ol",
-            "name": "นายดำ",
-            "role": "starter"
-          },
-          {
-            "id": "bbduc2nwv",
-            "name": "นายขาว",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "p87pco4ld",
-            "name": "นายเหนือ",
-            "role": "starter"
-          },
-          {
-            "id": "rrujt8iew",
-            "name": "นายใต้",
-            "role": "starter"
-          },
-          {
-            "id": "y8cwll7m1",
-            "name": "นายอีสาน",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_A_KU_KKU",
-      "category": "80",
-      "group": "A",
-      "court": "5",
-      "teamA": {
-        "university": "KU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "wfruegcit",
-            "name": "นายเขียว",
-            "role": "starter"
-          },
-          {
-            "id": "ic3ub0t52",
-            "name": "นายฟ้า",
-            "role": "starter"
-          },
-          {
-            "id": "nvtrtqttj",
-            "name": "นายเหลือง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KKU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "vvg1t321f",
-            "name": "นายม่วง",
-            "role": "starter"
-          },
-          {
-            "id": "u747qnj3r",
-            "name": "นายแสด",
-            "role": "starter"
-          },
-          {
-            "id": "tfm6jny94",
-            "name": "นายชมพู",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_A_KU_PSU",
-      "category": "80",
-      "group": "A",
-      "court": "6",
-      "teamA": {
-        "university": "KU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "wfruegcit",
-            "name": "นายเขียว",
-            "role": "starter"
-          },
-          {
-            "id": "ic3ub0t52",
-            "name": "นายฟ้า",
-            "role": "starter"
-          },
-          {
-            "id": "nvtrtqttj",
-            "name": "นายเหลือง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "x57vkh2qz",
-            "name": "นายทอง",
-            "role": "starter"
-          },
-          {
-            "id": "unr9jkfe7",
-            "name": "นายเงิน",
-            "role": "starter"
-          },
-          {
-            "id": "hxqnl4eg3",
-            "name": "นายนาค",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_A_KU_CMU",
-      "category": "80",
-      "group": "A",
-      "court": "7",
-      "teamA": {
-        "university": "KU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "wfruegcit",
-            "name": "นายเขียว",
-            "role": "starter"
-          },
-          {
-            "id": "ic3ub0t52",
-            "name": "นายฟ้า",
-            "role": "starter"
-          },
-          {
-            "id": "nvtrtqttj",
-            "name": "นายเหลือง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "p87pco4ld",
-            "name": "นายเหนือ",
-            "role": "starter"
-          },
-          {
-            "id": "rrujt8iew",
-            "name": "นายใต้",
-            "role": "starter"
-          },
-          {
-            "id": "y8cwll7m1",
-            "name": "นายอีสาน",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_A_KKU_PSU",
-      "category": "80",
-      "group": "A",
-      "court": "8",
-      "teamA": {
-        "university": "KKU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "vvg1t321f",
-            "name": "นายม่วง",
-            "role": "starter"
-          },
-          {
-            "id": "u747qnj3r",
-            "name": "นายแสด",
-            "role": "starter"
-          },
-          {
-            "id": "tfm6jny94",
-            "name": "นายชมพู",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "x57vkh2qz",
-            "name": "นายทอง",
-            "role": "starter"
-          },
-          {
-            "id": "unr9jkfe7",
-            "name": "นายเงิน",
-            "role": "starter"
-          },
-          {
-            "id": "hxqnl4eg3",
-            "name": "นายนาค",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_A_KKU_CMU",
-      "category": "80",
-      "group": "A",
-      "court": "9",
-      "teamA": {
-        "university": "KKU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "vvg1t321f",
-            "name": "นายม่วง",
-            "role": "starter"
-          },
-          {
-            "id": "u747qnj3r",
-            "name": "นายแสด",
-            "role": "starter"
-          },
-          {
-            "id": "tfm6jny94",
-            "name": "นายชมพู",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "p87pco4ld",
-            "name": "นายเหนือ",
-            "role": "starter"
-          },
-          {
-            "id": "rrujt8iew",
-            "name": "นายใต้",
-            "role": "starter"
-          },
-          {
-            "id": "y8cwll7m1",
-            "name": "นายอีสาน",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_A_PSU_CMU",
-      "category": "80",
-      "group": "A",
-      "court": "10",
-      "teamA": {
-        "university": "PSU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "x57vkh2qz",
-            "name": "นายทอง",
-            "role": "starter"
-          },
-          {
-            "id": "unr9jkfe7",
-            "name": "นายเงิน",
-            "role": "starter"
-          },
-          {
-            "id": "hxqnl4eg3",
-            "name": "นายนาค",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "80",
-        "group": "A",
-        "players": [
-          {
-            "id": "p87pco4ld",
-            "name": "นายเหนือ",
-            "role": "starter"
-          },
-          {
-            "id": "rrujt8iew",
-            "name": "นายใต้",
-            "role": "starter"
-          },
-          {
-            "id": "y8cwll7m1",
-            "name": "นายอีสาน",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_CU_KU",
-      "category": "80",
-      "group": "B",
-      "court": "1",
-      "teamA": {
-        "university": "CU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "pqhks8phf",
-            "name": "นายหนึ่ง",
-            "role": "starter"
-          },
-          {
-            "id": "is2bl0kzq",
-            "name": "นายสอง",
-            "role": "starter"
-          },
-          {
-            "id": "3t6z2wva0",
-            "name": "นายสาม",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "6b0fymgq2",
-            "name": "นายสี่",
-            "role": "starter"
-          },
-          {
-            "id": "ykilrefsr",
-            "name": "นายห้า",
-            "role": "starter"
-          },
-          {
-            "id": "rzmm532db",
-            "name": "นายหก",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_CU_KKU",
-      "category": "80",
-      "group": "B",
-      "court": "2",
-      "teamA": {
-        "university": "CU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "pqhks8phf",
-            "name": "นายหนึ่ง",
-            "role": "starter"
-          },
-          {
-            "id": "is2bl0kzq",
-            "name": "นายสอง",
-            "role": "starter"
-          },
-          {
-            "id": "3t6z2wva0",
-            "name": "นายสาม",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KKU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "d1bq9jvch",
-            "name": "นายเจ็ด",
-            "role": "starter"
-          },
-          {
-            "id": "x7wumvu2r",
-            "name": "นายแปด",
-            "role": "starter"
-          },
-          {
-            "id": "t0sdchso5",
-            "name": "นายเก้า",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_CU_PSU",
-      "category": "80",
-      "group": "B",
-      "court": "3",
-      "teamA": {
-        "university": "CU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "pqhks8phf",
-            "name": "นายหนึ่ง",
-            "role": "starter"
-          },
-          {
-            "id": "is2bl0kzq",
-            "name": "นายสอง",
-            "role": "starter"
-          },
-          {
-            "id": "3t6z2wva0",
-            "name": "นายสาม",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "ip6ot00hf",
-            "name": "นายสิบ",
-            "role": "starter"
-          },
-          {
-            "id": "6bqk8dmoi",
-            "name": "นายสิบเอ็ด",
-            "role": "starter"
-          },
-          {
-            "id": "8nuprvyll",
-            "name": "นายสิบสอง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_CU_CMU",
-      "category": "80",
-      "group": "B",
-      "court": "4",
-      "teamA": {
-        "university": "CU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "pqhks8phf",
-            "name": "นายหนึ่ง",
-            "role": "starter"
-          },
-          {
-            "id": "is2bl0kzq",
-            "name": "นายสอง",
-            "role": "starter"
-          },
-          {
-            "id": "3t6z2wva0",
-            "name": "นายสาม",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "3u8xo0bvp",
-            "name": "นายสิบสาม",
-            "role": "starter"
-          },
-          {
-            "id": "v7vasivl5",
-            "name": "นายสิบสี่",
-            "role": "starter"
-          },
-          {
-            "id": "cf91hupke",
-            "name": "นายสิบห้า",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_KU_KKU",
-      "category": "80",
-      "group": "B",
-      "court": "5",
-      "teamA": {
-        "university": "KU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "6b0fymgq2",
-            "name": "นายสี่",
-            "role": "starter"
-          },
-          {
-            "id": "ykilrefsr",
-            "name": "นายห้า",
-            "role": "starter"
-          },
-          {
-            "id": "rzmm532db",
-            "name": "นายหก",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KKU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "d1bq9jvch",
-            "name": "นายเจ็ด",
-            "role": "starter"
-          },
-          {
-            "id": "x7wumvu2r",
-            "name": "นายแปด",
-            "role": "starter"
-          },
-          {
-            "id": "t0sdchso5",
-            "name": "นายเก้า",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_KU_PSU",
-      "category": "80",
-      "group": "B",
-      "court": "6",
-      "teamA": {
-        "university": "KU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "6b0fymgq2",
-            "name": "นายสี่",
-            "role": "starter"
-          },
-          {
-            "id": "ykilrefsr",
-            "name": "นายห้า",
-            "role": "starter"
-          },
-          {
-            "id": "rzmm532db",
-            "name": "นายหก",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "ip6ot00hf",
-            "name": "นายสิบ",
-            "role": "starter"
-          },
-          {
-            "id": "6bqk8dmoi",
-            "name": "นายสิบเอ็ด",
-            "role": "starter"
-          },
-          {
-            "id": "8nuprvyll",
-            "name": "นายสิบสอง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_KU_CMU",
-      "category": "80",
-      "group": "B",
-      "court": "7",
-      "teamA": {
-        "university": "KU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "6b0fymgq2",
-            "name": "นายสี่",
-            "role": "starter"
-          },
-          {
-            "id": "ykilrefsr",
-            "name": "นายห้า",
-            "role": "starter"
-          },
-          {
-            "id": "rzmm532db",
-            "name": "นายหก",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "3u8xo0bvp",
-            "name": "นายสิบสาม",
-            "role": "starter"
-          },
-          {
-            "id": "v7vasivl5",
-            "name": "นายสิบสี่",
-            "role": "starter"
-          },
-          {
-            "id": "cf91hupke",
-            "name": "นายสิบห้า",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_KKU_PSU",
-      "category": "80",
-      "group": "B",
-      "court": "8",
-      "teamA": {
-        "university": "KKU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "d1bq9jvch",
-            "name": "นายเจ็ด",
-            "role": "starter"
-          },
-          {
-            "id": "x7wumvu2r",
-            "name": "นายแปด",
-            "role": "starter"
-          },
-          {
-            "id": "t0sdchso5",
-            "name": "นายเก้า",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "ip6ot00hf",
-            "name": "นายสิบ",
-            "role": "starter"
-          },
-          {
-            "id": "6bqk8dmoi",
-            "name": "นายสิบเอ็ด",
-            "role": "starter"
-          },
-          {
-            "id": "8nuprvyll",
-            "name": "นายสิบสอง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_KKU_CMU",
-      "category": "80",
-      "group": "B",
-      "court": "9",
-      "teamA": {
-        "university": "KKU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "d1bq9jvch",
-            "name": "นายเจ็ด",
-            "role": "starter"
-          },
-          {
-            "id": "x7wumvu2r",
-            "name": "นายแปด",
-            "role": "starter"
-          },
-          {
-            "id": "t0sdchso5",
-            "name": "นายเก้า",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "3u8xo0bvp",
-            "name": "นายสิบสาม",
-            "role": "starter"
-          },
-          {
-            "id": "v7vasivl5",
-            "name": "นายสิบสี่",
-            "role": "starter"
-          },
-          {
-            "id": "cf91hupke",
-            "name": "นายสิบห้า",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_80_B_PSU_CMU",
-      "category": "80",
-      "group": "B",
-      "court": "10",
-      "teamA": {
-        "university": "PSU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "ip6ot00hf",
-            "name": "นายสิบ",
-            "role": "starter"
-          },
-          {
-            "id": "6bqk8dmoi",
-            "name": "นายสิบเอ็ด",
-            "role": "starter"
-          },
-          {
-            "id": "8nuprvyll",
-            "name": "นายสิบสอง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "80",
-        "group": "B",
-        "players": [
-          {
-            "id": "3u8xo0bvp",
-            "name": "นายสิบสาม",
-            "role": "starter"
-          },
-          {
-            "id": "v7vasivl5",
-            "name": "นายสิบสี่",
-            "role": "starter"
-          },
-          {
-            "id": "cf91hupke",
-            "name": "นายสิบห้า",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_CU_KU",
-      "category": "90",
-      "group": "A",
-      "court": "1",
-      "teamA": {
-        "university": "CU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "6eplrctsx",
-            "name": "นายกนก",
-            "role": "starter"
-          },
-          {
-            "id": "cjcwv7i2s",
-            "name": "นายขวัญ",
-            "role": "starter"
-          },
-          {
-            "id": "ttvcsdvej",
-            "name": "นายคง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "fifblfe7c",
-            "name": "นายจิตร",
-            "role": "starter"
-          },
-          {
-            "id": "3xhkinxc3",
-            "name": "นายฉลอง",
-            "role": "starter"
-          },
-          {
-            "id": "bpazreayj",
-            "name": "นายชู",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_CU_KKU",
-      "category": "90",
-      "group": "A",
-      "court": "2",
-      "teamA": {
-        "university": "CU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "6eplrctsx",
-            "name": "นายกนก",
-            "role": "starter"
-          },
-          {
-            "id": "cjcwv7i2s",
-            "name": "นายขวัญ",
-            "role": "starter"
-          },
-          {
-            "id": "ttvcsdvej",
-            "name": "นายคง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KKU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "v0sf5qt1f",
-            "name": "นายญาณ",
-            "role": "starter"
-          },
-          {
-            "id": "ilv7jze90",
-            "name": "นายโดม",
-            "role": "starter"
-          },
-          {
-            "id": "b1u178t21",
-            "name": "นายตฤณ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_CU_PSU",
-      "category": "90",
-      "group": "A",
-      "court": "3",
-      "teamA": {
-        "university": "CU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "6eplrctsx",
-            "name": "นายกนก",
-            "role": "starter"
-          },
-          {
-            "id": "cjcwv7i2s",
-            "name": "นายขวัญ",
-            "role": "starter"
-          },
-          {
-            "id": "ttvcsdvej",
-            "name": "นายคง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "uivetbf1g",
-            "name": "นายถาวร",
-            "role": "starter"
-          },
-          {
-            "id": "ny3w6yfoy",
-            "name": "นายทัด",
-            "role": "starter"
-          },
-          {
-            "id": "m62sjksh5",
-            "name": "นายธง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_CU_CMU",
-      "category": "90",
-      "group": "A",
-      "court": "4",
-      "teamA": {
-        "university": "CU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "6eplrctsx",
-            "name": "นายกนก",
-            "role": "starter"
-          },
-          {
-            "id": "cjcwv7i2s",
-            "name": "นายขวัญ",
-            "role": "starter"
-          },
-          {
-            "id": "ttvcsdvej",
-            "name": "นายคง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "5252i3w62",
-            "name": "นายธรรม",
-            "role": "starter"
-          },
-          {
-            "id": "7gjgp3jg6",
-            "name": "นายนพ",
-            "role": "starter"
-          },
-          {
-            "id": "cfpxwy28n",
-            "name": "นายบารมี",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_KU_KKU",
-      "category": "90",
-      "group": "A",
-      "court": "5",
-      "teamA": {
-        "university": "KU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "fifblfe7c",
-            "name": "นายจิตร",
-            "role": "starter"
-          },
-          {
-            "id": "3xhkinxc3",
-            "name": "นายฉลอง",
-            "role": "starter"
-          },
-          {
-            "id": "bpazreayj",
-            "name": "นายชู",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KKU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "v0sf5qt1f",
-            "name": "นายญาณ",
-            "role": "starter"
-          },
-          {
-            "id": "ilv7jze90",
-            "name": "นายโดม",
-            "role": "starter"
-          },
-          {
-            "id": "b1u178t21",
-            "name": "นายตฤณ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_KU_PSU",
-      "category": "90",
-      "group": "A",
-      "court": "6",
-      "teamA": {
-        "university": "KU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "fifblfe7c",
-            "name": "นายจิตร",
-            "role": "starter"
-          },
-          {
-            "id": "3xhkinxc3",
-            "name": "นายฉลอง",
-            "role": "starter"
-          },
-          {
-            "id": "bpazreayj",
-            "name": "นายชู",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "uivetbf1g",
-            "name": "นายถาวร",
-            "role": "starter"
-          },
-          {
-            "id": "ny3w6yfoy",
-            "name": "นายทัด",
-            "role": "starter"
-          },
-          {
-            "id": "m62sjksh5",
-            "name": "นายธง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_KU_CMU",
-      "category": "90",
-      "group": "A",
-      "court": "7",
-      "teamA": {
-        "university": "KU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "fifblfe7c",
-            "name": "นายจิตร",
-            "role": "starter"
-          },
-          {
-            "id": "3xhkinxc3",
-            "name": "นายฉลอง",
-            "role": "starter"
-          },
-          {
-            "id": "bpazreayj",
-            "name": "นายชู",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "5252i3w62",
-            "name": "นายธรรม",
-            "role": "starter"
-          },
-          {
-            "id": "7gjgp3jg6",
-            "name": "นายนพ",
-            "role": "starter"
-          },
-          {
-            "id": "cfpxwy28n",
-            "name": "นายบารมี",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_KKU_PSU",
-      "category": "90",
-      "group": "A",
-      "court": "8",
-      "teamA": {
-        "university": "KKU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "v0sf5qt1f",
-            "name": "นายญาณ",
-            "role": "starter"
-          },
-          {
-            "id": "ilv7jze90",
-            "name": "นายโดม",
-            "role": "starter"
-          },
-          {
-            "id": "b1u178t21",
-            "name": "นายตฤณ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "uivetbf1g",
-            "name": "นายถาวร",
-            "role": "starter"
-          },
-          {
-            "id": "ny3w6yfoy",
-            "name": "นายทัด",
-            "role": "starter"
-          },
-          {
-            "id": "m62sjksh5",
-            "name": "นายธง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_KKU_CMU",
-      "category": "90",
-      "group": "A",
-      "court": "9",
-      "teamA": {
-        "university": "KKU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "v0sf5qt1f",
-            "name": "นายญาณ",
-            "role": "starter"
-          },
-          {
-            "id": "ilv7jze90",
-            "name": "นายโดม",
-            "role": "starter"
-          },
-          {
-            "id": "b1u178t21",
-            "name": "นายตฤณ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "5252i3w62",
-            "name": "นายธรรม",
-            "role": "starter"
-          },
-          {
-            "id": "7gjgp3jg6",
-            "name": "นายนพ",
-            "role": "starter"
-          },
-          {
-            "id": "cfpxwy28n",
-            "name": "นายบารมี",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_90_A_PSU_CMU",
-      "category": "90",
-      "group": "A",
-      "court": "10",
-      "teamA": {
-        "university": "PSU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "uivetbf1g",
-            "name": "นายถาวร",
-            "role": "starter"
-          },
-          {
-            "id": "ny3w6yfoy",
-            "name": "นายทัด",
-            "role": "starter"
-          },
-          {
-            "id": "m62sjksh5",
-            "name": "นายธง",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "90",
-        "group": "A",
-        "players": [
-          {
-            "id": "5252i3w62",
-            "name": "นายธรรม",
-            "role": "starter"
-          },
-          {
-            "id": "7gjgp3jg6",
-            "name": "นายนพ",
-            "role": "starter"
-          },
-          {
-            "id": "cfpxwy28n",
-            "name": "นายบารมี",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_CU_KU",
-      "category": "100",
-      "group": "B",
-      "court": "1",
-      "teamA": {
-        "university": "CU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "euvpp69sn",
-            "name": "นายปราชญ์",
-            "role": "starter"
-          },
-          {
-            "id": "mvyt4nvhf",
-            "name": "นายผดุง",
-            "role": "starter"
-          },
-          {
-            "id": "1d44tw4we",
-            "name": "นายพงษ์",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "o36qjemiv",
-            "name": "นายภักดี",
-            "role": "starter"
-          },
-          {
-            "id": "cbqqe87xs",
-            "name": "นายมงคล",
-            "role": "starter"
-          },
-          {
-            "id": "u5u2q596z",
-            "name": "นายยศ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_CU_KKU",
-      "category": "100",
-      "group": "B",
-      "court": "2",
-      "teamA": {
-        "university": "CU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "euvpp69sn",
-            "name": "นายปราชญ์",
-            "role": "starter"
-          },
-          {
-            "id": "mvyt4nvhf",
-            "name": "นายผดุง",
-            "role": "starter"
-          },
-          {
-            "id": "1d44tw4we",
-            "name": "นายพงษ์",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KKU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "9966uzkvm",
-            "name": "นายรักษ์",
-            "role": "starter"
-          },
-          {
-            "id": "86opsfgei",
-            "name": "นายศิริ",
-            "role": "starter"
-          },
-          {
-            "id": "786hzbpic",
-            "name": "นายสม",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_CU_PSU",
-      "category": "100",
-      "group": "B",
-      "court": "3",
-      "teamA": {
-        "university": "CU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "euvpp69sn",
-            "name": "นายปราชญ์",
-            "role": "starter"
-          },
-          {
-            "id": "mvyt4nvhf",
-            "name": "นายผดุง",
-            "role": "starter"
-          },
-          {
-            "id": "1d44tw4we",
-            "name": "นายพงษ์",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "y86m4lqx6",
-            "name": "นายอดุลย์",
-            "role": "starter"
-          },
-          {
-            "id": "sxbiovs8d",
-            "name": "นายอนันต์",
-            "role": "starter"
-          },
-          {
-            "id": "8s4e2187b",
-            "name": "นายอภิชาติ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_CU_CMU",
-      "category": "100",
-      "group": "B",
-      "court": "4",
-      "teamA": {
-        "university": "CU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "euvpp69sn",
-            "name": "นายปราชญ์",
-            "role": "starter"
-          },
-          {
-            "id": "mvyt4nvhf",
-            "name": "นายผดุง",
-            "role": "starter"
-          },
-          {
-            "id": "1d44tw4we",
-            "name": "นายพงษ์",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "3robvv5sr",
-            "name": "นายเกรียง",
-            "role": "starter"
-          },
-          {
-            "id": "5paodelfb",
-            "name": "นายเดชา",
-            "role": "starter"
-          },
-          {
-            "id": "v9t86zo2k",
-            "name": "นายวิชัย",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_KU_KKU",
-      "category": "100",
-      "group": "B",
-      "court": "5",
-      "teamA": {
-        "university": "KU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "o36qjemiv",
-            "name": "นายภักดี",
-            "role": "starter"
-          },
-          {
-            "id": "cbqqe87xs",
-            "name": "นายมงคล",
-            "role": "starter"
-          },
-          {
-            "id": "u5u2q596z",
-            "name": "นายยศ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "KKU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "9966uzkvm",
-            "name": "นายรักษ์",
-            "role": "starter"
-          },
-          {
-            "id": "86opsfgei",
-            "name": "นายศิริ",
-            "role": "starter"
-          },
-          {
-            "id": "786hzbpic",
-            "name": "นายสม",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_KU_PSU",
-      "category": "100",
-      "group": "B",
-      "court": "6",
-      "teamA": {
-        "university": "KU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "o36qjemiv",
-            "name": "นายภักดี",
-            "role": "starter"
-          },
-          {
-            "id": "cbqqe87xs",
-            "name": "นายมงคล",
-            "role": "starter"
-          },
-          {
-            "id": "u5u2q596z",
-            "name": "นายยศ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "y86m4lqx6",
-            "name": "นายอดุลย์",
-            "role": "starter"
-          },
-          {
-            "id": "sxbiovs8d",
-            "name": "นายอนันต์",
-            "role": "starter"
-          },
-          {
-            "id": "8s4e2187b",
-            "name": "นายอภิชาติ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_KU_CMU",
-      "category": "100",
-      "group": "B",
-      "court": "7",
-      "teamA": {
-        "university": "KU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "o36qjemiv",
-            "name": "นายภักดี",
-            "role": "starter"
-          },
-          {
-            "id": "cbqqe87xs",
-            "name": "นายมงคล",
-            "role": "starter"
-          },
-          {
-            "id": "u5u2q596z",
-            "name": "นายยศ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "3robvv5sr",
-            "name": "นายเกรียง",
-            "role": "starter"
-          },
-          {
-            "id": "5paodelfb",
-            "name": "นายเดชา",
-            "role": "starter"
-          },
-          {
-            "id": "v9t86zo2k",
-            "name": "นายวิชัย",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_KKU_PSU",
-      "category": "100",
-      "group": "B",
-      "court": "8",
-      "teamA": {
-        "university": "KKU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "9966uzkvm",
-            "name": "นายรักษ์",
-            "role": "starter"
-          },
-          {
-            "id": "86opsfgei",
-            "name": "นายศิริ",
-            "role": "starter"
-          },
-          {
-            "id": "786hzbpic",
-            "name": "นายสม",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "PSU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "y86m4lqx6",
-            "name": "นายอดุลย์",
-            "role": "starter"
-          },
-          {
-            "id": "sxbiovs8d",
-            "name": "นายอนันต์",
-            "role": "starter"
-          },
-          {
-            "id": "8s4e2187b",
-            "name": "นายอภิชาติ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_KKU_CMU",
-      "category": "100",
-      "group": "B",
-      "court": "9",
-      "teamA": {
-        "university": "KKU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "9966uzkvm",
-            "name": "นายรักษ์",
-            "role": "starter"
-          },
-          {
-            "id": "86opsfgei",
-            "name": "นายศิริ",
-            "role": "starter"
-          },
-          {
-            "id": "786hzbpic",
-            "name": "นายสม",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "3robvv5sr",
-            "name": "นายเกรียง",
-            "role": "starter"
-          },
-          {
-            "id": "5paodelfb",
-            "name": "นายเดชา",
-            "role": "starter"
-          },
-          {
-            "id": "v9t86zo2k",
-            "name": "นายวิชัย",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
-      "id": "M_100_B_PSU_CMU",
-      "category": "100",
-      "group": "B",
-      "court": "10",
-      "teamA": {
-        "university": "PSU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "y86m4lqx6",
-            "name": "นายอดุลย์",
-            "role": "starter"
-          },
-          {
-            "id": "sxbiovs8d",
-            "name": "นายอนันต์",
-            "role": "starter"
-          },
-          {
-            "id": "8s4e2187b",
-            "name": "นายอภิชาติ",
-            "role": "substitute"
-          }
-        ]
-      },
-      "teamB": {
-        "university": "CMU",
-        "category": "100",
-        "group": "B",
-        "players": [
-          {
-            "id": "3robvv5sr",
-            "name": "นายเกรียง",
-            "role": "starter"
-          },
-          {
-            "id": "5paodelfb",
-            "name": "นายเดชา",
-            "role": "starter"
-          },
-          {
-            "id": "v9t86zo2k",
-            "name": "นายวิชัย",
-            "role": "substitute"
-          }
-        ]
-      },
-      "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
-      },
-      "isFinished": false
-    },
-    {
       "id": "M_general_A_CU_KU",
       "category": "ทั่วไป",
       "group": "A",
@@ -2291,17 +11,17 @@
         "group": "A",
         "players": [
           {
-            "id": "lgw7d9kt8",
+            "id": "pg2rb3f33",
             "name": "นายเอ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "55xcvsk7h",
+            "id": "xndtwjz3l",
             "name": "นายเอ สอง",
             "role": "starter"
           },
           {
-            "id": "zzn4pvahf",
+            "id": "ytqtzi4ql",
             "name": "นายเอ สำรอง",
             "role": "substitute"
           }
@@ -2313,27 +33,27 @@
         "group": "A",
         "players": [
           {
-            "id": "wkll7nmfg",
+            "id": "csqjbws69",
             "name": "นายบี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "i7nvio6tc",
+            "id": "vwl1m89t6",
             "name": "นายบี สอง",
             "role": "starter"
           },
           {
-            "id": "z1j9cdqcs",
+            "id": "d4o459zk1",
             "name": "นายบี สำรอง",
             "role": "substitute"
           }
         ]
       },
       "score": {
-        "s1a": 2,
+        "s1a": 0,
         "s1b": 21,
-        "s2a": 21,
-        "s2b": 0
+        "s2a": 5,
+        "s2b": 8
       },
       "isFinished": false
     },
@@ -2348,17 +68,17 @@
         "group": "A",
         "players": [
           {
-            "id": "lgw7d9kt8",
+            "id": "pg2rb3f33",
             "name": "นายเอ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "55xcvsk7h",
+            "id": "xndtwjz3l",
             "name": "นายเอ สอง",
             "role": "starter"
           },
           {
-            "id": "zzn4pvahf",
+            "id": "ytqtzi4ql",
             "name": "นายเอ สำรอง",
             "role": "substitute"
           }
@@ -2370,17 +90,17 @@
         "group": "A",
         "players": [
           {
-            "id": "owzobox2w",
+            "id": "x3hkp13pm",
             "name": "นายซี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "ejh6yx5ox",
+            "id": "vgmi99l96",
             "name": "นายซี สอง",
             "role": "starter"
           },
           {
-            "id": "3gypz4675",
+            "id": "f4e8tcygm",
             "name": "นายซี สำรอง",
             "role": "substitute"
           }
@@ -2405,17 +125,17 @@
         "group": "A",
         "players": [
           {
-            "id": "lgw7d9kt8",
+            "id": "pg2rb3f33",
             "name": "นายเอ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "55xcvsk7h",
+            "id": "xndtwjz3l",
             "name": "นายเอ สอง",
             "role": "starter"
           },
           {
-            "id": "zzn4pvahf",
+            "id": "ytqtzi4ql",
             "name": "นายเอ สำรอง",
             "role": "substitute"
           }
@@ -2427,17 +147,17 @@
         "group": "A",
         "players": [
           {
-            "id": "hsysv8tsz",
+            "id": "nkxitu27j",
             "name": "นายดี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "lb3ouuewa",
+            "id": "st1sme877",
             "name": "นายดี สอง",
             "role": "starter"
           },
           {
-            "id": "ed0tnujqy",
+            "id": "sy6q0e032",
             "name": "นายดี สำรอง",
             "role": "substitute"
           }
@@ -2462,17 +182,17 @@
         "group": "A",
         "players": [
           {
-            "id": "lgw7d9kt8",
+            "id": "pg2rb3f33",
             "name": "นายเอ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "55xcvsk7h",
+            "id": "xndtwjz3l",
             "name": "นายเอ สอง",
             "role": "starter"
           },
           {
-            "id": "zzn4pvahf",
+            "id": "ytqtzi4ql",
             "name": "นายเอ สำรอง",
             "role": "substitute"
           }
@@ -2484,17 +204,17 @@
         "group": "A",
         "players": [
           {
-            "id": "48upkf7at",
+            "id": "btb2j95ns",
             "name": "นายอี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "1e87nhn93",
+            "id": "56wjmexgq",
             "name": "นายอี สอง",
             "role": "starter"
           },
           {
-            "id": "x3x2glxca",
+            "id": "2lqh2bpno",
             "name": "นายอี สำรอง",
             "role": "substitute"
           }
@@ -2519,17 +239,17 @@
         "group": "A",
         "players": [
           {
-            "id": "wkll7nmfg",
+            "id": "csqjbws69",
             "name": "นายบี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "i7nvio6tc",
+            "id": "vwl1m89t6",
             "name": "นายบี สอง",
             "role": "starter"
           },
           {
-            "id": "z1j9cdqcs",
+            "id": "d4o459zk1",
             "name": "นายบี สำรอง",
             "role": "substitute"
           }
@@ -2541,17 +261,17 @@
         "group": "A",
         "players": [
           {
-            "id": "owzobox2w",
+            "id": "x3hkp13pm",
             "name": "นายซี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "ejh6yx5ox",
+            "id": "vgmi99l96",
             "name": "นายซี สอง",
             "role": "starter"
           },
           {
-            "id": "3gypz4675",
+            "id": "f4e8tcygm",
             "name": "นายซี สำรอง",
             "role": "substitute"
           }
@@ -2576,17 +296,17 @@
         "group": "A",
         "players": [
           {
-            "id": "wkll7nmfg",
+            "id": "csqjbws69",
             "name": "นายบี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "i7nvio6tc",
+            "id": "vwl1m89t6",
             "name": "นายบี สอง",
             "role": "starter"
           },
           {
-            "id": "z1j9cdqcs",
+            "id": "d4o459zk1",
             "name": "นายบี สำรอง",
             "role": "substitute"
           }
@@ -2598,17 +318,17 @@
         "group": "A",
         "players": [
           {
-            "id": "hsysv8tsz",
+            "id": "nkxitu27j",
             "name": "นายดี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "lb3ouuewa",
+            "id": "st1sme877",
             "name": "นายดี สอง",
             "role": "starter"
           },
           {
-            "id": "ed0tnujqy",
+            "id": "sy6q0e032",
             "name": "นายดี สำรอง",
             "role": "substitute"
           }
@@ -2633,17 +353,17 @@
         "group": "A",
         "players": [
           {
-            "id": "wkll7nmfg",
+            "id": "csqjbws69",
             "name": "นายบี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "i7nvio6tc",
+            "id": "vwl1m89t6",
             "name": "นายบี สอง",
             "role": "starter"
           },
           {
-            "id": "z1j9cdqcs",
+            "id": "d4o459zk1",
             "name": "นายบี สำรอง",
             "role": "substitute"
           }
@@ -2655,17 +375,17 @@
         "group": "A",
         "players": [
           {
-            "id": "48upkf7at",
+            "id": "btb2j95ns",
             "name": "นายอี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "1e87nhn93",
+            "id": "56wjmexgq",
             "name": "นายอี สอง",
             "role": "starter"
           },
           {
-            "id": "x3x2glxca",
+            "id": "2lqh2bpno",
             "name": "นายอี สำรอง",
             "role": "substitute"
           }
@@ -2690,17 +410,17 @@
         "group": "A",
         "players": [
           {
-            "id": "owzobox2w",
+            "id": "x3hkp13pm",
             "name": "นายซี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "ejh6yx5ox",
+            "id": "vgmi99l96",
             "name": "นายซี สอง",
             "role": "starter"
           },
           {
-            "id": "3gypz4675",
+            "id": "f4e8tcygm",
             "name": "นายซี สำรอง",
             "role": "substitute"
           }
@@ -2712,17 +432,17 @@
         "group": "A",
         "players": [
           {
-            "id": "hsysv8tsz",
+            "id": "nkxitu27j",
             "name": "นายดี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "lb3ouuewa",
+            "id": "st1sme877",
             "name": "นายดี สอง",
             "role": "starter"
           },
           {
-            "id": "ed0tnujqy",
+            "id": "sy6q0e032",
             "name": "นายดี สำรอง",
             "role": "substitute"
           }
@@ -2747,17 +467,17 @@
         "group": "A",
         "players": [
           {
-            "id": "owzobox2w",
+            "id": "x3hkp13pm",
             "name": "นายซี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "ejh6yx5ox",
+            "id": "vgmi99l96",
             "name": "นายซี สอง",
             "role": "starter"
           },
           {
-            "id": "3gypz4675",
+            "id": "f4e8tcygm",
             "name": "นายซี สำรอง",
             "role": "substitute"
           }
@@ -2769,17 +489,17 @@
         "group": "A",
         "players": [
           {
-            "id": "48upkf7at",
+            "id": "btb2j95ns",
             "name": "นายอี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "1e87nhn93",
+            "id": "56wjmexgq",
             "name": "นายอี สอง",
             "role": "starter"
           },
           {
-            "id": "x3x2glxca",
+            "id": "2lqh2bpno",
             "name": "นายอี สำรอง",
             "role": "substitute"
           }
@@ -2804,17 +524,17 @@
         "group": "A",
         "players": [
           {
-            "id": "hsysv8tsz",
+            "id": "nkxitu27j",
             "name": "นายดี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "lb3ouuewa",
+            "id": "st1sme877",
             "name": "นายดี สอง",
             "role": "starter"
           },
           {
-            "id": "ed0tnujqy",
+            "id": "sy6q0e032",
             "name": "นายดี สำรอง",
             "role": "substitute"
           }
@@ -2826,17 +546,17 @@
         "group": "A",
         "players": [
           {
-            "id": "48upkf7at",
+            "id": "btb2j95ns",
             "name": "นายอี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "1e87nhn93",
+            "id": "56wjmexgq",
             "name": "นายอี สอง",
             "role": "starter"
           },
           {
-            "id": "x3x2glxca",
+            "id": "2lqh2bpno",
             "name": "นายอี สำรอง",
             "role": "substitute"
           }
@@ -2854,24 +574,24 @@
       "id": "M_general_B_CU_KU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "1",
+      "court": "11",
       "teamA": {
         "university": "CU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "9gq350gtx",
+            "id": "k3icg8avl",
             "name": "นายเอฟ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "76ua2tfht",
+            "id": "c97mlpsdm",
             "name": "นายเอฟ สอง",
             "role": "starter"
           },
           {
-            "id": "79w5g05qf",
+            "id": "dbhcznite",
             "name": "นายเอฟ สำรอง",
             "role": "substitute"
           }
@@ -2883,17 +603,17 @@
         "group": "B",
         "players": [
           {
-            "id": "dkznhuwrx",
+            "id": "l7egzwrg0",
             "name": "นายจี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "wqb9mm1xw",
+            "id": "lqxryvxrg",
             "name": "นายจี สอง",
             "role": "starter"
           },
           {
-            "id": "uujy792yr",
+            "id": "do6qzi17n",
             "name": "นายจี สำรอง",
             "role": "substitute"
           }
@@ -2911,24 +631,24 @@
       "id": "M_general_B_CU_KKU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "2",
+      "court": "12",
       "teamA": {
         "university": "CU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "9gq350gtx",
+            "id": "k3icg8avl",
             "name": "นายเอฟ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "76ua2tfht",
+            "id": "c97mlpsdm",
             "name": "นายเอฟ สอง",
             "role": "starter"
           },
           {
-            "id": "79w5g05qf",
+            "id": "dbhcznite",
             "name": "นายเอฟ สำรอง",
             "role": "substitute"
           }
@@ -2940,17 +660,17 @@
         "group": "B",
         "players": [
           {
-            "id": "x9w372nyc",
+            "id": "2ce0lkzsa",
             "name": "นายเอช หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "ix7c2agkp",
+            "id": "mh3iva6c8",
             "name": "นายเอช สอง",
             "role": "starter"
           },
           {
-            "id": "1p9p9q84a",
+            "id": "u6sz21p1j",
             "name": "นายเอช สำรอง",
             "role": "substitute"
           }
@@ -2968,24 +688,24 @@
       "id": "M_general_B_CU_PSU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "3",
+      "court": "13",
       "teamA": {
         "university": "CU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "9gq350gtx",
+            "id": "k3icg8avl",
             "name": "นายเอฟ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "76ua2tfht",
+            "id": "c97mlpsdm",
             "name": "นายเอฟ สอง",
             "role": "starter"
           },
           {
-            "id": "79w5g05qf",
+            "id": "dbhcznite",
             "name": "นายเอฟ สำรอง",
             "role": "substitute"
           }
@@ -2997,17 +717,17 @@
         "group": "B",
         "players": [
           {
-            "id": "02ghov3xd",
+            "id": "4k91o8m6w",
             "name": "นายไอ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "qtzkuqbi0",
+            "id": "t061zd3id",
             "name": "นายไอ สอง",
             "role": "starter"
           },
           {
-            "id": "6ydmwbiqt",
+            "id": "yais65aev",
             "name": "นายไอ สำรอง",
             "role": "substitute"
           }
@@ -3025,24 +745,24 @@
       "id": "M_general_B_CU_CMU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "4",
+      "court": "14",
       "teamA": {
         "university": "CU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "9gq350gtx",
+            "id": "k3icg8avl",
             "name": "นายเอฟ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "76ua2tfht",
+            "id": "c97mlpsdm",
             "name": "นายเอฟ สอง",
             "role": "starter"
           },
           {
-            "id": "79w5g05qf",
+            "id": "dbhcznite",
             "name": "นายเอฟ สำรอง",
             "role": "substitute"
           }
@@ -3054,17 +774,17 @@
         "group": "B",
         "players": [
           {
-            "id": "mwfvzwols",
+            "id": "zyhq8ldez",
             "name": "นายเจ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "5rc88b8ox",
+            "id": "cx0qo60as",
             "name": "นายเจ สอง",
             "role": "starter"
           },
           {
-            "id": "v6qoet9d0",
+            "id": "u3fadcqjy",
             "name": "นายเจ สำรอง",
             "role": "substitute"
           }
@@ -3082,24 +802,24 @@
       "id": "M_general_B_KU_KKU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "5",
+      "court": "15",
       "teamA": {
         "university": "KU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "dkznhuwrx",
+            "id": "l7egzwrg0",
             "name": "นายจี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "wqb9mm1xw",
+            "id": "lqxryvxrg",
             "name": "นายจี สอง",
             "role": "starter"
           },
           {
-            "id": "uujy792yr",
+            "id": "do6qzi17n",
             "name": "นายจี สำรอง",
             "role": "substitute"
           }
@@ -3111,17 +831,17 @@
         "group": "B",
         "players": [
           {
-            "id": "x9w372nyc",
+            "id": "2ce0lkzsa",
             "name": "นายเอช หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "ix7c2agkp",
+            "id": "mh3iva6c8",
             "name": "นายเอช สอง",
             "role": "starter"
           },
           {
-            "id": "1p9p9q84a",
+            "id": "u6sz21p1j",
             "name": "นายเอช สำรอง",
             "role": "substitute"
           }
@@ -3139,24 +859,24 @@
       "id": "M_general_B_KU_PSU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "6",
+      "court": "16",
       "teamA": {
         "university": "KU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "dkznhuwrx",
+            "id": "l7egzwrg0",
             "name": "นายจี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "wqb9mm1xw",
+            "id": "lqxryvxrg",
             "name": "นายจี สอง",
             "role": "starter"
           },
           {
-            "id": "uujy792yr",
+            "id": "do6qzi17n",
             "name": "นายจี สำรอง",
             "role": "substitute"
           }
@@ -3168,17 +888,17 @@
         "group": "B",
         "players": [
           {
-            "id": "02ghov3xd",
+            "id": "4k91o8m6w",
             "name": "นายไอ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "qtzkuqbi0",
+            "id": "t061zd3id",
             "name": "นายไอ สอง",
             "role": "starter"
           },
           {
-            "id": "6ydmwbiqt",
+            "id": "yais65aev",
             "name": "นายไอ สำรอง",
             "role": "substitute"
           }
@@ -3196,24 +916,24 @@
       "id": "M_general_B_KU_CMU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "7",
+      "court": "17",
       "teamA": {
         "university": "KU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "dkznhuwrx",
+            "id": "l7egzwrg0",
             "name": "นายจี หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "wqb9mm1xw",
+            "id": "lqxryvxrg",
             "name": "นายจี สอง",
             "role": "starter"
           },
           {
-            "id": "uujy792yr",
+            "id": "do6qzi17n",
             "name": "นายจี สำรอง",
             "role": "substitute"
           }
@@ -3225,17 +945,17 @@
         "group": "B",
         "players": [
           {
-            "id": "mwfvzwols",
+            "id": "zyhq8ldez",
             "name": "นายเจ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "5rc88b8ox",
+            "id": "cx0qo60as",
             "name": "นายเจ สอง",
             "role": "starter"
           },
           {
-            "id": "v6qoet9d0",
+            "id": "u3fadcqjy",
             "name": "นายเจ สำรอง",
             "role": "substitute"
           }
@@ -3253,24 +973,24 @@
       "id": "M_general_B_KKU_PSU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "8",
+      "court": "18",
       "teamA": {
         "university": "KKU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "x9w372nyc",
+            "id": "2ce0lkzsa",
             "name": "นายเอช หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "ix7c2agkp",
+            "id": "mh3iva6c8",
             "name": "นายเอช สอง",
             "role": "starter"
           },
           {
-            "id": "1p9p9q84a",
+            "id": "u6sz21p1j",
             "name": "นายเอช สำรอง",
             "role": "substitute"
           }
@@ -3282,17 +1002,17 @@
         "group": "B",
         "players": [
           {
-            "id": "02ghov3xd",
+            "id": "4k91o8m6w",
             "name": "นายไอ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "qtzkuqbi0",
+            "id": "t061zd3id",
             "name": "นายไอ สอง",
             "role": "starter"
           },
           {
-            "id": "6ydmwbiqt",
+            "id": "yais65aev",
             "name": "นายไอ สำรอง",
             "role": "substitute"
           }
@@ -3310,24 +1030,24 @@
       "id": "M_general_B_KKU_CMU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "9",
+      "court": "1",
       "teamA": {
         "university": "KKU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "x9w372nyc",
+            "id": "2ce0lkzsa",
             "name": "นายเอช หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "ix7c2agkp",
+            "id": "mh3iva6c8",
             "name": "นายเอช สอง",
             "role": "starter"
           },
           {
-            "id": "1p9p9q84a",
+            "id": "u6sz21p1j",
             "name": "นายเอช สำรอง",
             "role": "substitute"
           }
@@ -3339,17 +1059,17 @@
         "group": "B",
         "players": [
           {
-            "id": "mwfvzwols",
+            "id": "zyhq8ldez",
             "name": "นายเจ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "5rc88b8ox",
+            "id": "cx0qo60as",
             "name": "นายเจ สอง",
             "role": "starter"
           },
           {
-            "id": "v6qoet9d0",
+            "id": "u3fadcqjy",
             "name": "นายเจ สำรอง",
             "role": "substitute"
           }
@@ -3367,24 +1087,24 @@
       "id": "M_general_B_PSU_CMU",
       "category": "ทั่วไป",
       "group": "B",
-      "court": "10",
+      "court": "2",
       "teamA": {
         "university": "PSU",
         "category": "ทั่วไป",
         "group": "B",
         "players": [
           {
-            "id": "02ghov3xd",
+            "id": "4k91o8m6w",
             "name": "นายไอ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "qtzkuqbi0",
+            "id": "t061zd3id",
             "name": "นายไอ สอง",
             "role": "starter"
           },
           {
-            "id": "6ydmwbiqt",
+            "id": "yais65aev",
             "name": "นายไอ สำรอง",
             "role": "substitute"
           }
@@ -3396,18 +1116,2298 @@
         "group": "B",
         "players": [
           {
-            "id": "mwfvzwols",
+            "id": "zyhq8ldez",
             "name": "นายเจ หนึ่ง",
             "role": "starter"
           },
           {
-            "id": "5rc88b8ox",
+            "id": "cx0qo60as",
             "name": "นายเจ สอง",
             "role": "starter"
           },
           {
-            "id": "v6qoet9d0",
+            "id": "u3fadcqjy",
             "name": "นายเจ สำรอง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_CU_KU",
+      "category": "80",
+      "group": "A",
+      "court": "3",
+      "teamA": {
+        "university": "CU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "lmbf439zy",
+            "name": "นายแดง",
+            "role": "starter"
+          },
+          {
+            "id": "lgx8hfn7d",
+            "name": "นายดำ",
+            "role": "starter"
+          },
+          {
+            "id": "84sr4zgmf",
+            "name": "นายขาว",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "uytpmb2dc",
+            "name": "นายเขียว",
+            "role": "starter"
+          },
+          {
+            "id": "9acwnzftv",
+            "name": "นายฟ้า",
+            "role": "starter"
+          },
+          {
+            "id": "etfjiyecy",
+            "name": "นายเหลือง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_CU_KKU",
+      "category": "80",
+      "group": "A",
+      "court": "4",
+      "teamA": {
+        "university": "CU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "lmbf439zy",
+            "name": "นายแดง",
+            "role": "starter"
+          },
+          {
+            "id": "lgx8hfn7d",
+            "name": "นายดำ",
+            "role": "starter"
+          },
+          {
+            "id": "84sr4zgmf",
+            "name": "นายขาว",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KKU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "zcqfkani3",
+            "name": "นายม่วง",
+            "role": "starter"
+          },
+          {
+            "id": "530d005z7",
+            "name": "นายแสด",
+            "role": "starter"
+          },
+          {
+            "id": "87ds5m12k",
+            "name": "นายชมพู",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_CU_PSU",
+      "category": "80",
+      "group": "A",
+      "court": "5",
+      "teamA": {
+        "university": "CU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "lmbf439zy",
+            "name": "นายแดง",
+            "role": "starter"
+          },
+          {
+            "id": "lgx8hfn7d",
+            "name": "นายดำ",
+            "role": "starter"
+          },
+          {
+            "id": "84sr4zgmf",
+            "name": "นายขาว",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "081aqflze",
+            "name": "นายทอง",
+            "role": "starter"
+          },
+          {
+            "id": "k9mtyuj32",
+            "name": "นายเงิน",
+            "role": "starter"
+          },
+          {
+            "id": "gdhpg3soz",
+            "name": "นายนาค",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_CU_CMU",
+      "category": "80",
+      "group": "A",
+      "court": "6",
+      "teamA": {
+        "university": "CU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "lmbf439zy",
+            "name": "นายแดง",
+            "role": "starter"
+          },
+          {
+            "id": "lgx8hfn7d",
+            "name": "นายดำ",
+            "role": "starter"
+          },
+          {
+            "id": "84sr4zgmf",
+            "name": "นายขาว",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "er6q47cnf",
+            "name": "นายเหนือ",
+            "role": "starter"
+          },
+          {
+            "id": "lf7rzafhn",
+            "name": "นายใต้",
+            "role": "starter"
+          },
+          {
+            "id": "8qpokaf1k",
+            "name": "นายอีสาน",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_KU_KKU",
+      "category": "80",
+      "group": "A",
+      "court": "7",
+      "teamA": {
+        "university": "KU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "uytpmb2dc",
+            "name": "นายเขียว",
+            "role": "starter"
+          },
+          {
+            "id": "9acwnzftv",
+            "name": "นายฟ้า",
+            "role": "starter"
+          },
+          {
+            "id": "etfjiyecy",
+            "name": "นายเหลือง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KKU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "zcqfkani3",
+            "name": "นายม่วง",
+            "role": "starter"
+          },
+          {
+            "id": "530d005z7",
+            "name": "นายแสด",
+            "role": "starter"
+          },
+          {
+            "id": "87ds5m12k",
+            "name": "นายชมพู",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_KU_PSU",
+      "category": "80",
+      "group": "A",
+      "court": "8",
+      "teamA": {
+        "university": "KU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "uytpmb2dc",
+            "name": "นายเขียว",
+            "role": "starter"
+          },
+          {
+            "id": "9acwnzftv",
+            "name": "นายฟ้า",
+            "role": "starter"
+          },
+          {
+            "id": "etfjiyecy",
+            "name": "นายเหลือง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "081aqflze",
+            "name": "นายทอง",
+            "role": "starter"
+          },
+          {
+            "id": "k9mtyuj32",
+            "name": "นายเงิน",
+            "role": "starter"
+          },
+          {
+            "id": "gdhpg3soz",
+            "name": "นายนาค",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_KU_CMU",
+      "category": "80",
+      "group": "A",
+      "court": "9",
+      "teamA": {
+        "university": "KU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "uytpmb2dc",
+            "name": "นายเขียว",
+            "role": "starter"
+          },
+          {
+            "id": "9acwnzftv",
+            "name": "นายฟ้า",
+            "role": "starter"
+          },
+          {
+            "id": "etfjiyecy",
+            "name": "นายเหลือง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "er6q47cnf",
+            "name": "นายเหนือ",
+            "role": "starter"
+          },
+          {
+            "id": "lf7rzafhn",
+            "name": "นายใต้",
+            "role": "starter"
+          },
+          {
+            "id": "8qpokaf1k",
+            "name": "นายอีสาน",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_KKU_PSU",
+      "category": "80",
+      "group": "A",
+      "court": "10",
+      "teamA": {
+        "university": "KKU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "zcqfkani3",
+            "name": "นายม่วง",
+            "role": "starter"
+          },
+          {
+            "id": "530d005z7",
+            "name": "นายแสด",
+            "role": "starter"
+          },
+          {
+            "id": "87ds5m12k",
+            "name": "นายชมพู",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "081aqflze",
+            "name": "นายทอง",
+            "role": "starter"
+          },
+          {
+            "id": "k9mtyuj32",
+            "name": "นายเงิน",
+            "role": "starter"
+          },
+          {
+            "id": "gdhpg3soz",
+            "name": "นายนาค",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_KKU_CMU",
+      "category": "80",
+      "group": "A",
+      "court": "11",
+      "teamA": {
+        "university": "KKU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "zcqfkani3",
+            "name": "นายม่วง",
+            "role": "starter"
+          },
+          {
+            "id": "530d005z7",
+            "name": "นายแสด",
+            "role": "starter"
+          },
+          {
+            "id": "87ds5m12k",
+            "name": "นายชมพู",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "er6q47cnf",
+            "name": "นายเหนือ",
+            "role": "starter"
+          },
+          {
+            "id": "lf7rzafhn",
+            "name": "นายใต้",
+            "role": "starter"
+          },
+          {
+            "id": "8qpokaf1k",
+            "name": "นายอีสาน",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_A_PSU_CMU",
+      "category": "80",
+      "group": "A",
+      "court": "12",
+      "teamA": {
+        "university": "PSU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "081aqflze",
+            "name": "นายทอง",
+            "role": "starter"
+          },
+          {
+            "id": "k9mtyuj32",
+            "name": "นายเงิน",
+            "role": "starter"
+          },
+          {
+            "id": "gdhpg3soz",
+            "name": "นายนาค",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "80",
+        "group": "A",
+        "players": [
+          {
+            "id": "er6q47cnf",
+            "name": "นายเหนือ",
+            "role": "starter"
+          },
+          {
+            "id": "lf7rzafhn",
+            "name": "นายใต้",
+            "role": "starter"
+          },
+          {
+            "id": "8qpokaf1k",
+            "name": "นายอีสาน",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_CU_KU",
+      "category": "80",
+      "group": "B",
+      "court": "13",
+      "teamA": {
+        "university": "CU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "v1xerifa3",
+            "name": "นายหนึ่ง",
+            "role": "starter"
+          },
+          {
+            "id": "q07eaz3j0",
+            "name": "นายสอง",
+            "role": "starter"
+          },
+          {
+            "id": "pl3elzfqy",
+            "name": "นายสาม",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "gx7psp5p1",
+            "name": "นายสี่",
+            "role": "starter"
+          },
+          {
+            "id": "axy94lum3",
+            "name": "นายห้า",
+            "role": "starter"
+          },
+          {
+            "id": "461qzi057",
+            "name": "นายหก",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_CU_KKU",
+      "category": "80",
+      "group": "B",
+      "court": "14",
+      "teamA": {
+        "university": "CU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "v1xerifa3",
+            "name": "นายหนึ่ง",
+            "role": "starter"
+          },
+          {
+            "id": "q07eaz3j0",
+            "name": "นายสอง",
+            "role": "starter"
+          },
+          {
+            "id": "pl3elzfqy",
+            "name": "นายสาม",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KKU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "yafo1c4d4",
+            "name": "นายเจ็ด",
+            "role": "starter"
+          },
+          {
+            "id": "9a8v2nsxc",
+            "name": "นายแปด",
+            "role": "starter"
+          },
+          {
+            "id": "k6if7q844",
+            "name": "นายเก้า",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_CU_PSU",
+      "category": "80",
+      "group": "B",
+      "court": "15",
+      "teamA": {
+        "university": "CU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "v1xerifa3",
+            "name": "นายหนึ่ง",
+            "role": "starter"
+          },
+          {
+            "id": "q07eaz3j0",
+            "name": "นายสอง",
+            "role": "starter"
+          },
+          {
+            "id": "pl3elzfqy",
+            "name": "นายสาม",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "fpkfqa1rj",
+            "name": "นายสิบ",
+            "role": "starter"
+          },
+          {
+            "id": "yh2wojcdg",
+            "name": "นายสิบเอ็ด",
+            "role": "starter"
+          },
+          {
+            "id": "nedqi7cuu",
+            "name": "นายสิบสอง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_CU_CMU",
+      "category": "80",
+      "group": "B",
+      "court": "16",
+      "teamA": {
+        "university": "CU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "v1xerifa3",
+            "name": "นายหนึ่ง",
+            "role": "starter"
+          },
+          {
+            "id": "q07eaz3j0",
+            "name": "นายสอง",
+            "role": "starter"
+          },
+          {
+            "id": "pl3elzfqy",
+            "name": "นายสาม",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "iahiijf78",
+            "name": "นายสิบสาม",
+            "role": "starter"
+          },
+          {
+            "id": "m2f12kuhk",
+            "name": "นายสิบสี่",
+            "role": "starter"
+          },
+          {
+            "id": "x3rt31qtb",
+            "name": "นายสิบห้า",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_KU_KKU",
+      "category": "80",
+      "group": "B",
+      "court": "17",
+      "teamA": {
+        "university": "KU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "gx7psp5p1",
+            "name": "นายสี่",
+            "role": "starter"
+          },
+          {
+            "id": "axy94lum3",
+            "name": "นายห้า",
+            "role": "starter"
+          },
+          {
+            "id": "461qzi057",
+            "name": "นายหก",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KKU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "yafo1c4d4",
+            "name": "นายเจ็ด",
+            "role": "starter"
+          },
+          {
+            "id": "9a8v2nsxc",
+            "name": "นายแปด",
+            "role": "starter"
+          },
+          {
+            "id": "k6if7q844",
+            "name": "นายเก้า",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_KU_PSU",
+      "category": "80",
+      "group": "B",
+      "court": "18",
+      "teamA": {
+        "university": "KU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "gx7psp5p1",
+            "name": "นายสี่",
+            "role": "starter"
+          },
+          {
+            "id": "axy94lum3",
+            "name": "นายห้า",
+            "role": "starter"
+          },
+          {
+            "id": "461qzi057",
+            "name": "นายหก",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "fpkfqa1rj",
+            "name": "นายสิบ",
+            "role": "starter"
+          },
+          {
+            "id": "yh2wojcdg",
+            "name": "นายสิบเอ็ด",
+            "role": "starter"
+          },
+          {
+            "id": "nedqi7cuu",
+            "name": "นายสิบสอง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_KU_CMU",
+      "category": "80",
+      "group": "B",
+      "court": "1",
+      "teamA": {
+        "university": "KU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "gx7psp5p1",
+            "name": "นายสี่",
+            "role": "starter"
+          },
+          {
+            "id": "axy94lum3",
+            "name": "นายห้า",
+            "role": "starter"
+          },
+          {
+            "id": "461qzi057",
+            "name": "นายหก",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "iahiijf78",
+            "name": "นายสิบสาม",
+            "role": "starter"
+          },
+          {
+            "id": "m2f12kuhk",
+            "name": "นายสิบสี่",
+            "role": "starter"
+          },
+          {
+            "id": "x3rt31qtb",
+            "name": "นายสิบห้า",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_KKU_PSU",
+      "category": "80",
+      "group": "B",
+      "court": "2",
+      "teamA": {
+        "university": "KKU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "yafo1c4d4",
+            "name": "นายเจ็ด",
+            "role": "starter"
+          },
+          {
+            "id": "9a8v2nsxc",
+            "name": "นายแปด",
+            "role": "starter"
+          },
+          {
+            "id": "k6if7q844",
+            "name": "นายเก้า",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "fpkfqa1rj",
+            "name": "นายสิบ",
+            "role": "starter"
+          },
+          {
+            "id": "yh2wojcdg",
+            "name": "นายสิบเอ็ด",
+            "role": "starter"
+          },
+          {
+            "id": "nedqi7cuu",
+            "name": "นายสิบสอง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_KKU_CMU",
+      "category": "80",
+      "group": "B",
+      "court": "3",
+      "teamA": {
+        "university": "KKU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "yafo1c4d4",
+            "name": "นายเจ็ด",
+            "role": "starter"
+          },
+          {
+            "id": "9a8v2nsxc",
+            "name": "นายแปด",
+            "role": "starter"
+          },
+          {
+            "id": "k6if7q844",
+            "name": "นายเก้า",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "iahiijf78",
+            "name": "นายสิบสาม",
+            "role": "starter"
+          },
+          {
+            "id": "m2f12kuhk",
+            "name": "นายสิบสี่",
+            "role": "starter"
+          },
+          {
+            "id": "x3rt31qtb",
+            "name": "นายสิบห้า",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_80_B_PSU_CMU",
+      "category": "80",
+      "group": "B",
+      "court": "4",
+      "teamA": {
+        "university": "PSU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "fpkfqa1rj",
+            "name": "นายสิบ",
+            "role": "starter"
+          },
+          {
+            "id": "yh2wojcdg",
+            "name": "นายสิบเอ็ด",
+            "role": "starter"
+          },
+          {
+            "id": "nedqi7cuu",
+            "name": "นายสิบสอง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "80",
+        "group": "B",
+        "players": [
+          {
+            "id": "iahiijf78",
+            "name": "นายสิบสาม",
+            "role": "starter"
+          },
+          {
+            "id": "m2f12kuhk",
+            "name": "นายสิบสี่",
+            "role": "starter"
+          },
+          {
+            "id": "x3rt31qtb",
+            "name": "นายสิบห้า",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_CU_KU",
+      "category": "90",
+      "group": "A",
+      "court": "5",
+      "teamA": {
+        "university": "CU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "x772rxfs1",
+            "name": "นายกนก",
+            "role": "starter"
+          },
+          {
+            "id": "xqlu7o6eu",
+            "name": "นายขวัญ",
+            "role": "starter"
+          },
+          {
+            "id": "emmuo31xk",
+            "name": "นายคง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "wpq1rvao9",
+            "name": "นายจิตร",
+            "role": "starter"
+          },
+          {
+            "id": "2y9mf2g13",
+            "name": "นายฉลอง",
+            "role": "starter"
+          },
+          {
+            "id": "6is4zl3ko",
+            "name": "นายชู",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_CU_KKU",
+      "category": "90",
+      "group": "A",
+      "court": "6",
+      "teamA": {
+        "university": "CU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "x772rxfs1",
+            "name": "นายกนก",
+            "role": "starter"
+          },
+          {
+            "id": "xqlu7o6eu",
+            "name": "นายขวัญ",
+            "role": "starter"
+          },
+          {
+            "id": "emmuo31xk",
+            "name": "นายคง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KKU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "ggnp6djgh",
+            "name": "นายญาณ",
+            "role": "starter"
+          },
+          {
+            "id": "vj2lsnk7l",
+            "name": "นายโดม",
+            "role": "starter"
+          },
+          {
+            "id": "osceb7751",
+            "name": "นายตฤณ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_CU_PSU",
+      "category": "90",
+      "group": "A",
+      "court": "7",
+      "teamA": {
+        "university": "CU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "x772rxfs1",
+            "name": "นายกนก",
+            "role": "starter"
+          },
+          {
+            "id": "xqlu7o6eu",
+            "name": "นายขวัญ",
+            "role": "starter"
+          },
+          {
+            "id": "emmuo31xk",
+            "name": "นายคง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "3y5pfrbfs",
+            "name": "นายถาวร",
+            "role": "starter"
+          },
+          {
+            "id": "evna5yawb",
+            "name": "นายทัด",
+            "role": "starter"
+          },
+          {
+            "id": "4ohyhflrp",
+            "name": "นายธง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_CU_CMU",
+      "category": "90",
+      "group": "A",
+      "court": "8",
+      "teamA": {
+        "university": "CU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "x772rxfs1",
+            "name": "นายกนก",
+            "role": "starter"
+          },
+          {
+            "id": "xqlu7o6eu",
+            "name": "นายขวัญ",
+            "role": "starter"
+          },
+          {
+            "id": "emmuo31xk",
+            "name": "นายคง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "b3nyxo5wy",
+            "name": "นายธรรม",
+            "role": "starter"
+          },
+          {
+            "id": "tie3ng2wn",
+            "name": "นายนพ",
+            "role": "starter"
+          },
+          {
+            "id": "g4mjazixg",
+            "name": "นายบารมี",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_KU_KKU",
+      "category": "90",
+      "group": "A",
+      "court": "9",
+      "teamA": {
+        "university": "KU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "wpq1rvao9",
+            "name": "นายจิตร",
+            "role": "starter"
+          },
+          {
+            "id": "2y9mf2g13",
+            "name": "นายฉลอง",
+            "role": "starter"
+          },
+          {
+            "id": "6is4zl3ko",
+            "name": "นายชู",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KKU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "ggnp6djgh",
+            "name": "นายญาณ",
+            "role": "starter"
+          },
+          {
+            "id": "vj2lsnk7l",
+            "name": "นายโดม",
+            "role": "starter"
+          },
+          {
+            "id": "osceb7751",
+            "name": "นายตฤณ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_KU_PSU",
+      "category": "90",
+      "group": "A",
+      "court": "10",
+      "teamA": {
+        "university": "KU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "wpq1rvao9",
+            "name": "นายจิตร",
+            "role": "starter"
+          },
+          {
+            "id": "2y9mf2g13",
+            "name": "นายฉลอง",
+            "role": "starter"
+          },
+          {
+            "id": "6is4zl3ko",
+            "name": "นายชู",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "3y5pfrbfs",
+            "name": "นายถาวร",
+            "role": "starter"
+          },
+          {
+            "id": "evna5yawb",
+            "name": "นายทัด",
+            "role": "starter"
+          },
+          {
+            "id": "4ohyhflrp",
+            "name": "นายธง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_KU_CMU",
+      "category": "90",
+      "group": "A",
+      "court": "11",
+      "teamA": {
+        "university": "KU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "wpq1rvao9",
+            "name": "นายจิตร",
+            "role": "starter"
+          },
+          {
+            "id": "2y9mf2g13",
+            "name": "นายฉลอง",
+            "role": "starter"
+          },
+          {
+            "id": "6is4zl3ko",
+            "name": "นายชู",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "b3nyxo5wy",
+            "name": "นายธรรม",
+            "role": "starter"
+          },
+          {
+            "id": "tie3ng2wn",
+            "name": "นายนพ",
+            "role": "starter"
+          },
+          {
+            "id": "g4mjazixg",
+            "name": "นายบารมี",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_KKU_PSU",
+      "category": "90",
+      "group": "A",
+      "court": "12",
+      "teamA": {
+        "university": "KKU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "ggnp6djgh",
+            "name": "นายญาณ",
+            "role": "starter"
+          },
+          {
+            "id": "vj2lsnk7l",
+            "name": "นายโดม",
+            "role": "starter"
+          },
+          {
+            "id": "osceb7751",
+            "name": "นายตฤณ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "3y5pfrbfs",
+            "name": "นายถาวร",
+            "role": "starter"
+          },
+          {
+            "id": "evna5yawb",
+            "name": "นายทัด",
+            "role": "starter"
+          },
+          {
+            "id": "4ohyhflrp",
+            "name": "นายธง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_KKU_CMU",
+      "category": "90",
+      "group": "A",
+      "court": "13",
+      "teamA": {
+        "university": "KKU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "ggnp6djgh",
+            "name": "นายญาณ",
+            "role": "starter"
+          },
+          {
+            "id": "vj2lsnk7l",
+            "name": "นายโดม",
+            "role": "starter"
+          },
+          {
+            "id": "osceb7751",
+            "name": "นายตฤณ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "b3nyxo5wy",
+            "name": "นายธรรม",
+            "role": "starter"
+          },
+          {
+            "id": "tie3ng2wn",
+            "name": "นายนพ",
+            "role": "starter"
+          },
+          {
+            "id": "g4mjazixg",
+            "name": "นายบารมี",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_90_A_PSU_CMU",
+      "category": "90",
+      "group": "A",
+      "court": "14",
+      "teamA": {
+        "university": "PSU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "3y5pfrbfs",
+            "name": "นายถาวร",
+            "role": "starter"
+          },
+          {
+            "id": "evna5yawb",
+            "name": "นายทัด",
+            "role": "starter"
+          },
+          {
+            "id": "4ohyhflrp",
+            "name": "นายธง",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "90",
+        "group": "A",
+        "players": [
+          {
+            "id": "b3nyxo5wy",
+            "name": "นายธรรม",
+            "role": "starter"
+          },
+          {
+            "id": "tie3ng2wn",
+            "name": "นายนพ",
+            "role": "starter"
+          },
+          {
+            "id": "g4mjazixg",
+            "name": "นายบารมี",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_CU_KU",
+      "category": "100",
+      "group": "B",
+      "court": "15",
+      "teamA": {
+        "university": "CU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "vfr0nrgc6",
+            "name": "นายปราชญ์",
+            "role": "starter"
+          },
+          {
+            "id": "sbtd2lucj",
+            "name": "นายผดุง",
+            "role": "starter"
+          },
+          {
+            "id": "0xyz4wdww",
+            "name": "นายพงษ์",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "yvh30a6tz",
+            "name": "นายภักดี",
+            "role": "starter"
+          },
+          {
+            "id": "urbn0eaxv",
+            "name": "นายมงคล",
+            "role": "starter"
+          },
+          {
+            "id": "tns0yoinv",
+            "name": "นายยศ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_CU_KKU",
+      "category": "100",
+      "group": "B",
+      "court": "16",
+      "teamA": {
+        "university": "CU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "vfr0nrgc6",
+            "name": "นายปราชญ์",
+            "role": "starter"
+          },
+          {
+            "id": "sbtd2lucj",
+            "name": "นายผดุง",
+            "role": "starter"
+          },
+          {
+            "id": "0xyz4wdww",
+            "name": "นายพงษ์",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KKU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "kdj23nn3r",
+            "name": "นายรักษ์",
+            "role": "starter"
+          },
+          {
+            "id": "1bvpyg2h1",
+            "name": "นายศิริ",
+            "role": "starter"
+          },
+          {
+            "id": "tx2vkbj37",
+            "name": "นายสม",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_CU_PSU",
+      "category": "100",
+      "group": "B",
+      "court": "17",
+      "teamA": {
+        "university": "CU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "vfr0nrgc6",
+            "name": "นายปราชญ์",
+            "role": "starter"
+          },
+          {
+            "id": "sbtd2lucj",
+            "name": "นายผดุง",
+            "role": "starter"
+          },
+          {
+            "id": "0xyz4wdww",
+            "name": "นายพงษ์",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "rfe1hxotz",
+            "name": "นายอดุลย์",
+            "role": "starter"
+          },
+          {
+            "id": "0br862rs5",
+            "name": "นายอนันต์",
+            "role": "starter"
+          },
+          {
+            "id": "q858l5gbp",
+            "name": "นายอภิชาติ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_CU_CMU",
+      "category": "100",
+      "group": "B",
+      "court": "18",
+      "teamA": {
+        "university": "CU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "vfr0nrgc6",
+            "name": "นายปราชญ์",
+            "role": "starter"
+          },
+          {
+            "id": "sbtd2lucj",
+            "name": "นายผดุง",
+            "role": "starter"
+          },
+          {
+            "id": "0xyz4wdww",
+            "name": "นายพงษ์",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "wubfkcfr2",
+            "name": "นายเกรียง",
+            "role": "starter"
+          },
+          {
+            "id": "1n915nxaa",
+            "name": "นายเดชา",
+            "role": "starter"
+          },
+          {
+            "id": "lbufg1h3h",
+            "name": "นายวิชัย",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_KU_KKU",
+      "category": "100",
+      "group": "B",
+      "court": "1",
+      "teamA": {
+        "university": "KU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "yvh30a6tz",
+            "name": "นายภักดี",
+            "role": "starter"
+          },
+          {
+            "id": "urbn0eaxv",
+            "name": "นายมงคล",
+            "role": "starter"
+          },
+          {
+            "id": "tns0yoinv",
+            "name": "นายยศ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "KKU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "kdj23nn3r",
+            "name": "นายรักษ์",
+            "role": "starter"
+          },
+          {
+            "id": "1bvpyg2h1",
+            "name": "นายศิริ",
+            "role": "starter"
+          },
+          {
+            "id": "tx2vkbj37",
+            "name": "นายสม",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_KU_PSU",
+      "category": "100",
+      "group": "B",
+      "court": "2",
+      "teamA": {
+        "university": "KU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "yvh30a6tz",
+            "name": "นายภักดี",
+            "role": "starter"
+          },
+          {
+            "id": "urbn0eaxv",
+            "name": "นายมงคล",
+            "role": "starter"
+          },
+          {
+            "id": "tns0yoinv",
+            "name": "นายยศ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "rfe1hxotz",
+            "name": "นายอดุลย์",
+            "role": "starter"
+          },
+          {
+            "id": "0br862rs5",
+            "name": "นายอนันต์",
+            "role": "starter"
+          },
+          {
+            "id": "q858l5gbp",
+            "name": "นายอภิชาติ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_KU_CMU",
+      "category": "100",
+      "group": "B",
+      "court": "3",
+      "teamA": {
+        "university": "KU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "yvh30a6tz",
+            "name": "นายภักดี",
+            "role": "starter"
+          },
+          {
+            "id": "urbn0eaxv",
+            "name": "นายมงคล",
+            "role": "starter"
+          },
+          {
+            "id": "tns0yoinv",
+            "name": "นายยศ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "wubfkcfr2",
+            "name": "นายเกรียง",
+            "role": "starter"
+          },
+          {
+            "id": "1n915nxaa",
+            "name": "นายเดชา",
+            "role": "starter"
+          },
+          {
+            "id": "lbufg1h3h",
+            "name": "นายวิชัย",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_KKU_PSU",
+      "category": "100",
+      "group": "B",
+      "court": "4",
+      "teamA": {
+        "university": "KKU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "kdj23nn3r",
+            "name": "นายรักษ์",
+            "role": "starter"
+          },
+          {
+            "id": "1bvpyg2h1",
+            "name": "นายศิริ",
+            "role": "starter"
+          },
+          {
+            "id": "tx2vkbj37",
+            "name": "นายสม",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "PSU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "rfe1hxotz",
+            "name": "นายอดุลย์",
+            "role": "starter"
+          },
+          {
+            "id": "0br862rs5",
+            "name": "นายอนันต์",
+            "role": "starter"
+          },
+          {
+            "id": "q858l5gbp",
+            "name": "นายอภิชาติ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_KKU_CMU",
+      "category": "100",
+      "group": "B",
+      "court": "5",
+      "teamA": {
+        "university": "KKU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "kdj23nn3r",
+            "name": "นายรักษ์",
+            "role": "starter"
+          },
+          {
+            "id": "1bvpyg2h1",
+            "name": "นายศิริ",
+            "role": "starter"
+          },
+          {
+            "id": "tx2vkbj37",
+            "name": "นายสม",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "wubfkcfr2",
+            "name": "นายเกรียง",
+            "role": "starter"
+          },
+          {
+            "id": "1n915nxaa",
+            "name": "นายเดชา",
+            "role": "starter"
+          },
+          {
+            "id": "lbufg1h3h",
+            "name": "นายวิชัย",
+            "role": "substitute"
+          }
+        ]
+      },
+      "score": {
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
+      },
+      "isFinished": false
+    },
+    {
+      "id": "M_100_B_PSU_CMU",
+      "category": "100",
+      "group": "B",
+      "court": "6",
+      "teamA": {
+        "university": "PSU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "rfe1hxotz",
+            "name": "นายอดุลย์",
+            "role": "starter"
+          },
+          {
+            "id": "0br862rs5",
+            "name": "นายอนันต์",
+            "role": "starter"
+          },
+          {
+            "id": "q858l5gbp",
+            "name": "นายอภิชาติ",
+            "role": "substitute"
+          }
+        ]
+      },
+      "teamB": {
+        "university": "CMU",
+        "category": "100",
+        "group": "B",
+        "players": [
+          {
+            "id": "wubfkcfr2",
+            "name": "นายเกรียง",
+            "role": "starter"
+          },
+          {
+            "id": "1n915nxaa",
+            "name": "นายเดชา",
+            "role": "starter"
+          },
+          {
+            "id": "lbufg1h3h",
+            "name": "นายวิชัย",
             "role": "substitute"
           }
         ]
@@ -3421,5 +3421,5 @@
       "isFinished": false
     }
   ],
-  "lastUpdated": 1783336919362
+  "lastUpdated": 1783338562312
 }

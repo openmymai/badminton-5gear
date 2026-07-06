@@ -68,17 +68,24 @@ export default function MatchesPage() {
     <main className="h-screen bg-[#05070d] text-white font-sans flex flex-col overflow-hidden">
 
       {/* Header */}
-      <nav className="z-50 bg-white/[0.03] backdrop-blur-xl border-b border-white/10 px-8 py-3.5 flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600/15 border border-blue-500/30 rounded-xl p-2">
-              <GiShuttlecock className="text-blue-400 text-2xl" />
+      <nav className="z-50 bg-white/[0.03] backdrop-blur-xl border-b border-white/10 px-4 lg:px-8 py-3 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 shrink-0">
+
+        {/* Row 1 (mobile) / left group (desktop): logo + status summary */}
+        <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-8">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-blue-600/15 border border-blue-500/30 rounded-xl p-2 shrink-0">
+              <GiShuttlecock className="text-blue-400 text-xl lg:text-2xl" />
             </div>
-            <div className="leading-tight">
-              <h1 className="text-xl font-black uppercase tracking-tight">Tournament Live</h1>
-              <p className="text-[9px] font-bold uppercase tracking-[3px] text-slate-500">Match Control Board</p>
+            <div className="leading-tight min-w-0">
+              <h1 className="text-base lg:text-xl font-black uppercase tracking-tight truncate">Tournament Live</h1>
+              <p className="text-[8px] lg:text-[9px] font-bold uppercase tracking-[3px] text-slate-500 truncate">Match Control Board</p>
             </div>
           </div>
+
+          {/* Ranking link — shown here on mobile (row 1), moved to the right group on desktop */}
+          <Link href="/" className="lg:hidden shrink-0 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[10px] uppercase tracking-wider text-slate-300">
+            Ranking →
+          </Link>
 
           {/* Status summary */}
           <div className="hidden md:flex items-center gap-2 pl-8 border-l border-white/10">
@@ -88,14 +95,15 @@ export default function MatchesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          {/* Category tabs */}
-          <div className="flex items-center gap-1 bg-white/[0.03] border border-white/10 rounded-xl p-1">
+        {/* Row 2 (mobile) / right group (desktop): category tabs + ranking link */}
+        <div className="flex items-center gap-3 lg:gap-6 min-w-0">
+          {/* Category tabs — horizontally scrollable so they never overflow the screen */}
+          <div className="flex items-center gap-1 bg-white/[0.03] border border-white/10 rounded-xl p-1 overflow-x-auto scrollbar-hide max-w-full">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setFilterCategory(cat)}
-                className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+                className={`shrink-0 px-3.5 lg:px-4 py-1.5 rounded-lg text-[10px] lg:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
                   filterCategory === cat
                     ? 'bg-blue-600 text-white shadow-lg'
                     : 'text-slate-500 hover:text-slate-300'
@@ -106,7 +114,7 @@ export default function MatchesPage() {
             ))}
           </div>
 
-          <Link href="/" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
+          <Link href="/" className="hidden lg:block shrink-0 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
             Ranking →
           </Link>
         </div>
@@ -127,28 +135,44 @@ export default function MatchesPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="relative bg-white/[0.03] rounded-2xl border border-white/10 shadow-lg overflow-hidden h-[calc((100vh-150px)/5)] min-h-[132px] flex"
+                className="relative bg-white/[0.03] rounded-2xl border border-white/10 shadow-lg overflow-hidden flex flex-wrap lg:flex-nowrap lg:h-[calc((100vh-160px)/5)] lg:min-h-[132px]"
               >
-                {/* Status accent bar */}
-                <div className={`w-1.5 shrink-0 ${isLive ? 'bg-amber-400' : 'bg-emerald-500'}`} />
+                {/* Status accent bar — top strip on mobile, left rail on desktop */}
+                <div className={`w-full h-1 lg:w-1.5 lg:h-auto shrink-0 ${isLive ? 'bg-amber-400' : 'bg-emerald-500'}`} />
 
                 {/* Court chip */}
-                <div className="flex flex-col items-center justify-center gap-1 px-5 border-r border-white/5 shrink-0 w-24">
+                <div className="flex flex-row lg:flex-col items-center justify-center gap-2 lg:gap-1 px-4 lg:px-5 py-2 lg:py-0 border-b lg:border-b-0 lg:border-r border-white/5 shrink-0 w-1/2 lg:w-24">
                   <span className="text-[8px] font-black uppercase tracking-[2px] text-slate-600">Court</span>
                   <input
                     type="text"
                     defaultValue={m.court}
                     onBlur={(e) => handleCourtUpdate(m.id, e.target.value)}
-                    className="bg-transparent w-12 text-center text-3xl font-black text-blue-400 focus:text-white focus:outline-none tabular-nums"
+                    className="bg-transparent w-10 lg:w-12 text-center text-2xl lg:text-3xl font-black text-blue-400 focus:text-white focus:outline-none tabular-nums"
                   />
                 </div>
 
-                {/* Body */}
-                <div className="flex-1 grid grid-cols-12 items-center gap-3 px-6 py-3 min-w-0">
+                {/* Status + category — mobile-only compact block, paired with court chip to form row 1 */}
+                <div className="flex lg:hidden w-1/2 items-center justify-end gap-2 px-4 py-2 border-b border-white/5">
+                  {isLive ? (
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-400/10 border border-amber-400/30 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Live</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full">
+                      <FaCheckCircle className="text-emerald-500 text-[9px]" />
+                      <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Finished</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Body: teams + score. grid-cols-2 on mobile lets 1-span team cells sit side by side while
+                    the 2-span score cell auto-wraps to its own full-width row underneath — no extra markup needed. */}
+                <div className="w-full lg:flex-1 grid grid-cols-2 lg:grid-cols-12 items-center gap-2 lg:gap-3 px-4 lg:px-6 py-3 min-w-0">
 
                   {/* Team A */}
-                  <div className="col-span-4 text-right overflow-hidden">
-                    <h3 className="text-3xl 2xl:text-4xl font-black uppercase text-white tracking-tight leading-none truncate">
+                  <div className="col-span-1 lg:col-span-4 text-right overflow-hidden">
+                    <h3 className="text-xl sm:text-2xl lg:text-3xl 2xl:text-4xl font-black uppercase text-white tracking-tight leading-none truncate">
                       {m.teamA.university}
                     </h3>
                     <div className="mt-1.5 flex flex-wrap justify-end gap-x-2 gap-y-0.5">
@@ -158,21 +182,21 @@ export default function MatchesPage() {
                           type="text"
                           defaultValue={p.name}
                           onBlur={(e) => handleGlobalNameUpdate(m.id, 'teamA', idx, e.target.value)}
-                          className="bg-transparent text-right text-[10px] font-bold focus:text-blue-400 focus:outline-none border-b border-transparent focus:border-blue-400/40 w-24 transition-all text-slate-500 hover:text-slate-300"
+                          className="bg-transparent text-right text-[9px] lg:text-[10px] font-bold focus:text-blue-400 focus:outline-none border-b border-transparent focus:border-blue-400/40 w-16 lg:w-24 transition-all text-slate-500 hover:text-slate-300"
                         />
                       ))}
                     </div>
                   </div>
 
                   {/* Score */}
-                  <div className="col-span-4 flex flex-col items-center gap-1.5">
-                    <div className="w-full bg-black/40 py-2.5 px-4 rounded-2xl border border-white/10 flex flex-col items-center">
-                      <div className="flex items-center gap-4 text-5xl 2xl:text-6xl font-black tabular-nums leading-none tracking-tighter">
+                  <div className="col-span-2 lg:col-span-4 flex flex-col items-center gap-1.5 mt-2 lg:mt-0">
+                    <div className="w-full bg-black/40 py-2 lg:py-2.5 px-4 rounded-2xl border border-white/10 flex flex-col items-center">
+                      <div className="flex items-center gap-3 lg:gap-4 text-4xl sm:text-5xl lg:text-5xl 2xl:text-6xl font-black tabular-nums leading-none tracking-tighter">
                         <span className={setsA >= setsB ? 'text-blue-400' : 'text-slate-600'}>{setsA}</span>
-                        <span className="text-slate-700 text-3xl">–</span>
+                        <span className="text-slate-700 text-2xl lg:text-3xl">–</span>
                         <span className={setsB >= setsA ? 'text-red-400' : 'text-slate-600'}>{setsB}</span>
                       </div>
-                      <div className="mt-1.5 flex items-center gap-3 text-[11px] font-bold tabular-nums tracking-wider">
+                      <div className="mt-1.5 flex items-center gap-2 lg:gap-3 text-[10px] lg:text-[11px] font-bold tabular-nums tracking-wider">
                         <span className={`px-2 py-0.5 rounded-md ${m.score.s1a === 21 || m.score.s1b === 21 ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500'}`}>
                           {m.score.s1a}-{m.score.s1b}
                         </span>
@@ -187,8 +211,8 @@ export default function MatchesPage() {
                   </div>
 
                   {/* Team B */}
-                  <div className="col-span-4 text-left overflow-hidden">
-                    <h3 className="text-3xl 2xl:text-4xl font-black uppercase text-white tracking-tight leading-none truncate">
+                  <div className="col-span-1 lg:col-span-4 text-left overflow-hidden">
+                    <h3 className="text-xl sm:text-2xl lg:text-3xl 2xl:text-4xl font-black uppercase text-white tracking-tight leading-none truncate">
                       {m.teamB.university}
                     </h3>
                     <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5">
@@ -198,15 +222,40 @@ export default function MatchesPage() {
                           type="text"
                           defaultValue={p.name}
                           onBlur={(e) => handleGlobalNameUpdate(m.id, 'teamB', idx, e.target.value)}
-                          className="bg-transparent text-left text-[10px] font-bold focus:text-red-400 focus:outline-none border-b border-transparent focus:border-red-400/40 w-24 transition-all text-slate-500 hover:text-slate-300"
+                          className="bg-transparent text-left text-[9px] lg:text-[10px] font-bold focus:text-red-400 focus:outline-none border-b border-transparent focus:border-red-400/40 w-16 lg:w-24 transition-all text-slate-500 hover:text-slate-300"
                         />
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Right rail: category / status / QR */}
-                <div className="flex flex-col items-end justify-between py-3 px-4 border-l border-white/5 shrink-0 w-48">
+                {/* Mobile-only footer row: category tags + action icons (desktop shows these in the right rail instead) */}
+                <div className="flex lg:hidden w-full items-center justify-between gap-2 px-4 py-2 border-t border-white/5">
+                  <div className="flex gap-1 text-[9px] font-bold uppercase">
+                    <span className="text-blue-400/80">รุ่น {m.category}</span>
+                    <span className="text-slate-700">·</span>
+                    <span className="text-amber-500/80">สาย {m.group}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Link href={`/score/${encodeURIComponent(m.id)}`} className="text-slate-500 hover:text-blue-400 transition-colors" title="เปิดหน้าคีย์คะแนนของแมตช์นี้">
+                      <div className="bg-white/5 border border-white/10 p-1.5 rounded-md">
+                        <FaExternalLinkAlt size={11} />
+                      </div>
+                    </Link>
+                    <button onClick={() => setQrMatch({ id: m.id, url: scoreUrl })} className="text-slate-500 hover:text-blue-400 transition-colors" title="แสดง QR ให้สแกนด้วยมือถือ">
+                      <div className="bg-white p-1 rounded-md">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(scoreUrl)}&bgcolor=ffffff`}
+                          alt="QR"
+                          className="w-7 h-7"
+                        />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right rail: category / status / QR — desktop only */}
+                <div className="hidden lg:flex flex-col items-end justify-between py-3 px-4 border-l border-white/5 shrink-0 w-48">
                   <div className="flex flex-col items-end gap-1">
                     {isLive ? (
                       <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-400/10 border border-amber-400/30 rounded-full">
