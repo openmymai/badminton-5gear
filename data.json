@@ -118,7 +118,7 @@
       "id": "M_80_A_CU_PSU",
       "category": "80",
       "group": "A",
-      "court": "3",
+      "court": "6",
       "teamA": {
         "university": "CU",
         "category": "80",
@@ -3421,5 +3421,5 @@
       "isFinished": false
     }
   ],
-  "lastUpdated": 1783335650800
+  "lastUpdated": 1783336919362
 }

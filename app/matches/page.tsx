@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { GiShuttlecock } from 'react-icons/gi';
-import { FaCheckCircle, FaMapMarkerAlt, FaTimes } from 'react-icons/fa';
+import { FaCheckCircle, FaMapMarkerAlt, FaTimes, FaExternalLinkAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
@@ -206,7 +206,7 @@ export default function MatchesPage() {
                 </div>
 
                 {/* Right rail: category / status / QR */}
-                <div className="flex flex-col items-end justify-between py-3 px-4 border-l border-white/5 shrink-0 w-40">
+                <div className="flex flex-col items-end justify-between py-3 px-4 border-l border-white/5 shrink-0 w-48">
                   <div className="flex flex-col items-end gap-1">
                     {isLive ? (
                       <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-400/10 border border-amber-400/30 rounded-full">
@@ -226,19 +226,33 @@ export default function MatchesPage() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setQrMatch({ id: m.id, url: scoreUrl })}
-                    className="flex items-center gap-1.5 text-slate-500 hover:text-blue-400 transition-colors group"
-                  >
-                    <span className="text-[9px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">Scan</span>
-                    <div className="bg-white p-1 rounded-md">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(scoreUrl)}&bgcolor=ffffff`}
-                        alt="QR"
-                        className="w-8 h-8"
-                      />
-                    </div>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/score/${encodeURIComponent(m.id)}`}
+                      className="flex items-center gap-1.5 text-slate-500 hover:text-blue-400 transition-colors group"
+                      title="เปิดหน้าคีย์คะแนนของแมตช์นี้"
+                    >
+                      <span className="text-[9px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">Open</span>
+                      <div className="bg-white/5 group-hover:bg-blue-500/20 border border-white/10 group-hover:border-blue-400/40 p-2 rounded-md transition-colors">
+                        <FaExternalLinkAlt size={13} />
+                      </div>
+                    </Link>
+
+                    <button
+                      onClick={() => setQrMatch({ id: m.id, url: scoreUrl })}
+                      className="flex items-center gap-1.5 text-slate-500 hover:text-blue-400 transition-colors group"
+                      title="แสดง QR ให้สแกนด้วยมือถือ"
+                    >
+                      <span className="text-[9px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">Scan</span>
+                      <div className="bg-white p-1 rounded-md">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(scoreUrl)}&bgcolor=ffffff`}
+                          alt="QR"
+                          className="w-8 h-8"
+                        />
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )
