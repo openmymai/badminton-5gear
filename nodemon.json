@@ -1,0 +1,11 @@
+{
+  "verbose": true,
+  "ignore": [
+    ".next/*",
+    "node_modules/*",
+    "data.json",
+    "public/*"
+  ],
+  "watch": ["server.js"],
+  "ext": "js"
+}
