@@ -1,6 +1,8 @@
 allowBuilds:
-  sharp: false
-  unrs-resolver: false
+  '@ampproject/toolbox-optimizer': true
+  es5-ext: true
+  sharp: true
+  unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@next/env@16.2.10'
   - '@next/eslint-plugin-next@16.2.10'

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.0.7", "localhost"],
+  allowedDevOrigins: ["badminton5gear.win", "192.168.0.7", "localhost", "192.168.1.10"],
 };
 
 export default nextConfig;

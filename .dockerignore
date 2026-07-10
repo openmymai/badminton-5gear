@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+build
+.git
+.gitignore
+*.md
+.DS_Store
+dist
+docker-compose.yml
+Dockerfile
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

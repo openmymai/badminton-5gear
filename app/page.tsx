@@ -1,3 +1,5 @@
+// app/page.tsx
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -6,6 +8,7 @@ import { GiShuttlecock } from 'react-icons/gi';
 import { FaTrophy, FaMedal, FaAward } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { getMatchWinner, isNoResult } from '../lib/scoring';
 
 interface Rank {
   university: string;
@@ -16,6 +19,10 @@ interface Rank {
 }
 
 const UNIVERSITIES = ['CU', 'KU', 'KKU', 'PSU', 'CMU'];
+
+// รุ่นที่ถือเป็น "กิตติมศักดิ์" (exhibition) — ไม่นำผลมาคำนวณ leaderboard เลย
+// แก้ไข/เพิ่มชื่อรุ่นตรงนี้ได้ตามชื่อ Category จริงที่ใช้ตอน import Excel ในหน้า Admin
+const EXHIBITION_CATEGORIES = ['คู่กิตติมศักดิ์'];
 
 const RankBadge = ({ index }: { index: number }) => {
   switch (index) {
@@ -33,9 +40,13 @@ export default function LeaderboardPage() {
     const socket = io();
     socket.on('data-updated', (data: { matches: any[] }) => {
       if (data?.matches) {
-        // 1. ตรวจสอบว่าสถาบันไหน "มีการเข้าร่วมแข่งจริง" (มีชื่อในแมตช์)
+        // 0. ตัดคู่กิตติมศักดิ์ออกตั้งแต่ต้น — ไม่นำมานับทั้งการเช็คสถาบันที่เข้าร่วม,
+        //    การจัดกลุ่มรุ่น, และการคำนวณคะแนนใดๆ ทั้งสิ้น
+        const scorableMatches = data.matches.filter(m => !EXHIBITION_CATEGORIES.includes(m.category));
+
+        // 1. ตรวจสอบว่าสถาบันไหน "มีการเข้าร่วมแข่งจริง" (มีชื่อในแมตช์ที่นับคะแนน)
         const activeUnis = UNIVERSITIES.filter(u =>
-          data.matches.some(m => m.teamA.university === u || m.teamB.university === u)
+          scorableMatches.some(m => m.teamA.university === u || m.teamB.university === u)
         );
 
         const schoolStats: Record<string, Rank> = {};
@@ -46,10 +57,10 @@ export default function LeaderboardPage() {
         });
 
         // 2. จัดกลุ่มแมตช์ตามรุ่นและสาย
-        const catGroupKeys = [...new Set(data.matches.map(m => `${m.category}-${m.group}`))];
+        const catGroupKeys = [...new Set(scorableMatches.map(m => `${m.category}-${m.group}`))];
 
         catGroupKeys.forEach(key => {
-          const matchesInGroup = data.matches.filter(m => `${m.category}-${m.group}` === key);
+          const matchesInGroup = scorableMatches.filter(m => `${m.category}-${m.group}` === key);
           const isCategoryStarted = matchesInGroup.some(m => m.isFinished);
 
           // ถ้าในรุ่นนี้ยังไม่มีใครแข่งจบเลย ให้ข้ามการแจกแต้ม 5,4,3,2,1 ไปก่อน
@@ -66,29 +77,31 @@ export default function LeaderboardPage() {
             groupInternalStats[m.teamA.university].playedInCat = true;
             groupInternalStats[m.teamB.university].playedInCat = true;
 
-            if (m.isFinished) {
-              const s1a = Number(m.score.s1a) || 0;
-              const s1b = Number(m.score.s1b) || 0;
-              const s2a = Number(m.score.s2a) || 0;
-              const s2b = Number(m.score.s2b) || 0;
+            if (!m.isFinished) return;
 
-              let setsA = 0, setsB = 0;
-              if (s1a === 21) setsA++; else if (s1b === 21) setsB++;
-              if (s2a === 21) setsA++; else if (s2b === 21) setsB++;
+            // Double walkover (ทั้งสองทีมไม่มา/ไม่จบ ไม่มีผู้ชนะ) — ไม่นับผลแมตช์นี้เลย
+            if (isNoResult(m)) return;
 
-              groupInternalStats[m.teamA.university].pConceded += (s1b + s2b);
-              groupInternalStats[m.teamB.university].pConceded += (s1a + s2a);
+            const s1a = Number(m.score.s1a) || 0;
+            const s1b = Number(m.score.s1b) || 0;
+            const s2a = Number(m.score.s2a) || 0;
+            const s2b = Number(m.score.s2b) || 0;
 
-              if (setsA > setsB) {
-                groupInternalStats[m.teamA.university].mPts += 2;
-                groupInternalStats[m.teamA.university].wins += 1;
-              } else if (setsB > setsA) {
-                groupInternalStats[m.teamB.university].mPts += 2;
-                groupInternalStats[m.teamB.university].wins += 1;
-              } else {
-                groupInternalStats[m.teamA.university].mPts += 1;
-                groupInternalStats[m.teamB.university].mPts += 1;
-              }
+            groupInternalStats[m.teamA.university].pConceded += (s1b + s2b);
+            groupInternalStats[m.teamB.university].pConceded += (s1a + s2a);
+
+            // ผู้ชนะจริงของแมตช์ — คำนึงถึง Walkover/Bye ด้วย (ชนะ Walkover = ชนะเต็ม เหมือนชนะ 21 แต้ม)
+            const winner = getMatchWinner(m);
+            if (winner === 'a') {
+              groupInternalStats[m.teamA.university].mPts += 2;
+              groupInternalStats[m.teamA.university].wins += 1;
+            } else if (winner === 'b') {
+              groupInternalStats[m.teamB.university].mPts += 2;
+              groupInternalStats[m.teamB.university].wins += 1;
+            } else {
+              // เสมอจริง (กรณีหายากมากที่คะแนนเซตเท่ากันโดยไม่มี Walkover ตัดสิน)
+              groupInternalStats[m.teamA.university].mPts += 1;
+              groupInternalStats[m.teamB.university].mPts += 1;
             }
           });
 
