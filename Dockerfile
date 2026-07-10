@@ -55,9 +55,11 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/server.js ./server.js
 
-RUN touch data.json
-
-RUN mkdir uploads
+# `data/` holds data.json + its rolling backup. This is a DIRECTORY on purpose —
+# bind-mounting a single file that doesn't already exist on the host makes Docker
+# silently create a directory in its place instead of a file, which breaks every
+# read/write against it. Bind-mounting a directory doesn't have that failure mode.
+RUN mkdir -p data uploads
 
 RUN chown -R nextjs:nodejs /app
 
