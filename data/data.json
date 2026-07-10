@@ -286,12 +286,12 @@
         ]
       },
       "score": {
-        "s1a": 0,
+        "s1a": 2,
         "s1b": 21,
         "s2a": 11,
-        "s2b": 12
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "isBye": false,
       "byeWinner": null
     },
@@ -350,8 +350,8 @@
         "s2a": 0,
         "s2b": 0
       },
-      "isFinished": false,
-      "isBye": false,
+      "isFinished": true,
+      "isBye": true,
       "byeWinner": null
     },
     {
@@ -405,7 +405,7 @@
       },
       "score": {
         "s1a": 5,
-        "s1b": 12,
+        "s1b": 19,
         "s2a": 0,
         "s2b": 0
       },
@@ -461,12 +461,12 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 7,
+        "s2a": 8,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "isBye": false,
       "byeWinner": null
     },
@@ -520,8 +520,8 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
+        "s1a": 1,
+        "s1b": 14,
         "s2a": 0,
         "s2b": 0
       },
@@ -7124,12 +7124,12 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
+        "s1a": 7,
+        "s1b": 21,
+        "s2a": 21,
         "s2b": 0
       },
-      "isFinished": false,
+      "isFinished": true,
       "isBye": false,
       "byeWinner": null
     },
@@ -12614,5 +12614,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783702256238
+  "lastUpdated": 1783703373881
 }
