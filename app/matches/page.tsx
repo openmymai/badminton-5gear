@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { GiShuttlecock } from 'react-icons/gi';
-import { FaCheckCircle, FaTimes, FaExternalLinkAlt, FaTrophy } from 'react-icons/fa';
+import { FaCheckCircle, FaTimes, FaExternalLinkAlt, FaTrophy, FaBullhorn, FaHourglassHalf } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { calculateEffectiveSets } from '../../lib/scoring';
@@ -46,12 +46,37 @@ interface TeamPlayersProps {
   onNameBlur: (playerId: string, name: string) => void;
 }
 
+// สถานะของคู่แข่งขันในบริบทของ "คิวคอร์ท"
+// announce = คู่แรกที่ยังไม่จบของคอร์ทนี้ (ต้องประกาศ / กำลังแข่ง)
+// queued  = ยังไม่จบ แต่ไม่ใช่คิวแรกของคอร์ท (รอคิวอยู่)
+// finished = จบแล้ว
+type CourtMatchStatus = 'announce' | 'queued' | 'finished';
+
+interface CourtSummary {
+  court: string;
+  list: Match[];
+  announceMatch: Match | null;
+  allFinished: boolean;
+}
+
+interface HighlightTarget {
+  id: string;
+  tone: 'purple' | 'green';
+}
+
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [baseUrl, setBaseUrl] = useState('');
   const [qrMatch, setQrMatch] = useState<{ id: string; url: string } | null>(null);
   const socketRef = useRef<Socket | null>(null);
+
+  // ref เก็บ DOM node ของแต่ละการ์ดคู่แข่งขัน ไว้ใช้ scrollIntoView
+  const matchRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // การ์ดที่กำลังถูกไฮไลต์อยู่ตอนนี้ (หลังจากกด pill ในแผงสรุปด่วน)
+  const [highlight, setHighlight] = useState<HighlightTarget | null>(null);
+  // เป้าหมายที่รอ scroll ไปหา (ใช้ตอน filter ยังไม่ re-render เสร็จ)
+  const [pendingScroll, setPendingScroll] = useState<HighlightTarget | null>(null);
 
   useEffect(() => {
     setBaseUrl(window.location.origin);
@@ -67,7 +92,69 @@ export default function MatchesPage() {
 
   const categories = ['All', ...new Set(matches.map(m => m.category))];
   const filteredMatches = filterCategory === 'All' ? matches : matches.filter(m => m.category === filterCategory);
-  const liveCount = matches.filter(m => !m.isFinished).length;
+
+  // คำนวณสถานะของแต่ละคู่ โดยยึดลำดับข้อมูลเดิม (array order) ต่อคอร์ท
+  const matchStatusMap = useMemo(() => {
+    const map: Record<string, CourtMatchStatus> = {};
+    const byCourt: Record<string, Match[]> = {};
+    matches.forEach(m => {
+      if (!byCourt[m.court]) byCourt[m.court] = [];
+      byCourt[m.court].push(m);
+    });
+    Object.values(byCourt).forEach(list => {
+      let announced = false;
+      list.forEach(m => {
+        if (m.isFinished) {
+          map[m.id] = 'finished';
+        } else if (!announced) {
+          map[m.id] = 'announce';
+          announced = true;
+        } else {
+          map[m.id] = 'queued';
+        }
+      });
+    });
+    return map;
+  }, [matches]);
+
+  // สรุปสถานะรายคอร์ท ใช้แสดงในแผงประกาศด่วนด้านบน
+  const courtSummaries: CourtSummary[] = useMemo(() => {
+    const byCourt: Record<string, Match[]> = {};
+    matches.forEach(m => {
+      if (!byCourt[m.court]) byCourt[m.court] = [];
+      byCourt[m.court].push(m);
+    });
+    return Object.entries(byCourt)
+      .map(([court, list]) => {
+        const announceMatch = list.find(m => matchStatusMap[m.id] === 'announce') ?? null;
+        const allFinished = list.length > 0 && list.every(m => m.isFinished);
+        return { court, list, announceMatch, allFinished };
+      })
+      .sort((a, b) => {
+        const na = parseInt(a.court, 10);
+        const nb = parseInt(b.court, 10);
+        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+        return a.court.localeCompare(b.court);
+      });
+  }, [matches, matchStatusMap]);
+
+  // เลื่อนจอไปหาการ์ดคู่ที่เลือก + เปิดไฮไลต์ชั่วคราว
+  const handleJumpToMatch = (matchId: string, tone: 'purple' | 'green') => {
+    setFilterCategory('All');
+    setPendingScroll({ id: matchId, tone });
+  };
+
+  useEffect(() => {
+    if (!pendingScroll) return;
+    const el = matchRefs.current[pendingScroll.id];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlight(pendingScroll);
+      setPendingScroll(null);
+      const t = setTimeout(() => setHighlight(null), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [pendingScroll, filteredMatches]);
 
   const handleGlobalNameUpdate = (matchId: string, teamKey: 'teamA' | 'teamB', playerId: string, newName: string) => {
     if (!socketRef.current) return;
@@ -100,7 +187,7 @@ export default function MatchesPage() {
 
   return (
     <main className="h-screen bg-[#05070d] text-white font-sans flex flex-col overflow-hidden">
-      
+
       {/* Navigation Bar */}
       <nav className="z-50 bg-white/[0.03] backdrop-blur-xl border-b border-white/10 px-4 lg:px-8 py-3 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 shrink-0">
         <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-8">
@@ -115,6 +202,7 @@ export default function MatchesPage() {
           </div>
           <div className="lg:hidden flex items-center gap-2">
             <Link href="/live" className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg font-bold text-[10px] text-amber-400">LIVE</Link>
+            <Link href="/live-score" className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg font-bold text-[10px] text-slate-400">LIVE SCORE</Link>
             <Link href="/admin" className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg font-bold text-[10px] text-slate-400">ADMIN</Link>
           </div>
         </div>
@@ -136,23 +224,89 @@ export default function MatchesPage() {
         </div>
       </nav>
 
+      {/* Announcement Panel - fix อยู่เสมอ ไม่เลื่อนหาย เพราะอยู่นอกโซนที่ scroll */}
+      <div className="z-40 bg-white/[0.03] backdrop-blur-xl border-b border-white/10 px-4 lg:px-8 py-3 shrink-0">
+        <div className="flex items-center gap-2 mb-2">
+          <FaBullhorn className="text-purple-400 text-[10px]" />
+          <span className="text-[9px] font-black uppercase tracking-[3px] text-slate-500">สถานะคอร์ท - แผงประกาศด่วน</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {courtSummaries.length === 0 && (
+            <span className="text-[11px] text-slate-600 font-bold">ยังไม่มีข้อมูลคอร์ท</span>
+          )}
+          {courtSummaries.map(({ court, list, announceMatch, allFinished }) => {
+            if (announceMatch) {
+              return (
+                <button
+                  key={court}
+                  onClick={() => handleJumpToMatch(announceMatch.id, 'purple')}
+                  className="shrink-0 flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 rounded-2xl px-4 py-2 transition-all active:scale-95"
+                >
+                  <span className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center font-black text-sm text-purple-300 shrink-0">
+                    {court}
+                  </span>
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest">ต้องประกาศคู่ถัดไป</span>
+                    <span className="text-[11px] font-bold text-white truncate max-w-[220px]">
+                      {announceMatch.teamA.university} <span className="text-purple-400">vs</span> {announceMatch.teamB.university}
+                    </span>
+                    <span className="text-[9px] font-bold text-purple-300/70 uppercase truncate max-w-[220px]">
+                      {announceMatch.category} · สาย {announceMatch.group}
+                    </span>
+                  </div>
+                </button>
+              );
+            }
+            if (allFinished && list.length > 0) {
+              const lastMatch = list[list.length - 1];
+              return (
+                <button
+                  key={court}
+                  onClick={() => handleJumpToMatch(lastMatch.id, 'green')}
+                  className="shrink-0 flex items-center gap-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 rounded-2xl px-4 py-2 transition-all active:scale-95"
+                >
+                  <span className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-black text-sm text-emerald-300 shrink-0">
+                    {court}
+                  </span>
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">แข่งครบแล้ว</span>
+                    <span className="text-[9px] font-bold text-emerald-300/70 uppercase truncate max-w-[220px]">
+                      {lastMatch.category} · สาย {lastMatch.group}
+                    </span>
+                  </div>
+                </button>
+              );
+            }
+            return null;
+          })}
+        </div>
+      </div>
+
       {/* Match List Area */}
       <div className="flex-1 p-3 lg:p-6 space-y-4 overflow-y-auto scrollbar-hide">
         <AnimatePresence mode='popLayout'>
           {filteredMatches.map((m) => {
             const { setsA, setsB } = calculateEffectiveSets(m);
             const scoreUrl = `${baseUrl}/score/${encodeURIComponent(m.id)}`;
-            const isLive = !m.isFinished;
             const isWalkover = !!m.isBye;
             const walkoverWinnerName = m.byeWinner === 'a' ? m.teamA.university : m.byeWinner === 'b' ? m.teamB.university : null;
+            const courtStatus: CourtMatchStatus = matchStatusMap[m.id] ?? 'finished';
+            const isHighlighted = highlight?.id === m.id;
 
             return (
               <motion.div
                 layout
                 key={m.id}
+                ref={(el: HTMLDivElement | null) => { matchRefs.current[m.id] = el; }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/[0.02] rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden"
+                className={`bg-white/[0.02] rounded-[2rem] border shadow-2xl overflow-hidden transition-all duration-500 ${
+                  isHighlighted
+                    ? highlight?.tone === 'purple'
+                      ? 'border-purple-500/70 ring-4 ring-purple-500/40 ring-offset-2 ring-offset-[#05070d]'
+                      : 'border-emerald-500/70 ring-4 ring-emerald-500/40 ring-offset-2 ring-offset-[#05070d]'
+                    : 'border-white/10'
+                }`}
               >
                 {/* 1. Header Row: Court, Group and Status */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/[0.01]">
@@ -172,25 +326,25 @@ export default function MatchesPage() {
                       <span className="text-[9px] font-bold text-amber-500/60 uppercase mt-1 leading-none">สาย {m.group}</span>
                     </div>
                   </div>
-                  <StatusBadge isLive={isLive} isWalkover={isWalkover} walkoverWinnerName={walkoverWinnerName} />
+                  <StatusBadge status={courtStatus} isWalkover={isWalkover} walkoverWinnerName={walkoverWinnerName} />
                 </div>
 
                 {/* 2. Body Area: Stacked Scoreboard for Teams */}
                 <div className="flex flex-col lg:flex-row">
-                  
+
                   {/* Teams and Main Score */}
                   <div className="flex-1 p-5 lg:p-8 space-y-5">
-                    
+
                     {/* Team A Row */}
                     <div className="flex items-center justify-between gap-6">
                       <div className="min-w-0 flex-1">
                         <h3 className={`text-2xl lg:text-4xl font-black uppercase truncate leading-tight tracking-tight ${setsA > setsB ? 'text-white' : 'text-slate-500'}`}>
                           {m.teamA.university}
                         </h3>
-                        <TeamPlayers 
-                          players={m.teamA.players} 
-                          focusClass="focus:text-blue-400" 
-                          onNameBlur={(pId: string, name: string) => handleGlobalNameUpdate(m.id, 'teamA', pId, name)} 
+                        <TeamPlayers
+                          players={m.teamA.players}
+                          focusClass="focus:text-blue-400"
+                          onNameBlur={(pId: string, name: string) => handleGlobalNameUpdate(m.id, 'teamA', pId, name)}
                         />
                       </div>
                       <div className={`w-14 h-14 lg:w-20 lg:h-20 flex items-center justify-center rounded-2xl border-2 font-black text-3xl lg:text-5xl shrink-0 transition-all duration-500 ${
@@ -213,10 +367,10 @@ export default function MatchesPage() {
                         <h3 className={`text-2xl lg:text-4xl font-black uppercase truncate leading-tight tracking-tight ${setsB > setsA ? 'text-white' : 'text-slate-500'}`}>
                           {m.teamB.university}
                         </h3>
-                        <TeamPlayers 
-                          players={m.teamB.players} 
-                          focusClass="focus:text-red-400" 
-                          onNameBlur={(pId: string, name: string) => handleGlobalNameUpdate(m.id, 'teamB', pId, name)} 
+                        <TeamPlayers
+                          players={m.teamB.players}
+                          focusClass="focus:text-red-400"
+                          onNameBlur={(pId: string, name: string) => handleGlobalNameUpdate(m.id, 'teamB', pId, name)}
                         />
                       </div>
                       <div className={`w-14 h-14 lg:w-20 lg:h-20 flex items-center justify-center rounded-2xl border-2 font-black text-3xl lg:text-5xl shrink-0 transition-all duration-500 ${
@@ -229,7 +383,7 @@ export default function MatchesPage() {
 
                   {/* 3. Detail & Actions Panel */}
                   <div className="bg-black/30 lg:w-72 border-t lg:border-t-0 lg:border-l border-white/5 p-5 flex flex-col justify-center items-center gap-5">
-                    
+
                     {/* Per-Set Score Details */}
                     <div className="w-full flex items-center justify-around bg-white/5 rounded-2xl border border-white/10 p-3">
                       <div className="text-center">
@@ -249,21 +403,21 @@ export default function MatchesPage() {
 
                     {/* Main Action Buttons */}
                     <div className="flex gap-3 w-full">
-                      <Link 
-                        href={`/score/${encodeURIComponent(m.id)}`} 
+                      <Link
+                        href={`/score/${encodeURIComponent(m.id)}`}
                         className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl transition-all shadow-xl active:scale-95 group"
                       >
                         <FaExternalLinkAlt size={14} className="text-white/80 group-hover:scale-110 transition-transform" />
                         <span className="text-[11px] font-black uppercase tracking-wider">Score Control</span>
                       </Link>
-                      <button 
-                        onClick={() => setQrMatch({ id: m.id, url: scoreUrl })} 
+                      <button
+                        onClick={() => setQrMatch({ id: m.id, url: scoreUrl })}
                         className="bg-white p-3 rounded-2xl hover:bg-slate-100 transition-all active:scale-95 shadow-lg shrink-0"
                       >
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(scoreUrl)}&bgcolor=ffffff`} 
-                          className="w-7 h-7" 
-                          alt="QR" 
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(scoreUrl)}&bgcolor=ffffff`}
+                          className="w-7 h-7"
+                          alt="QR"
                         />
                       </button>
                     </div>
@@ -288,21 +442,21 @@ export default function MatchesPage() {
       {/* QR Code Modal */}
       <AnimatePresence>
         {qrMatch && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            onClick={() => setQrMatch(null)} 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setQrMatch(null)}
             className="fixed inset-0 bg-slate-950/98 z-[100] flex flex-col items-center justify-center p-8 backdrop-blur-md"
           >
             <button className="absolute top-10 right-10 text-slate-500 hover:text-white transition-colors">
               <FaTimes size={30} />
             </button>
             <div className="bg-white p-8 rounded-[3.5rem] shadow-[0_0_80px_rgba(59,130,246,0.3)]">
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(qrMatch.url)}&bgcolor=ffffff`} 
-                alt="QR" 
-                className="w-80 h-80" 
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(qrMatch.url)}&bgcolor=ffffff`}
+                alt="QR"
+                className="w-80 h-80"
               />
             </div>
             <p className="mt-12 font-black text-2xl text-blue-400 uppercase tracking-[8px] text-center">SCAN TO SCORE</p>
@@ -323,23 +477,33 @@ export default function MatchesPage() {
 }
 
 // --- Status Badge Component ---
-function StatusBadge({ isLive, isWalkover, walkoverWinnerName }: { isLive: boolean; isWalkover: boolean; walkoverWinnerName: string | null }) {
-  if (isLive) return (
-    <div className="flex items-center gap-2 px-3 py-1 bg-amber-400/10 border border-amber-400/30 rounded-lg shadow-[0_0_10px_rgba(251,191,36,0.1)]">
-      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#fbbf24]" />
-      <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Live Now</span>
-    </div>
-  );
+// status: announce (ต้องประกาศ/กำลังแข่ง - ม่วง) / queued (รอคิว - เทา) / finished (จบแล้ว - เขียว)
+function StatusBadge({ status, isWalkover, walkoverWinnerName }: { status: CourtMatchStatus; isWalkover: boolean; walkoverWinnerName: string | null }) {
   if (isWalkover) return (
     <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-lg">
       <FaTrophy className="text-amber-500 text-[10px]" />
       <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Walkover</span>
     </div>
   );
+
+  if (status === 'announce') return (
+    <div className="flex items-center gap-2 px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-lg shadow-[0_0_10px_rgba(168,85,247,0.15)]">
+      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse shadow-[0_0_8px_#c084fc]" />
+      <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">ต้องประกาศ</span>
+    </div>
+  );
+
+  if (status === 'queued') return (
+    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-lg">
+      <FaHourglassHalf className="text-slate-500 text-[9px]" />
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">รอคิว</span>
+    </div>
+  );
+
   return (
     <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
       <FaCheckCircle className="text-emerald-500 text-[10px]" />
-      <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Finished</span>
+      <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">จบแล้ว</span>
     </div>
   );
 }
@@ -348,33 +512,33 @@ function StatusBadge({ isLive, isWalkover, walkoverWinnerName }: { isLive: boole
 function TeamPlayers({ players, focusClass, onNameBlur }: TeamPlayersProps) {
   const starters = players.filter(p => p.role === 'starter');
   const subs = players.filter(p => p.role === 'substitute');
-  
+
   return (
     <div className="mt-2 space-y-1">
       {/* Starters Row */}
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         {starters.map(p => (
-          <input 
-            key={p.id} 
-            type="text" 
-            defaultValue={p.name} 
-            onBlur={(e) => onNameBlur(p.id, e.target.value)} 
-            className={`bg-transparent text-[11px] lg:text-[13px] font-bold text-slate-400 focus:outline-none border-b border-transparent hover:border-white/20 transition-all w-32 focus:w-40 ${focusClass}`} 
+          <input
+            key={p.id}
+            type="text"
+            defaultValue={p.name}
+            onBlur={(e) => onNameBlur(p.id, e.target.value)}
+            className={`bg-transparent text-[11px] lg:text-[13px] font-bold text-slate-400 focus:outline-none border-b border-transparent hover:border-white/20 transition-all w-32 focus:w-40 ${focusClass}`}
           />
         ))}
       </div>
-      
+
       {/* Substitutes Row */}
       {subs.length > 0 && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 border-t border-white/5">
           {subs.map(p => (
             <div key={p.id} className="flex items-center gap-1.5 group">
               <span className="text-[8px] font-black text-slate-700 uppercase tracking-tighter">SUB</span>
-              <input 
-                type="text" 
-                defaultValue={p.name} 
+              <input
+                type="text"
+                defaultValue={p.name}
                 onBlur={(e) => onNameBlur(p.id, e.target.value)}
-                className={`bg-transparent text-[10px] lg:text-[11px] font-medium text-slate-500 italic focus:not-italic focus:outline-none border-b border-transparent hover:border-white/10 transition-all w-28 ${focusClass}`} 
+                className={`bg-transparent text-[10px] lg:text-[11px] font-medium text-slate-500 italic focus:not-italic focus:outline-none border-b border-transparent hover:border-white/10 transition-all w-28 ${focusClass}`}
               />
             </div>
           ))}

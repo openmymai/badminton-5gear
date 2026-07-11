@@ -466,10 +466,13 @@ export default function AdminPage() {
             {/* Nav — jump straight to the boards that read the schedule this page generates */}
             <div className="flex items-center gap-2 pl-0 lg:pl-6 lg:border-l border-white/10">
               <Link href="/matches" className="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-blue-400">
-                ตารางแข่งขัน →
+                ตารางแข่งขัน
               </Link>
               <Link href="/live" className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-amber-400">
-                Live Board →
+                Live Board
+              </Link>
+              <Link href="/live-score" className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-amber-400">
+                Live Score
               </Link>
             </div>
           </div>

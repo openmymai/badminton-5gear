@@ -105,10 +105,13 @@ export default function LiveBoardPage() {
               {now ? now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}
             </div>
             <Link href="/admin" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
-              ← Admin
+              Admin
             </Link>
             <Link href="/matches" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
-              Control Board →
+              Control Board
+            </Link>
+            <Link href="/live-score" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
+              Live Score
             </Link>
           </div>
         </header>
