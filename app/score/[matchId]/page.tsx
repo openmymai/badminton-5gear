@@ -1,3 +1,5 @@
+// app/score/[matchId]/page.tsx
+
 "use client"
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
@@ -32,6 +34,11 @@ interface MatchData {
   isFinished: boolean;
   isBye?: boolean;
   byeWinner?: 'a' | 'b' | null;
+  // Sequence number owned by the server. Every accepted update-score bumps
+  // this by at least 1. Clients use it to decide whether an incoming
+  // broadcast is newer than what they already have locally, instead of a
+  // fragile "ignore anything within N ms of my last tap" timer.
+  version?: number;
 }
 
 interface UpdateScorePayload {
@@ -40,6 +47,18 @@ interface UpdateScorePayload {
   isFinished: boolean;
   isBye?: boolean;
   byeWinner?: 'a' | 'b' | null;
+  // Our local optimistic guess at what the next version should be. The
+  // server treats this as a hint, not gospel — it always advances its own
+  // counter by at least 1, but will jump ahead to match this if it's higher
+  // (e.g. several taps queued up client-side before the first emit landed).
+  version: number;
+}
+
+interface ScoreAck {
+  matchId: string;
+  version: number;
+  score: ScoreState;
+  isFinished: boolean;
 }
 
 function getSetWinner(a: number, b: number): 'a' | 'b' | null {
@@ -67,7 +86,6 @@ function vibrate(pattern: number | number[]) {
 }
 
 const EMIT_DEBOUNCE_MS = 150;
-const IGNORE_SERVER_SYNC_MS = 2000; // ป้องกัน Echo ดีดกลับเป็นเวลา 2 วินาทีหลังกด
 
 export default function ScorerPage() {
   const params = useParams();
@@ -82,10 +100,25 @@ export default function ScorerPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // --- Refs for Performance & Sync ---
+  // scoreRef is the LOCAL, optimistic score driving the buttons. It updates
+  // instantly on tap and never waits for a server round-trip. `match.score`
+  // is kept mirrored to it for rendering, but scoreRef is the source of
+  // truth for "what should I send/display right now".
   const scoreRef = useRef<ScoreState | null>(null);
+
+  // versionRef is our local sequence counter. It only ever increases:
+  //   - +1 every time WE make a change (tap, undo, finish, bye).
+  //   - snapped forward to whatever the server reports, via 'match-data',
+  //     'data-updated' (only if incoming.version >= versionRef.current), or
+  //     'score-ack' (always, since that's the server's own authoritative count).
+  // A server/broadcast update is only allowed to overwrite our local score
+  // when its version is >= our current version — this replaces the old
+  // "ignore anything within 2s of my last tap" timer with something that
+  // actually reasons about ordering instead of guessing from a clock.
+  const versionRef = useRef<number>(0);
+
   const emitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingEmitRef = useRef<UpdateScorePayload | null>(null);
-  const lastTapTimeRef = useRef<number>(0); 
 
   const cancelPendingEmit = useCallback(() => {
     if (emitTimeoutRef.current) {
@@ -134,28 +167,38 @@ export default function ScorerPage() {
 
     socketRef.current.on('disconnect', () => setIsConnected(false));
 
+    // Broadcast of the full match list (someone — possibly us, possibly
+    // another scorer on the same match, possibly the admin — changed
+    // something). Only accept it if it's not older than what we already have.
     socketRef.current.on('data-updated', (data: { matches: MatchData[] }) => {
       const currentMatch = data.matches.find(m => m.id === matchId);
-      if (currentMatch) {
-        // --- RACE CONDITION FIX ---
-        // ถ้าเพิ่งมีการกดแต้มในเครื่องนี้ (ไม่เกิน 2 วิ) ห้ามเอาเลขจาก server มาทับ
-        const isRecentlyTapped = Date.now() - lastTapTimeRef.current < IGNORE_SERVER_SYNC_MS;
-        
-        if (isRecentlyTapped && scoreRef.current) {
-          setMatch(prev => (prev ? {
-            ...currentMatch,
-            score: scoreRef.current! 
-          } : currentMatch));
-        } else {
-          scoreRef.current = currentMatch.score;
-          setMatch(currentMatch);
-        }
+      if (!currentMatch) return;
+
+      const incomingVersion = currentMatch.version ?? 0;
+      if (incomingVersion >= versionRef.current) {
+        versionRef.current = incomingVersion;
+        scoreRef.current = currentMatch.score;
+        setMatch(currentMatch);
       }
+      // else: this is a stale packet (e.g. it was already in flight when we
+      // made a newer local change) — our local optimistic state is newer,
+      // so we simply ignore it instead of letting it snap the score backward.
     });
 
+    // Initial load for this match — always authoritative, always accepted.
     socketRef.current.on('match-data', (data: MatchData) => {
+      versionRef.current = data.version ?? 0;
       scoreRef.current = data.score;
       setMatch(data);
+    });
+
+    // Direct confirmation of OUR OWN last update-score, since update-score
+    // broadcasts to everyone EXCEPT us (see server.js). This is what keeps
+    // our local sequence counter exactly aligned with the server's, even if
+    // another device scored the same match in between our taps.
+    socketRef.current.on('score-ack', (ack: ScoreAck) => {
+      if (ack.matchId !== matchId) return;
+      if (ack.version > versionRef.current) versionRef.current = ack.version;
     });
 
     return () => {
@@ -173,9 +216,6 @@ export default function ScorerPage() {
     if (!match || !scoreRef.current) return;
     setErrorMsg(null);
 
-    // บันทึกเวลาที่เปลี่ยนแต้ม
-    lastTapTimeRef.current = Date.now();
-
     const baseScore = scoreRef.current;
     pushHistory(baseScore);
 
@@ -184,13 +224,20 @@ export default function ScorerPage() {
       [field]: Math.min(Math.max(0, baseScore[field] + delta), 21)
     };
 
+    // 1) Update local state immediately — this is what the buttons render.
     scoreRef.current = newScore;
     setMatch(prev => (prev ? { ...prev, score: newScore } : prev));
+
+    // 2) Bump our sequence number for this action and send it along. Rapid
+    // taps each get their own strictly-increasing version even though the
+    // debounce means only the latest one actually reaches the server.
+    versionRef.current += 1;
 
     scheduleEmit({
       matchId: match.id,
       score: newScore,
-      isFinished: match.isFinished
+      isFinished: match.isFinished,
+      version: versionRef.current
     });
 
     vibrate(delta > 0 ? 12 : 25);
@@ -204,15 +251,17 @@ export default function ScorerPage() {
     setErrorMsg(null);
     vibrate([10, 40, 10]);
 
-    lastTapTimeRef.current = Date.now();
     scoreRef.current = prevScore;
     setMatch(prev => (prev ? { ...prev, score: prevScore } : prev));
+
+    versionRef.current += 1;
 
     cancelPendingEmit();
     socketRef.current?.emit('update-score', {
       matchId: match.id,
       score: prevScore,
-      isFinished: match.isFinished
+      isFinished: match.isFinished,
+      version: versionRef.current
     });
   };
 
@@ -247,13 +296,16 @@ export default function ScorerPage() {
 
     if (updated) setMatch(updated);
 
+    versionRef.current += 1;
+
     cancelPendingEmit();
     socketRef.current?.emit('update-score', {
       matchId: matchId,
       score: updated?.score ?? match?.score,
       isFinished: finish,
       isBye: updated?.isBye ?? false,
-      byeWinner: updated?.byeWinner ?? null
+      byeWinner: updated?.byeWinner ?? null,
+      version: versionRef.current
     });
 
     if (finish) {
@@ -274,13 +326,16 @@ export default function ScorerPage() {
     setErrorMsg(null);
     setMatch({ ...match, isFinished: true, isBye: true, byeWinner: winner });
 
+    versionRef.current += 1;
+
     cancelPendingEmit();
     socketRef.current?.emit('update-score', {
       matchId: match.id,
       score: match.score,
       isFinished: true,
       isBye: true,
-      byeWinner: winner
+      byeWinner: winner,
+      version: versionRef.current
     });
 
     setByeMode(false);

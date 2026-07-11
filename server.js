@@ -105,6 +105,9 @@ const isValidMatch = (m) => {
   // isBye/byeWinner are optional — matches imported fresh from Excel won't have them yet.
   if (m.isBye !== undefined && typeof m.isBye !== "boolean") return false;
   if (!isValidByeWinner(m.byeWinner)) return false;
+  // version is optional on the way in (Excel imports won't have one yet) —
+  // it gets defaulted/preserved in mergeMatches. If present it must be a number.
+  if (m.version !== undefined && typeof m.version !== "number") return false;
   return true;
 };
 
@@ -189,10 +192,11 @@ const saveData = (data) => {
 // Any match that already exists (matched by id) keeps its recorded score /
 // isFinished status — regenerating the schedule from Excel must never wipe
 // results that were already entered on court. This includes the walkover/bye
-// tag (isBye/byeWinner): a match filed as a Bye must stay tagged as a Bye
-// even after the admin re-imports the schedule. Roster/court/category fields
-// are refreshed from the new payload in case the admin edited names or
-// reassigned courts.
+// tag (isBye/byeWinner) AND the version/sequence counter: a re-import must
+// never roll a match's version backward, or a client that already advanced
+// past that version would wrongly treat the re-imported data as stale and
+// ignore it. Roster/court/category fields are refreshed from the new
+// payload in case the admin edited names or reassigned courts.
 const mergeMatches = (existingMatches, incomingMatches) => {
   const existingById = new Map(existingMatches.map((m) => [m.id, m]));
   let preserved = 0;
@@ -208,10 +212,11 @@ const mergeMatches = (existingMatches, incomingMatches) => {
         isFinished: prior.isFinished,
         isBye: prior.isBye ?? false,
         byeWinner: prior.byeWinner ?? null,
+        version: prior.version ?? 0,
       };
     }
     added++;
-    return incoming;
+    return { ...incoming, version: incoming.version ?? 0 };
   });
 
   return { merged, preserved, added };
@@ -253,7 +258,7 @@ app.prepare().then(() => {
           socket.emit("action-error", { message: "ข้อมูลที่ส่งมาไม่ถูกต้อง (update-score)" });
           return;
         }
-        const { matchId, score, isFinished, court, teamA, teamB, isBye, byeWinner } = payload;
+        const { matchId, score, isFinished, court, teamA, teamB, isBye, byeWinner, version } = payload;
 
         if (score !== undefined && !isValidScore(score)) {
           socket.emit("action-error", { message: "รูปแบบคะแนนไม่ถูกต้อง" });
@@ -275,6 +280,10 @@ app.prepare().then(() => {
           socket.emit("action-error", { message: "รูปแบบผู้ชนะ Walkover/Bye ไม่ถูกต้อง" });
           return;
         }
+        if (version !== undefined && typeof version !== "number") {
+          socket.emit("action-error", { message: "รูปแบบ version ไม่ถูกต้อง" });
+          return;
+        }
 
         const data = readData();
         const index = data.matches.findIndex((m) => m.id === matchId);
@@ -284,17 +293,50 @@ app.prepare().then(() => {
           return;
         }
 
-        if (score !== undefined) data.matches[index].score = score;
-        if (isFinished !== undefined) data.matches[index].isFinished = Boolean(isFinished);
-        if (court !== undefined) data.matches[index].court = String(court);
-        if (teamA !== undefined) data.matches[index].teamA = teamA;
-        if (teamB !== undefined) data.matches[index].teamB = teamB;
-        if (isBye !== undefined) data.matches[index].isBye = isBye;
-        if (byeWinner !== undefined) data.matches[index].byeWinner = byeWinner;
+        const current = data.matches[index];
+
+        // --- Sequence number / version control ---
+        // The client bumps its own local counter by 1 on every tap and sends
+        // that as a hint. The SERVER is the actual source of truth: it always
+        // advances at least 1 past whatever it currently has stored, but will
+        // jump ahead to the client's number if that's higher (e.g. several
+        // taps queued up client-side and only the latest one reached us after
+        // the debounce). This guarantees the version is strictly increasing
+        // even with two phones scoring the same match at once, so no client
+        // is ever fooled into overwriting a newer score with an older one.
+        const currentVersion = current.version ?? 0;
+        const clientVersion = typeof version === "number" ? version : 0;
+        const nextVersion = Math.max(currentVersion + 1, clientVersion);
+
+        if (score !== undefined) current.score = score;
+        if (isFinished !== undefined) current.isFinished = Boolean(isFinished);
+        if (court !== undefined) current.court = String(court);
+        if (teamA !== undefined) current.teamA = teamA;
+        if (teamB !== undefined) current.teamB = teamB;
+        if (isBye !== undefined) current.isBye = isBye;
+        if (byeWinner !== undefined) current.byeWinner = byeWinner;
+        current.version = nextVersion;
 
         data.lastUpdated = Date.now();
         if (saveData(data)) {
-          io.emit("data-updated", data); // กระจายให้ทุกเครื่อง
+          // Broadcast to everyone EXCEPT the sender. The sender already
+          // applied this change optimistically the instant they tapped, so
+          // echoing the same update back to them only risks visibly
+          // "snapping" the score if a slightly-stale packet from an earlier
+          // save happens to arrive after this one.
+          socket.broadcast.emit("data-updated", data);
+
+          // The sender still needs to know their update actually landed and,
+          // more importantly, what version the SERVER assigned to it — which
+          // may be higher than their own guess if another device also
+          // scored this match in between. This keeps the sender's local
+          // sequence counter exactly aligned with the server's.
+          socket.emit("score-ack", {
+            matchId,
+            version: nextVersion,
+            score: current.score,
+            isFinished: current.isFinished,
+          });
         } else {
           socket.emit("action-error", { message: "บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่" });
         }
@@ -305,7 +347,8 @@ app.prepare().then(() => {
     });
 
     // รับตารางแข่งขันที่สร้างใหม่ทั้งชุดจากหน้า Admin แล้ว merge เข้ากับของเดิม
-    // (แมตช์ที่มีอยู่แล้วจะคงคะแนน/ผลเดิม รวมถึงแท็ก walkover/bye ไว้ ไม่ถูกรีเซ็ต)
+    // (แมตช์ที่มีอยู่แล้วจะคงคะแนน/ผลเดิม รวมถึงแท็ก walkover/bye และ version ไว้
+    // ไม่ถูกรีเซ็ต)
     socket.on("import-excel", (newMatches) => {
       try {
         if (!Array.isArray(newMatches)) {

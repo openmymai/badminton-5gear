@@ -168,12 +168,13 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 12,
+        "s1b": 21,
+        "s2a": 21,
+        "s2b": 15
       },
-      "isFinished": false
+      "isFinished": false,
+      "version": 63
     },
     {
       "id": "M_general_A_CU_CMU",
@@ -12264,5 +12265,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783726552988
+  "lastUpdated": 1783738509464
 }
