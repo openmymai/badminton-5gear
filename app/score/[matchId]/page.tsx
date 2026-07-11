@@ -311,7 +311,7 @@ export default function ScorerPage() {
     if (finish) {
       vibrate([15, 40, 15, 40, 60]);
       alert("บันทึกผลสำเร็จ!");
-      router.push('/matches');
+      router.push('/');
     } else {
       vibrate(15);
     }
@@ -341,7 +341,7 @@ export default function ScorerPage() {
     setByeMode(false);
     vibrate([15, 40, 15, 40, 60]);
     alert("บันทึกผลสำเร็จ!");
-    router.push('/matches');
+    router.push('/');
   };
 
   if (!match) return (
