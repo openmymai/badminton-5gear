@@ -41,6 +41,24 @@ interface RosterState {
   manualCourts: Record<string, number>;
 }
 
+// สรุปคู่แข่งขันที่ server แจ้งว่า "จะหายไป" ถ้ายืนยันสร้างตารางใหม่ทับของเดิม
+// (มาจาก event "import-would-drop-matches" — teamA/teamB ถูกย่อเหลือแค่ชื่อ
+// มหาลัยแล้วโดย server เพื่อไม่ต้องส่งข้อมูลทีมทั้งก้อนกลับมา)
+interface DroppedMatchInfo {
+  id: string;
+  category: string;
+  group: string;
+  teamA?: string;
+  teamB?: string;
+  isFinished?: boolean;
+}
+
+interface DropWarningState {
+  droppedMatches: DroppedMatchInfo[];
+  droppedCount: number;
+  pendingMatches: any[];
+}
+
 // ไฟล์ backup ที่ได้จาก GET /api/backups (ชื่อไฟล์ล้วนๆ เช่น
 // "manual_2026-07-11T10-23-45-123Z.json" หรือ "pre-restore_1699999999999.json")
 type BackupFileName = string;
@@ -101,6 +119,18 @@ export default function AdminPage() {
   const [matchesGenerated, setMatchesGenerated] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
+  // ตารางแข่งขัน "ปัจจุบัน" ตามที่ server รายงานล่าสุดผ่าน "data-updated" —
+  // ใช้พรีวิวว่าถ้าสร้างตารางใหม่ตอนนี้ จะมีคู่เดิมคู่ไหนหายไปบ้าง ก่อนกดปุ่มจริง
+  const [currentMatches, setCurrentMatches] = useState<any[]>([]);
+
+  // เปิดอยู่เมื่อ server ตอบกลับ "import-would-drop-matches" — แปลว่าตารางใหม่
+  // ที่กำลังจะบันทึกจะทำให้คู่เดิมบางคู่ (อาจมีผลการแข่งขันบันทึกไว้แล้ว) หายไป
+  // ยังไม่ถูกบันทึกจนกว่าจะกดยืนยัน
+  const [dropWarning, setDropWarning] = useState<DropWarningState | null>(null);
+  // เก็บชุด matches ที่เพิ่งส่งไปรอ server ตรวจสอบไว้ชั่วคราว เผื่อต้องส่งซ้ำ
+  // พร้อม confirmDrop: true ถ้า admin ยืนยันจะแทนที่
+  const pendingImportRef = useRef<any[] | null>(null);
+
   // ---- Backup / Restore state ----
   const [backups, setBackups] = useState<BackupFileName[]>([]);
   const [backupsLoading, setBackupsLoading] = useState(false);
@@ -135,6 +165,23 @@ export default function AdminPage() {
       setCategories(roster.categories || []);
       setCourtMode(roster.courtMode || 'auto');
       setManualCourts(roster.manualCourts || {});
+    });
+
+    // ตารางแข่งขันปัจจุบันจาก server (ทั้งตอนเชื่อมต่อครั้งแรก และทุกครั้งที่มี
+    // การเปลี่ยนแปลง) — เก็บไว้ใช้พรีวิวว่าตารางใหม่จะทำให้คู่ไหนหายไปบ้าง
+    s.on('data-updated', (data: { matches?: any[] }) => {
+      if (data && Array.isArray(data.matches)) setCurrentMatches(data.matches);
+    });
+
+    // Server ตรวจพบว่าตารางที่กำลังจะบันทึกจะทำให้คู่เดิมบางคู่หายไป และยังไม่
+    // ได้บันทึก — เปิด dialog เตือนให้ admin เลือกยกเลิกหรือยืนยันแทนที่
+    s.on('import-would-drop-matches', (payload: { droppedMatches: DroppedMatchInfo[]; droppedCount: number }) => {
+      setSuccess(null);
+      setDropWarning({
+        droppedMatches: payload?.droppedMatches || [],
+        droppedCount: payload?.droppedCount || 0,
+        pendingMatches: pendingImportRef.current || [],
+      });
     });
 
     return () => { s.disconnect(); };
@@ -383,22 +430,20 @@ export default function AdminPage() {
   const courtsUsed = useMemo(() => new Set(courtCombos.map(c => c.court)).size, [courtCombos]);
   const matchTotal = useMemo(() => courtCombos.reduce((sum, c) => sum + c.matchCount, 0), [courtCombos]);
 
-  const generateMatches = () => {
-    if (entries.length === 0) { setError("ยังไม่มีข้อมูลนักกีฬา กรุณา Import Excel ก่อน"); return; }
-    if (courtCombos.length === 0) { setError("ไม่พบรุ่นการแข่งขันจากข้อมูลที่นำเข้า"); return; }
-    if (hasDuplicateCourts) {
-      setError("มีสนามถูกกำหนดซ้ำกันมากกว่า 1 รุ่น กรุณาแก้ไขให้ไม่ซ้ำก่อนสร้างตาราง");
-      return;
-    }
-    const invalidCourt = courtCombos.find(c => !c.court || c.court < 1);
-    if (invalidCourt) {
-      setError(`กรุณากำหนดสนามให้รุ่น ${invalidCourt.category} สาย ${invalidCourt.group}`);
-      return;
-    }
-
+  // สร้างรายชื่อคู่แข่งขันทั้งหมดจาก courtCombos ปัจจุบัน — ใช้ทั้งตอนพรีวิว
+  // (เทียบว่าจะมีคู่เดิมหายไปกี่คู่ ก่อนกดสร้างจริง) และตอนกดสร้างตารางจริง
+  //
+  // ทีมถูก sort ตามชื่อมหาลัยก่อนจับคู่เสมอ (teams[i]/teams[j]) เพื่อให้ id ของ
+  // แต่ละคู่คงที่ ไม่ขึ้นกับลำดับที่ทีมถูก insert เข้ามาใน roster — กันปัญหา id
+  // เปลี่ยนไปมาเวลาลำดับแถวใน Excel เปลี่ยน ซึ่งจะทำให้คู่เดิม (พร้อมผลที่บันทึก
+  // ไว้แล้ว) ดูเหมือนหายไปทั้งที่จริงๆ เป็นทีมชุดเดิม
+  const buildAllMatches = useCallback(() => {
     const allMatches: any[] = [];
     courtCombos.forEach(combo => {
-      const teams = entries.filter(e => e.category === combo.category && e.group === combo.group);
+      const teams = entries
+        .filter(e => e.category === combo.category && e.group === combo.group)
+        .slice()
+        .sort((a, b) => a.university.localeCompare(b.university));
       const catIndex = categories.indexOf(combo.category);
       const catSlug = CATEGORY_SLUG_MAP[combo.category] || `cat${catIndex >= 0 ? catIndex : 0}`;
 
@@ -417,6 +462,31 @@ export default function AdminPage() {
         }
       }
     });
+    return allMatches;
+  }, [courtCombos, entries, categories]);
+
+  // พรีวิว: ถ้าตารางที่กำลังจะสร้างใหม่ทำให้คู่ที่มีอยู่แล้วบน server บางคู่
+  // หายไป (เพราะ id ไม่ตรงกับชุดใหม่อีกต่อไป) ให้เตือนไว้ล่วงหน้าก่อนกดปุ่มจริง
+  const previewDroppedCount = useMemo(() => {
+    if (currentMatches.length === 0) return 0;
+    const newIds = new Set(buildAllMatches().map(m => m.id));
+    return currentMatches.filter((m: any) => !newIds.has(m.id)).length;
+  }, [currentMatches, buildAllMatches]);
+
+  const generateMatches = () => {
+    if (entries.length === 0) { setError("ยังไม่มีข้อมูลนักกีฬา กรุณา Import Excel ก่อน"); return; }
+    if (courtCombos.length === 0) { setError("ไม่พบรุ่นการแข่งขันจากข้อมูลที่นำเข้า"); return; }
+    if (hasDuplicateCourts) {
+      setError("มีสนามถูกกำหนดซ้ำกันมากกว่า 1 รุ่น กรุณาแก้ไขให้ไม่ซ้ำก่อนสร้างตาราง");
+      return;
+    }
+    const invalidCourt = courtCombos.find(c => !c.court || c.court < 1);
+    if (invalidCourt) {
+      setError(`กรุณากำหนดสนามให้รุ่น ${invalidCourt.category} สาย ${invalidCourt.group}`);
+      return;
+    }
+
+    const allMatches = buildAllMatches();
 
     if (allMatches.length === 0) {
       setError("ไม่มีคู่แข่งขันให้สร้าง (แต่ละรุ่น/สาย ต้องมีอย่างน้อย 2 ทีม)");
@@ -428,9 +498,30 @@ export default function AdminPage() {
       return;
     }
 
-    socketRef.current?.emit('import-excel', allMatches);
+    // ส่งแบบฟอร์แมตใหม่ { matches, confirmDrop: false } เสมอ — ถ้า server ตรวจพบ
+    // ว่ามีคู่เดิมที่จะหายไป จะยังไม่บันทึกทันที แต่ยิง "import-would-drop-matches"
+    // กลับมาให้ยืนยันก่อน (ดู handleConfirmDrop / handleCancelDrop ด้านล่าง)
+    pendingImportRef.current = allMatches;
+    socketRef.current?.emit('import-excel', { matches: allMatches, confirmDrop: false });
     setMatchesGenerated(true);
     setSuccess(`สร้างตารางแข่งขันสำเร็จ ${allMatches.length} คู่ กระจายลง ${courtsUsed} สนาม (คะแนนคู่ที่มีผลอยู่แล้วจะไม่ถูกล้าง)`);
+  };
+
+  // Admin ยืนยันแล้วว่ายอมให้คู่เดิมที่แจ้งเตือนไว้ถูกแทนที่/ลบออก — ส่งชุดเดิมซ้ำ
+  // พร้อม confirmDrop: true เพื่อให้ server บันทึกจริง
+  const handleConfirmDrop = () => {
+    if (!dropWarning) return;
+    socketRef.current?.emit('import-excel', { matches: dropWarning.pendingMatches, confirmDrop: true });
+    setMatchesGenerated(true);
+    setSuccess(`สร้างตารางแข่งขันสำเร็จ (ยืนยันแทนที่คู่เดิมที่หายไป ${dropWarning.droppedCount} คู่)`);
+    setDropWarning(null);
+    pendingImportRef.current = null;
+  };
+
+  // Admin ยกเลิก — ไม่ส่งอะไรเพิ่ม ข้อมูลบน server ยังเป็นชุดเดิม (ยังไม่ถูกบันทึก)
+  const handleCancelDrop = () => {
+    setDropWarning(null);
+    pendingImportRef.current = null;
   };
 
   const teamCount = entries.length;
@@ -490,6 +581,75 @@ export default function AdminPage() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl flex items-center gap-3 font-bold text-sm">
               <FaExclamationTriangle /> {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Drop-confirmation dialog — server found existing matches (possibly with
+            recorded scores) that would disappear under the new schedule/id set */}
+        <AnimatePresence>
+          {dropWarning && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                className="w-full max-w-lg bg-[#0a0d16] border border-red-500/30 rounded-3xl shadow-2xl p-7"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 bg-red-500/15 border border-red-500/30 rounded-xl text-red-400 shrink-0">
+                    <FaExclamationTriangle size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black uppercase tracking-tight text-red-400">
+                      คู่แข่งขันเดิมจะหายไป {dropWarning.droppedCount} คู่
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-bold mt-0.5 leading-relaxed">
+                      ตารางใหม่ไม่มีคู่เหล่านี้อยู่แล้ว — หากยืนยัน คู่เหล่านี้ (รวมคะแนนที่บันทึกไว้) จะถูกลบออก
+                    </p>
+                  </div>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto space-y-1.5 mb-5 pr-1">
+                  {dropWarning.droppedMatches.map(m => (
+                    <div key={m.id} className="flex items-center justify-between gap-3 bg-black/30 px-3 py-2.5 rounded-xl border border-white/5">
+                      <div className="leading-tight min-w-0">
+                        <p className="text-xs font-bold truncate">
+                          {m.teamA || '?'} vs {m.teamB || '?'}
+                        </p>
+                        <p className="text-[9px] text-amber-500 font-bold uppercase mt-0.5">
+                          รุ่น {m.category} · สาย {m.group}
+                        </p>
+                      </div>
+                      {m.isFinished && (
+                        <span className="shrink-0 text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-md bg-red-500/15 border border-red-500/30 text-red-400">
+                          มีผลแล้ว
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCancelDrop}
+                    className="flex-1 px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl font-bold text-sm transition-all"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleConfirmDrop}
+                    className="flex-1 px-5 py-3 bg-red-600 hover:bg-red-500 active:scale-[0.98] rounded-2xl font-black text-sm transition-all shadow-lg shadow-red-500/30"
+                  >
+                    ยืนยัน แทนที่ตาราง
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -636,6 +796,15 @@ export default function AdminPage() {
             >
               <FaSave /> สร้างตารางแข่ง{matchTotal > 0 ? ` (${matchTotal} คู่)` : ''}
             </button>
+
+            {/* Preview warning — computed client-side from the last known server
+                schedule, before the admin even clicks "generate" */}
+            {previewDroppedCount > 0 && (
+              <p className="text-[10px] text-red-400 font-bold text-center flex items-center justify-center gap-1.5">
+                <FaExclamationTriangle size={10} />
+                คู่เดิม {previewDroppedCount} คู่จะหายไปถ้าสร้างตารางนี้
+              </p>
+            )}
 
             {/* Post-generate shortcut — appears once a schedule has been created this
                 session, so the admin doesn't have to hunt for the nav links up top. */}

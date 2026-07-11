@@ -297,8 +297,16 @@ function flushToDiskSync() {
 // past that version would wrongly treat the re-imported data as stale and
 // ignore it. Roster/court/category fields are refreshed from the new
 // payload in case the admin edited names or reassigned courts.
+//
+// `droppedMatches` are existing matches whose id no longer appears anywhere
+// in the incoming batch — e.g. the admin removed a team/row from the Excel
+// file, or a team's sort order shifted enough to change generated ids. These
+// matches (and any recorded scores on them) would silently disappear from
+// data.json if merged as-is, so the caller (the "import-excel" socket
+// handler) surfaces this list to the admin for confirmation before saving.
 const mergeMatches = (existingMatches, incomingMatches) => {
   const existingById = new Map(existingMatches.map((m) => [m.id, m]));
+  const incomingIds = new Set(incomingMatches.map((m) => m.id));
   let preserved = 0;
   let added = 0;
 
@@ -319,7 +327,9 @@ const mergeMatches = (existingMatches, incomingMatches) => {
     return { ...incoming, version: incoming.version ?? 0 };
   });
 
-  return { merged, preserved, added };
+  const droppedMatches = existingMatches.filter((m) => !incomingIds.has(m.id));
+
+  return { merged, preserved, added, droppedMatches };
 };
 
 // Load the cache once, synchronously, before we start accepting connections.
@@ -452,9 +462,30 @@ app.prepare().then(() => {
     // รับตารางแข่งขันที่สร้างใหม่ทั้งชุดจากหน้า Admin แล้ว merge เข้ากับของเดิม
     // (แมตช์ที่มีอยู่แล้วจะคงคะแนน/ผลเดิม รวมถึงแท็ก walkover/bye และ version ไว้
     // ไม่ถูกรีเซ็ต)
-    socket.on("import-excel", (newMatches) => {
+    //
+    // รองรับ payload สองรูปแบบ เพื่อความเข้ากันได้ย้อนหลัง:
+    //   1. รูปแบบเดิม — array ของแมตช์ล้วนๆ (รวมถึง [] สำหรับปุ่ม "ล้างข้อมูล
+    //      ทั้งหมด") จะถือว่า "ยืนยันแล้ว" ทันทีเหมือนพฤติกรรมเดิมทุกประการ
+    //      ไม่มีการเตือนใดๆ เพิ่มขึ้นมา
+    //   2. รูปแบบใหม่ — { matches, confirmDrop } ใช้ตอนสร้างตารางจากหน้า Admin
+    //      ปัจจุบัน หาก merge แล้วพบว่ามีคู่เดิม (droppedMatches) ที่จะหายไป
+    //      และ confirmDrop ยังไม่ true จะยังไม่บันทึกข้อมูล แต่ยิง event
+    //      "import-would-drop-matches" กลับไปแทน ให้ฝั่ง client ยืนยันก่อน
+    //      แล้วส่งซ้ำพร้อม confirmDrop: true
+    socket.on("import-excel", (payload) => {
       try {
-        if (!Array.isArray(newMatches)) {
+        let newMatches;
+        let confirmDrop;
+
+        if (Array.isArray(payload)) {
+          // รูปแบบเดิม — ถือว่ายืนยันแล้วเสมอ เพื่อไม่ให้พฤติกรรมเดิม (รวมถึง
+          // ปุ่ม "ล้างข้อมูลทั้งหมด" ที่ยิง [] ตรงๆ) เปลี่ยนไป
+          newMatches = payload;
+          confirmDrop = true;
+        } else if (isPlainObject(payload) && Array.isArray(payload.matches)) {
+          newMatches = payload.matches;
+          confirmDrop = Boolean(payload.confirmDrop);
+        } else {
           socket.emit("action-error", { message: "รูปแบบข้อมูลตารางแข่งขันไม่ถูกต้อง" });
           return;
         }
@@ -483,12 +514,33 @@ app.prepare().then(() => {
         }
 
         const existing = readData();
-        const { merged, preserved, added } = mergeMatches(existing.matches, newMatches);
+        const { merged, preserved, added, droppedMatches } = mergeMatches(existing.matches, newMatches);
+
+        if (droppedMatches.length > 0 && !confirmDrop) {
+          // ยังไม่บันทึก — ส่งรายละเอียดคู่ที่จะหายไปกลับไปให้ผู้ส่งคนนี้เท่านั้น
+          // (ไม่ broadcast) เพื่อให้ยืนยันก่อน
+          socket.emit("import-would-drop-matches", {
+            droppedCount: droppedMatches.length,
+            droppedMatches: droppedMatches.map((m) => ({
+              id: m.id,
+              category: m.category,
+              group: m.group,
+              teamA: m.teamA?.university,
+              teamB: m.teamB?.university,
+              isFinished: m.isFinished,
+            })),
+          });
+          return;
+        }
+
         const newData = { ...existing, matches: merged, lastUpdated: Date.now() };
 
         if (saveData(newData)) {
           io.emit("data-updated", newData);
-          console.log(`[Sync] Schedule regenerated: ${merged.length} matches (${preserved} preserved with existing results, ${added} new)`);
+          console.log(
+            `[Sync] Schedule regenerated: ${merged.length} matches (${preserved} preserved with existing results, ${added} new` +
+            `${droppedMatches.length ? `, ${droppedMatches.length} dropped` : ""})`
+          );
         } else {
           socket.emit("action-error", { message: "บันทึกตารางแข่งขันไม่สำเร็จ กรุณาลองใหม่" });
         }
