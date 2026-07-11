@@ -156,17 +156,22 @@ export default function LeaderboardPage() {
             <p className="text-blue-300/80 tracking-[2px] sm:tracking-[4px] uppercase font-bold text-[9px] sm:text-[10px] mt-0.5">Badminton Tournament</p>
           </div>
         </div>
-        {isAdmin && (
-          <>
-            <div className="flex gap-2 sm:gap-3">
+        <div className="flex gap-2 sm:gap-3">
+          {/* Public links — ทุกคนเห็นเสมอ ไม่ครอบด้วย isAdmin */}
+          <Link href="/live" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-amber-500/10 backdrop-blur-md border border-amber-500/30 rounded-xl hover:bg-amber-500/20 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs text-amber-400">Live</Link>
+          <Link href="/live-score" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-amber-500/10 backdrop-blur-md border border-amber-500/30 rounded-xl hover:bg-amber-500/20 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs text-amber-400">Live Score</Link>
+
+          {/* Admin-only links */}
+          {isAdmin && (
+            <>
               <Link href="/matches" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-blue-600 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs">Matches</Link>
               <Link href="/admin" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-slate-700 transition-all font-bold tracking-widest text-white/60 uppercase text-[10px] sm:text-xs">Admin</Link>
               <button onClick={logout} className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs">
                 Logout
               </button>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </header>
 
       {/* Rankings List */}

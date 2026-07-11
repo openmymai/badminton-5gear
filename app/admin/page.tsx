@@ -15,6 +15,7 @@ import {
 import { MdOutlineCleaningServices } from 'react-icons/md';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import Link from 'next/link';
+import { useIsAdmin } from '@/lib/useIsAdmin';
 
 interface Player { id: string; name: string; role: 'starter' | 'substitute'; }
 interface TeamEntry { university: string; category: string; group: string; players: Player[]; }
@@ -118,6 +119,7 @@ export default function AdminPage() {
   // ใช้แสดงลิงก์ไปหน้า Matches / Live หลังจากสร้างตารางแข่งสำเร็จในเซสชันนี้
   const [matchesGenerated, setMatchesGenerated] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const { logout } = useIsAdmin();
 
   // ตารางแข่งขัน "ปัจจุบัน" ตามที่ server รายงานล่าสุดผ่าน "data-updated" —
   // ใช้พรีวิวว่าถ้าสร้างตารางใหม่ตอนนี้ จะมีคู่เดิมคู่ไหนหายไปบ้าง ก่อนกดปุ่มจริง
@@ -557,7 +559,7 @@ export default function AdminPage() {
             {/* Nav — jump straight to the boards that read the schedule this page generates */}
             <div className="flex items-center gap-2 pl-0 lg:pl-6 lg:border-l border-white/10">
               <Link href="/matches" className="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-blue-400">
-                ตารางแข่งขัน
+                Matches
               </Link>
               <Link href="/live" className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-amber-400">
                 Live Board
@@ -565,6 +567,12 @@ export default function AdminPage() {
               <Link href="/live-score" className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-amber-400">
                 Live Score
               </Link>
+              <button
+                onClick={logout}
+                className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-red-400"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </header>
