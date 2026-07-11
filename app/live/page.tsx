@@ -76,47 +76,69 @@ export default function LiveBoardPage() {
   const totalLiveMatches = useMemo(() => matches.filter(m => !m.isFinished).length, [matches]);
 
   return (
-    <main className="min-h-screen bg-[#05070d] text-white font-sans p-6">
+    <main className="min-h-screen bg-[#05070d] text-white font-sans p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <header className="bg-white/[0.03] backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-2xl">
-              <GiShuttlecock className="text-amber-400 text-2xl" />
+        <header className="bg-white/[0.03] backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/10 shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+
+          {/* Logo row. On mobile the live-count badge rides along on the right of this
+              same row (so it's visible without any scrolling); on desktop it moves into
+              the right-hand cluster instead, see below. */}
+          <div className="flex items-center justify-between w-full lg:w-auto gap-3">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="p-3 sm:p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-2xl shrink-0">
+                <GiShuttlecock className="text-amber-400 text-xl sm:text-2xl" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight leading-none truncate">Live Board</h1>
+                <p className="text-amber-400/80 font-bold text-[9px] sm:text-[10px] uppercase tracking-[3px] mt-1.5 truncate">สนามที่กำลังแข่งขัน</p>
+              </div>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${connected ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-red-500 shadow-[0_0_6px_#ef4444]'}`} />
             </div>
-            <div>
-              <h1 className="text-2xl font-black uppercase tracking-tight leading-none">Live Board</h1>
-              <p className="text-amber-400/80 font-bold text-[10px] uppercase tracking-[3px] mt-1.5">สนามที่กำลังแข่งขัน</p>
+
+            <div className="flex lg:hidden items-center gap-1.5 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse" />
+              <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap">
+                <span className="text-amber-400 font-black">{courtGroups.length}</span> สนาม ·{' '}
+                <span className="text-amber-400 font-black">{totalLiveMatches}</span> Live
+              </span>
             </div>
-            <span className={`ml-1 w-2 h-2 rounded-full ${connected ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-red-500 shadow-[0_0_6px_#ef4444]'}`} />
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
+          {/* Right-hand cluster: live count (desktop only, mobile shows it above instead),
+              clock, and nav links. Nav links scroll horizontally on narrow screens instead
+              of wrapping or overflowing the page. */}
+          <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 w-full lg:w-auto min-w-0">
+            <div className="hidden lg:flex items-center gap-2 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse" />
               <span className="text-sm font-bold text-slate-400">
                 <span className="text-amber-400 font-black text-lg">{courtGroups.length}</span> สนาม ·{' '}
                 <span className="text-amber-400 font-black text-lg">{totalLiveMatches}</span> คู่ Live
               </span>
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-slate-500 font-bold text-sm tabular-nums">
+            <div className="hidden sm:flex items-center gap-2 text-slate-500 font-bold text-sm tabular-nums shrink-0">
               <FaClock size={12} />
               {now ? now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}
             </div>
-            <Link href="/admin" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
-              Admin
-            </Link>
-            <Link href="/matches" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
-              Control Board
-            </Link>
-            <Link href="/live-score" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
-              Live Score
-            </Link>
+
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full lg:w-auto">
+              <Link href="/admin" className="shrink-0 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-300 whitespace-nowrap">
+                Admin
+              </Link>
+              <Link href="/matches" className="shrink-0 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-300 whitespace-nowrap">
+                Control Board
+              </Link>
+              <Link href="/live-score" className="shrink-0 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-300 whitespace-nowrap">
+                Live Score
+              </Link>
+            </div>
           </div>
         </header>
 
-        {/* Court grid */}
+        {/* Court grid — fluid auto-fit columns instead of a fixed 1/2/3-column breakpoint
+            cap, so cards stretch to fill the full width available at any screen size
+            (a wide monitor can show more than 3 across, a tablet gets exactly what fits). */}
         {courtGroups.length === 0 ? (
           <div className="h-[420px] flex flex-col items-center justify-center text-slate-700 bg-white/[0.02] rounded-3xl border border-white/10">
             <GiShuttlecock size={64} className="mb-4 opacity-30" />
@@ -124,7 +146,7 @@ export default function LiveBoardPage() {
             <p className="text-[11px] text-slate-700 mt-1">รอตารางแข่งขันหรือคู่แข่งขันถัดไป</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 sm:gap-5">
             <AnimatePresence mode="popLayout">
               {courtGroups.map(group => {
                 const [current, ...queued] = group.matches;
@@ -210,6 +232,8 @@ export default function LiveBoardPage() {
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@600;700&display=swap');
         body { font-family: 'Rajdhani', sans-serif; background-color: #05070d; }
         h1, h3, .font-black { font-family: 'Orbitron', sans-serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </main>
   );
