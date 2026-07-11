@@ -17,7 +17,7 @@ interface Rank {
 }
 
 const UNIVERSITIES = ['CU', 'KU', 'KKU', 'PSU', 'CMU'];
-const EXHIBITION_CATEGORIES = ['คู่กิตติมศักดิ์'];
+const EXHIBITION_CATEGORIES = ['กิตติมศักดิ์'];
 
 const RankBadge = ({ index }: { index: number }) => {
   switch (index) {

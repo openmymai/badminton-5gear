@@ -1,4 +1,4 @@
-// Suggested location: app/live-score/page.tsx
+// app/live-score/page.tsx
 
 "use client"
 
@@ -38,10 +38,13 @@ interface UniStat {
 const UNIVERSITIES = ['CU', 'KU', 'KKU', 'PSU', 'CMU'];
 const EXHIBITION_CATEGORIES = ['คู่กิตติมศักดิ์'];
 
+type MatchStatusFilter = 'ALL' | 'LIVE' | 'FINISHED';
+
 export default function LiveScorePage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [connected, setConnected] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<MatchStatusFilter>('ALL');
 
   useEffect(() => {
     const s: Socket = io();
@@ -70,6 +73,7 @@ export default function LiveScorePage() {
   }, [scorableMatches, selectedCategory]);
 
   // สรุปสถิติรายสถาบัน (เฉพาะแมตช์ที่แข่งจบแล้ว และไม่ใช่ No Result) ตามรุ่นที่เลือก
+  // หมายเหตุ: สถิติรวมนี้อิงจากรุ่นที่เลือกเท่านั้น ไม่ผูกกับ statusFilter ของรายการแมตช์ด้านล่าง
   const uniStats = useMemo(() => {
     const stats: Record<string, UniStat> = {};
     UNIVERSITIES.forEach(u => {
@@ -112,13 +116,30 @@ export default function LiveScorePage() {
     });
   }, [filteredMatches]);
 
-  // รายการแมตช์ (ทั้ง live และจบแล้ว) เรียง live ขึ้นก่อน แล้วตามด้วยเลขสนาม
+  // นับจำนวนแมตช์ live / จบแล้ว ของรุ่นที่เลือก (ใช้แสดงตัวเลขบนปุ่ม filter)
+  const statusCounts = useMemo(() => {
+    let live = 0;
+    let finished = 0;
+    filteredMatches.forEach(m => {
+      if (m.isFinished) finished += 1;
+      else live += 1;
+    });
+    return { live, finished, all: filteredMatches.length };
+  }, [filteredMatches]);
+
+  // รายการแมตช์ (ทั้ง live และจบแล้ว) กรองตามสถานะที่เลือก แล้วเรียง live ขึ้นก่อน ตามด้วยเลขสนาม
   const matchList = useMemo(() => {
-    return [...filteredMatches].sort((a, b) => {
+    const byStatus = filteredMatches.filter(m => {
+      if (statusFilter === 'LIVE') return !m.isFinished;
+      if (statusFilter === 'FINISHED') return m.isFinished;
+      return true;
+    });
+
+    return [...byStatus].sort((a, b) => {
       if (a.isFinished !== b.isFinished) return a.isFinished ? 1 : -1;
       return a.court.localeCompare(b.court, undefined, { numeric: true });
     });
-  }, [filteredMatches]);
+  }, [filteredMatches, statusFilter]);
 
   return (
     <main className="min-h-screen bg-[#05070d] text-white font-sans p-6">
@@ -141,7 +162,7 @@ export default function LiveScorePage() {
             <Link href="/live" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
               ← Live Board
             </Link>
-            <Link href="/leaderboard" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
+            <Link href="/" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
               Leaderboard →
             </Link>
           </div>
@@ -219,17 +240,54 @@ export default function LiveScorePage() {
 
         {/* Per-match set score breakdown */}
         <div className="bg-white/[0.03] border border-white/10 rounded-3xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <div className="px-5 py-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h2 className="text-sm font-black uppercase tracking-widest text-slate-300">
               รายละเอียดแต้มแต่ละเซต{selectedCategory !== 'ALL' && <span className="text-emerald-400"> · {selectedCategory}</span>}
             </h2>
-            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{matchList.length} แมตช์</span>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setStatusFilter('ALL')}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wide transition-all ${
+                  statusFilter === 'ALL'
+                    ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                }`}
+              >
+                ทั้งหมด ({statusCounts.all})
+              </button>
+              <button
+                onClick={() => setStatusFilter('LIVE')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wide transition-all ${
+                  statusFilter === 'LIVE'
+                    ? 'bg-amber-400 text-black shadow-[0_0_15px_rgba(251,191,36,0.4)]'
+                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'LIVE' ? 'bg-black' : 'bg-amber-400 animate-pulse'}`} />
+                กำลังแข่ง ({statusCounts.live})
+              </button>
+              <button
+                onClick={() => setStatusFilter('FINISHED')}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wide transition-all ${
+                  statusFilter === 'FINISHED'
+                    ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                }`}
+              >
+                จบแล้ว ({statusCounts.finished})
+              </button>
+            </div>
           </div>
 
           {matchList.length === 0 ? (
             <div className="py-12 flex flex-col items-center justify-center text-slate-700">
               <GiShuttlecock size={40} className="mb-3 opacity-30" />
-              <p className="font-bold uppercase tracking-widest text-xs text-slate-600">ไม่มีข้อมูลแมตช์ในรุ่นนี้</p>
+              <p className="font-bold uppercase tracking-widest text-xs text-slate-600">
+                {statusFilter === 'FINISHED' ? 'ยังไม่มีแมตช์ที่แข่งจบในรุ่นนี้' :
+                 statusFilter === 'LIVE' ? 'ไม่มีแมตช์ที่กำลังแข่งในรุ่นนี้' :
+                 'ไม่มีข้อมูลแมตช์ในรุ่นนี้'}
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-white/5">
