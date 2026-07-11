@@ -130,14 +130,43 @@ const isValidRoster = (r) => {
   return true;
 };
 
-// ---------- Persistence (atomic write + automatic backup/recovery) ----------
+// ---------- Persistence: in-memory cache + debounced disk flush ----------
+//
+// `cachedData` is now the single source of truth for the running process.
+// Every socket handler reads/mutates it directly in memory (microseconds,
+// never blocks the event loop). Disk is treated as a durability backstop,
+// not a database: writes are coalesced and flushed asynchronously in the
+// background via scheduleSave(), instead of doing a synchronous
+// copy+write+rename on every single tap.
+//
+// This is safe because:
+//   - Node is single-threaded, so "read cachedData, mutate it, hand the same
+//     reference to saveData()" can never race with another handler — no two
+//     socket callbacks interleave mid-mutation.
+//   - JSON.stringify(cachedData) inside flushToDisk() happens synchronously,
+//     so the string that eventually hits disk is always a clean point-in-time
+//     snapshot, even if more mutations land on cachedData microtasks later
+//     while the (async) write is still in flight.
+let cachedData = null;
 
-const readData = () => {
+let saveTimer = null;
+let firstPendingChangeAt = null; // when the *current* debounce window started
+let isFlushing = false;
+let flushAgainAfter = false;
+
+const SAVE_DEBOUNCE_MS = 400; // wait for this much quiet before writing
+const SAVE_MAX_WAIT_MS = 3000; // ...but never let writes be delayed longer than this
+
+// One-time synchronous load at boot, including the old backup-recovery logic.
+// Fine to be sync here — it happens once, before the server starts accepting
+// connections, not on the hot path of every score tap.
+const loadDataFromDisk = () => {
   try {
     if (!fs.existsSync(DATA_FILE)) {
-      const initial = emptyData();
-      saveData(initial);
-      return initial;
+      cachedData = emptyData();
+      flushToDiskSync();
+      console.log("[Data] No existing data.json — initialized empty dataset.");
+      return;
     }
     const content = fs.readFileSync(DATA_FILE, "utf-8");
     const parsed = JSON.parse(content || "{}");
@@ -149,7 +178,8 @@ const readData = () => {
     if (!isValidRoster(parsed.roster)) {
       parsed.roster = emptyRoster();
     }
-    return parsed;
+    cachedData = parsed;
+    console.log(`[Data] Loaded ${parsed.matches.length} matches into memory cache.`);
   } catch (err) {
     console.error("[Data] Error reading data.json, attempting backup recovery:", err.message);
     try {
@@ -160,33 +190,103 @@ const readData = () => {
           if (!isValidRoster(parsedBackup.roster)) {
             parsedBackup.roster = emptyRoster();
           }
-          console.warn("[Data] Recovered from backup file.");
-          return parsedBackup;
+          cachedData = parsedBackup;
+          console.warn("[Data] Recovered from backup file into memory cache.");
+          return;
         }
       }
     } catch (backupErr) {
       console.error("[Data] Backup recovery also failed:", backupErr.message);
     }
     console.warn("[Data] Falling back to empty dataset to keep the server alive.");
-    return emptyData();
+    cachedData = emptyData();
   }
 };
 
-// Writes atomically (tmp file + rename) and keeps a rolling backup so a crash
-// mid-write can never leave data.json truncated/corrupted.
+// Fast, synchronous, in-memory read. No I/O after boot.
+const readData = () => cachedData;
+
+// Commits `data` into the in-memory cache and schedules a debounced disk
+// flush. Returns true immediately — the "save" has already logically
+// succeeded the moment it's in cachedData, since that's what every other
+// handler and every future readData() call will see. Disk persistence is a
+// backstop that happens shortly after, off the request path.
 const saveData = (data) => {
+  cachedData = data;
+  scheduleSave();
+  return true;
+};
+
+// Debounce with a hard ceiling: normally waits for SAVE_DEBOUNCE_MS of quiet
+// before writing, but if updates keep arriving back-to-back (e.g. someone
+// hammering +1/-1), forces a flush once SAVE_MAX_WAIT_MS has elapsed since
+// the first pending change, so writes can never be starved indefinitely.
+const scheduleSave = () => {
+  const now = Date.now();
+  if (firstPendingChangeAt === null) {
+    firstPendingChangeAt = now;
+  }
+  if (saveTimer) clearTimeout(saveTimer);
+
+  const elapsedSinceFirstChange = now - firstPendingChangeAt;
+  const remainingMaxWait = SAVE_MAX_WAIT_MS - elapsedSinceFirstChange;
+  const delay = Math.max(0, Math.min(SAVE_DEBOUNCE_MS, remainingMaxWait));
+
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    firstPendingChangeAt = null;
+    flushToDisk();
+  }, delay);
+};
+
+// Async flush: same atomic pattern as before (backup copy → write tmp →
+// rename), just non-blocking. Guarded by isFlushing so two overlapping
+// flushes (e.g. a maxWait-forced flush firing right as a debounce flush was
+// already running) can never race and corrupt data.json — if a flush is
+// requested while one is already in progress, we just remember to run again
+// right after instead of writing concurrently.
+async function flushToDisk() {
+  if (isFlushing) {
+    flushAgainAfter = true;
+    return;
+  }
+  isFlushing = true;
+  try {
+    const snapshot = JSON.stringify(cachedData, null, 2); // sync snapshot, safe against later mutations
+    if (fs.existsSync(DATA_FILE)) {
+      await fs.promises.copyFile(DATA_FILE, BACKUP_FILE);
+    }
+    await fs.promises.writeFile(TMP_FILE, snapshot);
+    await fs.promises.rename(TMP_FILE, DATA_FILE);
+  } catch (err) {
+    console.error("[Data] Async flush to disk failed (cache is still intact, will retry on next change):", err.message);
+  } finally {
+    isFlushing = false;
+    if (flushAgainAfter) {
+      flushAgainAfter = false;
+      // Something changed (or this same flush needs retrying) while we were
+      // busy — go through the debounce path again rather than writing back
+      // to back.
+      scheduleSave();
+    }
+  }
+}
+
+// Synchronous flush — only used for graceful shutdown, where we can't afford
+// to let the process exit mid-await and lose whatever's still sitting in
+// cachedData but not yet on disk.
+function flushToDiskSync() {
   try {
     if (fs.existsSync(DATA_FILE)) {
       fs.copyFileSync(DATA_FILE, BACKUP_FILE);
     }
-    fs.writeFileSync(TMP_FILE, JSON.stringify(data, null, 2));
+    fs.writeFileSync(TMP_FILE, JSON.stringify(cachedData, null, 2));
     fs.renameSync(TMP_FILE, DATA_FILE);
-    return true;
+    console.log("[Data] Final sync flush to disk complete.");
   } catch (err) {
-    console.error("[Data] Error saving data.json:", err.message);
-    return false;
+    console.error("[Data] Final sync flush failed:", err.message);
   }
-};
+}
 
 // Merges a freshly generated match list with what's already persisted.
 // Any match that already exists (matched by id) keeps its recorded score /
@@ -221,6 +321,9 @@ const mergeMatches = (existingMatches, incomingMatches) => {
 
   return { merged, preserved, added };
 };
+
+// Load the cache once, synchronously, before we start accepting connections.
+loadDataFromDisk();
 
 app.prepare().then(() => {
   const httpServer = createServer(async (req, res) => {
@@ -581,3 +684,22 @@ process.on("uncaughtException", (err) => {
 process.on("unhandledRejection", (reason) => {
   console.error("[Process] Unhandled rejection:", reason);
 });
+
+// Graceful shutdown: on redeploy/restart (SIGTERM) or Ctrl+C (SIGINT), force
+// one last SYNCHRONOUS flush of whatever's sitting in cachedData but hasn't
+// hit disk yet, before actually exiting. Without this, up to SAVE_MAX_WAIT_MS
+// worth of scores could be lost on every deploy.
+let isShuttingDown = false;
+function gracefulShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`[Process] ${signal} received — flushing pending data before exit...`);
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  flushToDiskSync();
+  process.exit(0);
+}
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
