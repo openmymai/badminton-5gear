@@ -7,6 +7,7 @@ import { FaTrophy, FaMedal, FaAward } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { getMatchWinner, isNoResult } from '../lib/scoring';
+import { useIsAdmin } from '@/lib/useIsAdmin';
 
 interface Rank {
   university: string;
@@ -30,6 +31,7 @@ const RankBadge = ({ index }: { index: number }) => {
 
 export default function LeaderboardPage() {
   const [rankings, setRankings] = useState<Rank[]>([]);
+  const { isAdmin, logout } = useIsAdmin();
 
   useEffect(() => {
     const socket = io();
@@ -154,10 +156,17 @@ export default function LeaderboardPage() {
             <p className="text-blue-300/80 tracking-[2px] sm:tracking-[4px] uppercase font-bold text-[9px] sm:text-[10px] mt-0.5">Badminton Tournament</p>
           </div>
         </div>
-        <div className="flex gap-2 sm:gap-3">
-          <Link href="/matches" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-blue-600 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs">Matches</Link>
-          <Link href="/admin" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-slate-700 transition-all font-bold tracking-widest text-white/60 uppercase text-[10px] sm:text-xs">Admin</Link>
-        </div>
+        {isAdmin && (
+          <>
+            <div className="flex gap-2 sm:gap-3">
+              <Link href="/matches" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-blue-600 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs">Matches</Link>
+              <Link href="/admin" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-slate-700 transition-all font-bold tracking-widest text-white/60 uppercase text-[10px] sm:text-xs">Admin</Link>
+              <button onClick={logout} className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs">
+                Logout
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       {/* Rankings List */}

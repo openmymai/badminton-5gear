@@ -123,11 +123,8 @@ export default function LiveBoardPage() {
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full lg:w-auto">
-              <Link href="/admin" className="shrink-0 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-300 whitespace-nowrap">
-                Admin
-              </Link>
-              <Link href="/matches" className="shrink-0 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-300 whitespace-nowrap">
-                Control Board
+              <Link href="/" className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider text-slate-300">
+                Leaderboard
               </Link>
               <Link href="/live-score" className="shrink-0 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-300 whitespace-nowrap">
                 Live Score
