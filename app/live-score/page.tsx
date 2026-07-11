@@ -296,38 +296,81 @@ export default function LiveScorePage() {
                 const eff = live ? calculateEffectiveSets(m) : null;
 
                 return (
-                  <div key={m.id} className="px-5 py-3.5 flex items-start gap-4">
-                    <div className="w-20 shrink-0 pt-0.5">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-slate-600">สนาม {m.court}</p>
-                      <p className="text-[9px] font-bold text-slate-500 truncate">{m.category} · {m.group}</p>
-                    </div>
-
-                    <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
-                      <TeamNames team={m.teamA} align="right" color="text-blue-400" />
-
-                      <div className="shrink-0 flex items-center gap-1.5 tabular-nums pt-0.5">
-                        <ScorePair a={m.score.s1a} b={m.score.s1b} />
-                        <span className="w-px h-3 bg-white/10" />
-                        <ScorePair a={m.score.s2a} b={m.score.s2b} />
+                  <div key={m.id}>
+                    {/* --- Desktop / tablet layout (sm and up): court col | teams+score centered | status col --- */}
+                    <div className="hidden sm:flex px-5 py-3.5 items-start gap-4">
+                      <div className="w-20 shrink-0 pt-0.5">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-600">สนาม {m.court}</p>
+                        <p className="text-[9px] font-bold text-slate-500 truncate">{m.category} · {m.group}</p>
                       </div>
 
-                      <TeamNames team={m.teamB} align="left" color="text-red-400" />
+                      <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
+                        <TeamNames team={m.teamA} align="right" color="text-blue-400" />
+
+                        <div className="shrink-0 flex items-center gap-1.5 tabular-nums pt-0.5">
+                          <ScorePair a={m.score.s1a} b={m.score.s1b} />
+                          <span className="w-px h-3 bg-white/10" />
+                          <ScorePair a={m.score.s2a} b={m.score.s2b} />
+                        </div>
+
+                        <TeamNames team={m.teamB} align="left" color="text-red-400" />
+                      </div>
+
+                      <div className="w-20 shrink-0 text-right pt-0.5">
+                        {live ? (
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-400/10 border border-amber-400/30 rounded-full text-[8px] font-black text-amber-400 uppercase tracking-widest">
+                              <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" /> Live
+                            </span>
+                            {eff && (
+                              <span className="text-[9px] font-black tabular-nums text-slate-500">
+                                Sets {eff.setsA}-{eff.setsB}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">จบแล้ว</span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="w-20 shrink-0 text-right pt-0.5">
-                      {live ? (
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-400/10 border border-amber-400/30 rounded-full text-[8px] font-black text-amber-400 uppercase tracking-widest">
+                    {/* --- Mobile layout (below sm): stacked card, each team gets its own full-width row --- */}
+                    <div className="sm:hidden px-4 py-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-slate-600">สนาม {m.court}</p>
+                          <p className="text-[9px] font-bold text-slate-500 truncate">{m.category} · {m.group}</p>
+                        </div>
+                        {live ? (
+                          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-400/10 border border-amber-400/30 rounded-full text-[8px] font-black text-amber-400 uppercase tracking-widest">
                             <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" /> Live
                           </span>
-                          {eff && (
-                            <span className="text-[9px] font-black tabular-nums text-slate-500">
-                              Sets {eff.setsA}-{eff.setsB}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">จบแล้ว</span>
+                        ) : (
+                          <span className="shrink-0 text-[8px] font-black text-slate-600 uppercase tracking-widest">จบแล้ว</span>
+                        )}
+                      </div>
+
+                      <MobileTeamRow
+                        team={m.teamA}
+                        color="text-blue-400"
+                        mySet1={m.score.s1a}
+                        oppSet1={m.score.s1b}
+                        mySet2={m.score.s2a}
+                        oppSet2={m.score.s2b}
+                      />
+                      <MobileTeamRow
+                        team={m.teamB}
+                        color="text-red-400"
+                        mySet1={m.score.s1b}
+                        oppSet1={m.score.s1a}
+                        mySet2={m.score.s2b}
+                        oppSet2={m.score.s2a}
+                      />
+
+                      {live && eff && (
+                        <p className="text-[9px] font-black tabular-nums text-slate-500 text-right pt-0.5">
+                          Sets {eff.setsA}-{eff.setsB}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -348,7 +391,7 @@ export default function LiveScorePage() {
 }
 
 // TeamNames: university code + starters (bold) + all substitutes (dim, labeled) —
-// same "show every substitute" convention used on the Matches/Live board pages.
+// used in the desktop/tablet row layout, where both teams sit side by side around the score.
 function TeamNames({ team, align, color }: { team: Team; align: 'left' | 'right'; color: string }) {
   const starters = team.players?.filter(p => p.role === 'starter') ?? [];
   const substitutes = team.players?.filter(p => p.role === 'substitute') ?? [];
@@ -373,7 +416,7 @@ function TeamNames({ team, align, color }: { team: Team; align: 'left' | 'right'
   );
 }
 
-// ScorePair: shows the score of a single set with the winning side highlighted
+// ScorePair: shows the score of a single set with the winning side highlighted (used in desktop layout)
 function ScorePair({ a, b }: { a: number; b: number }) {
   const aWin = a > b;
   const bWin = b > a;
@@ -383,5 +426,52 @@ function ScorePair({ a, b }: { a: number; b: number }) {
       <span className="text-slate-700">-</span>
       <span className={bWin ? 'text-red-400' : 'text-slate-600'}>{b}</span>
     </span>
+  );
+}
+
+// MobileTeamRow: one full-width row per team - university code + all player names on the left
+// (given the full row width so nothing gets squeezed/truncated), that team's set scores on the
+// right, colored when that team won the set. Used only in the sub-sm stacked layout.
+function MobileTeamRow({
+  team,
+  color,
+  mySet1,
+  oppSet1,
+  mySet2,
+  oppSet2,
+}: {
+  team: Team;
+  color: string;
+  mySet1: number;
+  oppSet1: number;
+  mySet2: number;
+  oppSet2: number;
+}) {
+  const starters = team.players?.filter(p => p.role === 'starter') ?? [];
+  const substitutes = team.players?.filter(p => p.role === 'substitute') ?? [];
+  const set1Win = mySet1 > oppSet1;
+  const set2Win = mySet2 > oppSet2;
+
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <span className={`text-xs font-black uppercase tracking-tight ${color}`}>{team.university}</span>
+        {starters.length > 0 && (
+          <p className="text-[9px] font-bold text-slate-400 leading-snug break-words">
+            {starters.map(p => p.name).join(' · ')}
+          </p>
+        )}
+        {substitutes.length > 0 && (
+          <p className="text-[8px] italic text-slate-600 leading-snug break-words">
+            สำรอง: {substitutes.map(p => p.name).join(' · ')}
+          </p>
+        )}
+      </div>
+      <div className="shrink-0 flex items-center gap-2 tabular-nums pl-2">
+        <span className={`text-[13px] font-black ${set1Win ? color : 'text-slate-600'}`}>{mySet1}</span>
+        <span className="w-px h-3 bg-white/10" />
+        <span className={`text-[13px] font-black ${set2Win ? color : 'text-slate-600'}`}>{mySet2}</span>
+      </div>
+    </div>
   );
 }

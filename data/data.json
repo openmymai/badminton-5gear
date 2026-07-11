@@ -170,13 +170,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
+        "s1a": 21,
         "s1b": 0,
-        "s2a": 0,
+        "s2a": 21,
         "s2b": 0
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 43,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_CMU_PSU",
@@ -8760,13 +8762,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 3,
+        "s2a": 21,
+        "s2b": 1
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 48,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_cat8_-_CMU_KKU",
@@ -12454,5 +12458,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783781070552
+  "lastUpdated": 1783781891409
 }
