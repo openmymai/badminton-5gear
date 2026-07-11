@@ -50,13 +50,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
+        "s1a": 21,
+        "s1b": 2,
+        "s2a": 21,
         "s2b": 0
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 45,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_CMU_KKU",
@@ -108,13 +110,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 4,
+        "s2a": 21,
+        "s2b": 7
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 55,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_CMU_KU",
@@ -630,13 +634,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 2
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 56,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_B_CMU_KKU",
@@ -688,13 +694,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
+        "s1a": 21,
         "s1b": 0,
-        "s2a": 0,
+        "s2a": 21,
         "s2b": 0
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 44,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_B_CMU_KU",
@@ -2370,13 +2378,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 1,
+        "s2a": 21,
+        "s2b": 1
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 47,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a80_A_CMU_KKU",
@@ -12444,5 +12454,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783778285752
+  "lastUpdated": 1783781070552
 }

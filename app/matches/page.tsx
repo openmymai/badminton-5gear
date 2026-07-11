@@ -78,6 +78,14 @@ export default function MatchesPage() {
   // เป้าหมายที่รอ scroll ไปหา (ใช้ตอน filter ยังไม่ re-render เสร็จ)
   const [pendingScroll, setPendingScroll] = useState<HighlightTarget | null>(null);
 
+  // --- Flash highlight สำหรับแผงประกาศด่วน ---
+  // เก็บ "ลายเซ็น" สถานะล่าสุดของแต่ละคอร์ท (คู่ที่ต้องประกาศ + ครบหรือยัง)
+  // เพื่อเทียบกับรอบก่อนหน้า ถ้าเปลี่ยน แปลว่ามีคู่จบใหม่ / คิวขยับ ให้กระพริบเตือน admin
+  // ค้างกระพริบไว้จนกว่า admin จะกดการ์ดนั้นเพื่อไปประกาศคู่ต่อไป (ไม่หายไปเอง)
+  const prevCourtSignatureRef = useRef<Record<string, string>>({});
+  const hasMountedCourtRef = useRef(false);
+  const [flashCourts, setFlashCourts] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     setBaseUrl(window.location.origin);
     socketRef.current = io();
@@ -87,7 +95,9 @@ export default function MatchesPage() {
     socketRef.current.on('action-error', (err: { message?: string }) => {
       if (err?.message) alert(err.message);
     });
-    return () => { socketRef.current?.disconnect(); };
+    return () => {
+      socketRef.current?.disconnect();
+    };
   }, []);
 
   const categories = ['All', ...new Set(matches.map(m => m.category))];
@@ -138,10 +148,45 @@ export default function MatchesPage() {
       });
   }, [matches, matchStatusMap]);
 
+  // ตรวจจับการเปลี่ยนแปลงสถานะรายคอร์ท เพื่อกระพริบเตือน admin ในแผงประกาศด่วน
+  // (ข้ามการ flash ในการ render ครั้งแรกที่ข้อมูลเพิ่งโหลดเข้ามา)
+  useEffect(() => {
+    const prev = prevCourtSignatureRef.current;
+    const next: Record<string, string> = {};
+
+    courtSummaries.forEach(({ court, announceMatch, allFinished }) => {
+      const signature = `${announceMatch?.id ?? 'none'}|${allFinished}`;
+      next[court] = signature;
+
+      const prevSignature = prev[court];
+      const changed = hasMountedCourtRef.current && prevSignature !== undefined && prevSignature !== signature;
+
+      if (changed) {
+        // ค้างกระพริบไว้ตรงนี้ - จะถูกเคลียร์ก็ต่อเมื่อ admin กดการ์ดนี้ (ดู handleAcknowledgeCourt)
+        setFlashCourts(f => ({ ...f, [court]: true }));
+      }
+    });
+
+    prevCourtSignatureRef.current = next;
+    hasMountedCourtRef.current = true;
+  }, [courtSummaries]);
+
   // เลื่อนจอไปหาการ์ดคู่ที่เลือก + เปิดไฮไลต์ชั่วคราว
   const handleJumpToMatch = (matchId: string, tone: 'purple' | 'green') => {
     setFilterCategory('All');
     setPendingScroll({ id: matchId, tone });
+  };
+
+  // กดการ์ดคอร์ทในแผงประกาศด่วน = admin รับทราบแล้วว่าต้องไปประกาศ/เช็คคอร์ทนี้
+  // เคลียร์ flash ของคอร์ทนั้นทิ้ง แล้วค่อย jump ไปหา match card ตามปกติ
+  const handleAcknowledgeCourt = (court: string, matchId: string, tone: 'purple' | 'green') => {
+    setFlashCourts(f => {
+      if (!f[court]) return f;
+      const copy = { ...f };
+      delete copy[court];
+      return copy;
+    });
+    handleJumpToMatch(matchId, tone);
   };
 
   useEffect(() => {
@@ -235,12 +280,16 @@ export default function MatchesPage() {
             <span className="text-[11px] text-slate-600 font-bold">ยังไม่มีข้อมูลคอร์ท</span>
           )}
           {courtSummaries.map(({ court, list, announceMatch, allFinished }) => {
+            const isFlashing = !!flashCourts[court];
+
             if (announceMatch) {
               return (
                 <button
                   key={court}
-                  onClick={() => handleJumpToMatch(announceMatch.id, 'purple')}
-                  className="shrink-0 flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 rounded-2xl px-4 py-2 transition-all active:scale-95"
+                  onClick={() => handleAcknowledgeCourt(court, announceMatch.id, 'purple')}
+                  className={`shrink-0 flex items-center gap-3 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 rounded-2xl px-4 py-2 transition-all active:scale-95 ${
+                    isFlashing ? 'court-flash-purple' : ''
+                  }`}
                 >
                   <span className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center font-black text-sm text-purple-300 shrink-0">
                     {court}
@@ -262,8 +311,10 @@ export default function MatchesPage() {
               return (
                 <button
                   key={court}
-                  onClick={() => handleJumpToMatch(lastMatch.id, 'green')}
-                  className="shrink-0 flex items-center gap-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 rounded-2xl px-4 py-2 transition-all active:scale-95"
+                  onClick={() => handleAcknowledgeCourt(court, lastMatch.id, 'green')}
+                  className={`shrink-0 flex items-center gap-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 rounded-2xl px-4 py-2 transition-all active:scale-95 ${
+                    isFlashing ? 'court-flash-green' : ''
+                  }`}
                 >
                   <span className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-black text-sm text-emerald-300 shrink-0">
                     {court}
@@ -471,6 +522,18 @@ export default function MatchesPage() {
         h1, h3, .font-black { font-family: 'Orbitron', sans-serif; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Flash highlight สำหรับการ์ดคอร์ทในแผงประกาศด่วน เมื่อสถานะเปลี่ยน (มีคู่จบใหม่ / คิวขยับ) */
+        @keyframes courtFlashPurple {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.55); transform: scale(1); }
+          50% { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); transform: scale(1.05); }
+        }
+        @keyframes courtFlashGreen {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); transform: scale(1); }
+          50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); transform: scale(1.05); }
+        }
+        .court-flash-purple { animation: courtFlashPurple 1.1s ease-in-out infinite; }
+        .court-flash-green { animation: courtFlashGreen 1.1s ease-in-out infinite; }
       `}</style>
     </main>
   );
