@@ -12,7 +12,7 @@ interface Rank {
   university: string;
   points: number;       // คะแนนรวมสถาบัน (5, 4, 3, 2, 1) จากทุกรุ่น
   matchPoints: number;  // คะแนนดิบรวม (ชนะ 2, เสมอ 1)
-  win: number;          // จำนวนแมตช์ที่ชนะรวม
+  win: number;          // จำนวนเซตที่ชนะรวม (2 เซตต่อแมตช์)
   pointsConceded: number; // แต้มเสียรวม
 }
 
@@ -65,7 +65,7 @@ export default function LeaderboardPage() {
             const unis = [m.teamA.university, m.teamB.university];
             unis.forEach(u => {
               if (!internalStats[u]) {
-                internalStats[u] = { university: u, mPts: 0, wins: 0, pConceded: 0 };
+                internalStats[u] = { university: u, mPts: 0, wins: 0, setsWon: 0, pConceded: 0 };
               }
             });
 
@@ -81,7 +81,14 @@ export default function LeaderboardPage() {
             internalStats[m.teamA.university].pConceded += (s1b + s2b);
             internalStats[m.teamB.university].pConceded += (s1a + s2a);
 
-            // คำนวณผู้ชนะ
+            // นับจำนวนเซตที่ชนะ (แข่งกัน 2 เซตต่อแมตช์)
+            if (s1a > s1b) internalStats[m.teamA.university].setsWon += 1;
+            else if (s1b > s1a) internalStats[m.teamB.university].setsWon += 1;
+
+            if (s2a > s2b) internalStats[m.teamA.university].setsWon += 1;
+            else if (s2b > s2a) internalStats[m.teamB.university].setsWon += 1;
+
+            // คำนวณผู้ชนะทั้งแมตช์ — ใช้จัดอันดับภายในกลุ่มเหมือนเดิม (ไม่กระทบ tie-break)
             const winner = getMatchWinner(m);
             if (winner === 'a') {
               internalStats[m.teamA.university].mPts += 2;
@@ -109,7 +116,7 @@ export default function LeaderboardPage() {
             if (schoolStats[stat.university]) {
               schoolStats[stat.university].points += teamAward;
               schoolStats[stat.university].matchPoints += stat.mPts;
-              schoolStats[stat.university].win += stat.wins;
+              schoolStats[stat.university].win += stat.setsWon;
               schoolStats[stat.university].pointsConceded += stat.pConceded;
             }
           });
