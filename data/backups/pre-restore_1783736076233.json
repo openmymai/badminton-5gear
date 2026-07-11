@@ -10290,28 +10290,6 @@
         ]
       },
       {
-        "university": "KU",
-        "category": "ทั่วไป",
-        "group": "A",
-        "players": [
-          {
-            "id": "r9xxw8jzu",
-            "name": "นายเกษตร หนึ่ง",
-            "role": "starter"
-          },
-          {
-            "id": "iozl8ii02",
-            "name": "นายเกษตร สอง",
-            "role": "starter"
-          },
-          {
-            "id": "y162mccag",
-            "name": "นายเกษตร สำรอง",
-            "role": "substitute"
-          }
-        ]
-      },
-      {
         "university": "KKU",
         "category": "ทั่วไป",
         "group": "A",
@@ -12264,5 +12242,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783726552988
+  "lastUpdated": 1783736065714
 }

@@ -2,14 +2,15 @@
 
 "use client"
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { io, Socket } from 'socket.io-client';
 import {
   FaFileExcel, FaTrash, FaSave, FaRunning,
   FaExclamationTriangle, FaCheckCircle,
   FaGripVertical, FaLayerGroup, FaMapMarkerAlt, FaUsers,
-  FaRandom, FaSlidersH, FaUndo
+  FaRandom, FaSlidersH, FaUndo, FaHistory, FaCloudUploadAlt,
+  FaSyncAlt, FaDatabase
 } from 'react-icons/fa';
 import { MdOutlineCleaningServices } from 'react-icons/md';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
@@ -40,6 +41,10 @@ interface RosterState {
   manualCourts: Record<string, number>;
 }
 
+// ไฟล์ backup ที่ได้จาก GET /api/backups (ชื่อไฟล์ล้วนๆ เช่น
+// "manual_2026-07-11T10-23-45-123Z.json" หรือ "pre-restore_1699999999999.json")
+type BackupFileName = string;
+
 // รายชื่อสถาบันที่รับเข้าระบบ — แก้ไข/เพิ่มได้ตามต้องการ
 const VALID_UNIVERSITIES = ['CU', 'KU', 'KKU', 'PSU', 'CMU'];
 
@@ -54,6 +59,36 @@ const CATEGORY_SLUG_MAP: { [key: string]: string } = {
 // ตอนพิมพ์เลขสนามในช่อง input)
 const ROSTER_SYNC_DEBOUNCE_MS = 400;
 
+// ---- Backup filename parsing helpers ----
+// แปลงชื่อไฟล์ backup ให้อ่านง่าย พร้อมระบุประเภท (Manual / ก่อน Restore อัตโนมัติ)
+function parseBackupLabel(filename: BackupFileName): { typeLabel: string; typeAccent: 'blue' | 'amber'; dateLabel: string } {
+  let typeLabel = 'Backup';
+  let typeAccent: 'blue' | 'amber' = 'blue';
+  let dateSource: Date | null = null;
+
+  if (filename.startsWith('manual_')) {
+    typeLabel = 'สร้างเอง';
+    typeAccent = 'blue';
+    const raw = filename.replace('manual_', '').replace('.json', '');
+    // ISO string ที่แทน ":" และ "." ด้วย "-" ตอนสร้างไฟล์ -> แปลงกลับ
+    const isoGuess = raw.replace(/-(\d{2})-(\d{2})-(\d{3})Z$/, ':$1:$2.$3Z');
+    const d = new Date(isoGuess);
+    if (!isNaN(d.getTime())) dateSource = d;
+  } else if (filename.startsWith('pre-restore_')) {
+    typeLabel = 'ก่อน Restore';
+    typeAccent = 'amber';
+    const raw = filename.replace('pre-restore_', '').replace('.json', '');
+    const ms = Number(raw);
+    if (!isNaN(ms)) dateSource = new Date(ms);
+  }
+
+  const dateLabel = dateSource
+    ? dateSource.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'medium' })
+    : filename;
+
+  return { typeLabel, typeAccent, dateLabel };
+}
+
 export default function AdminPage() {
   const [entries, setEntries] = useState<TeamEntry[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -65,6 +100,12 @@ export default function AdminPage() {
   // ใช้แสดงลิงก์ไปหน้า Matches / Live หลังจากสร้างตารางแข่งสำเร็จในเซสชันนี้
   const [matchesGenerated, setMatchesGenerated] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+
+  // ---- Backup / Restore state ----
+  const [backups, setBackups] = useState<BackupFileName[]>([]);
+  const [backupsLoading, setBackupsLoading] = useState(false);
+  const [creatingBackup, setCreatingBackup] = useState(false);
+  const [restoringFile, setRestoringFile] = useState<string | null>(null);
 
   // ใช้เทียบว่าค่าปัจจุบันต่างจากค่าล่าสุดที่ได้รับ/ส่งไปให้ server แล้วหรือไม่
   // เพื่อไม่ให้เกิด loop (รับข้อมูลจาก server -> setState -> useEffect ยิงกลับไปหา
@@ -135,6 +176,79 @@ export default function AdminPage() {
     const t = setTimeout(() => { setSuccess(null); setError(null); }, 4500);
     return () => clearTimeout(t);
   }, [success, error]);
+
+  // --- Backups: fetch list ---
+  const fetchBackups = useCallback(async () => {
+    setBackupsLoading(true);
+    try {
+      const res = await fetch('/api/backups');
+      const data = await res.json();
+      if (data?.success) setBackups(data.files || []);
+      else setError('โหลดรายการ Backup ไม่สำเร็จ');
+    } catch (err) {
+      console.error(err);
+      setError('เชื่อมต่อเพื่อโหลดรายการ Backup ไม่ได้');
+    } finally {
+      setBackupsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchBackups(); }, [fetchBackups]);
+
+  // --- Backups: create manual snapshot of the current data.json ---
+  const handleCreateBackup = async () => {
+    setCreatingBackup(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/backups', { method: 'POST' });
+      const data = await res.json();
+      if (data?.success) {
+        setSuccess('สร้าง Backup สำเร็จ');
+        fetchBackups();
+      } else {
+        setError('ไม่พบข้อมูล data.json ปัจจุบัน ไม่สามารถสร้าง Backup ได้');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('สร้าง Backup ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setCreatingBackup(false);
+    }
+  };
+
+  // --- Backups: restore a chosen snapshot back into data.json ---
+  const handleRestore = async (filename: string) => {
+    const { dateLabel } = parseBackupLabel(filename);
+    const ok = confirm(
+      `กู้คืนข้อมูลจาก Backup นี้?\n\n${dateLabel}\n\nระบบจะสำรองข้อมูลปัจจุบันไว้ก่อนโดยอัตโนมัติ แต่ข้อมูลทีม/ตารางแข่งที่มีอยู่ตอนนี้จะถูกแทนที่ทันที`
+    );
+    if (!ok) return;
+
+    setRestoringFile(filename);
+    setError(null);
+    try {
+      const res = await fetch('/api/backups/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const data = await res.json();
+      if (data?.success) {
+        setSuccess('กู้คืนข้อมูลสำเร็จ กำลังโหลดข้อมูลใหม่...');
+        fetchBackups();
+        // data.json ถูกแทนที่แล้ว — reload หน้าเพื่อให้ socket ต่อใหม่และรับ
+        // roster-updated ชุดที่ตรงกับไฟล์ที่เพิ่ง restore จาก server
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        setError('ไม่พบไฟล์ Backup นี้ หรือกู้คืนไม่สำเร็จ');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('กู้คืนข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setRestoringFile(null);
+    }
+  };
 
   // --- Excel import ---
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -542,6 +656,91 @@ export default function AdminPage() {
                 </Link>
               </motion.div>
             )}
+
+            {/* Backup & Restore — separate from the setup workflow above; lets the
+                admin snapshot data.json and roll back to an earlier point in time. */}
+            <WorkflowCard icon={<FaDatabase size={13} />} title="สำรอง / กู้คืนข้อมูล" accent="purple">
+              <button
+                onClick={handleCreateBackup}
+                disabled={creatingBackup}
+                className={`w-full px-5 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 text-sm transition-all border ${
+                  creatingBackup
+                    ? 'bg-white/[0.02] text-slate-600 border-white/10 cursor-not-allowed'
+                    : 'bg-purple-600/15 hover:bg-purple-600/25 border-purple-500/30 text-purple-300'
+                }`}
+              >
+                {creatingBackup ? (
+                  <FaSyncAlt className="animate-spin" size={13} />
+                ) : (
+                  <FaCloudUploadAlt size={14} />
+                )}
+                {creatingBackup ? 'กำลังสร้าง Backup...' : 'สร้าง Backup ตอนนี้'}
+              </button>
+
+              <div className="flex items-center justify-between mt-4 mb-2">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide flex items-center gap-1.5">
+                  <FaHistory size={10} /> ประวัติ Backup ({backups.length})
+                </p>
+                <button
+                  onClick={fetchBackups}
+                  disabled={backupsLoading}
+                  title="รีเฟรชรายการ"
+                  className="text-slate-500 hover:text-purple-300 transition-colors disabled:opacity-40"
+                >
+                  <FaSyncAlt size={11} className={backupsLoading ? 'animate-spin' : ''} />
+                </button>
+              </div>
+
+              {backupsLoading && backups.length === 0 ? (
+                <p className="text-xs text-slate-600 italic py-4 text-center">กำลังโหลดรายการ Backup...</p>
+              ) : backups.length === 0 ? (
+                <p className="text-xs text-slate-600 italic py-4 text-center">ยังไม่มี Backup — กด &ldquo;สร้าง Backup ตอนนี้&rdquo; เพื่อเริ่มสำรองข้อมูล</p>
+              ) : (
+                <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+                  {backups.map(filename => {
+                    const { typeLabel, typeAccent, dateLabel } = parseBackupLabel(filename);
+                    const isRestoringThis = restoringFile === filename;
+                    const chipColor = typeAccent === 'amber'
+                      ? 'bg-amber-400/10 border-amber-400/30 text-amber-400'
+                      : 'bg-blue-400/10 border-blue-400/30 text-blue-400';
+                    return (
+                      <div
+                        key={filename}
+                        className="flex items-center justify-between gap-3 bg-black/30 px-3 py-2.5 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors"
+                      >
+                        <div className="leading-tight min-w-0">
+                          <span className={`inline-block px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wide ${chipColor}`}>
+                            {typeLabel}
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-300 mt-1 truncate">{dateLabel}</p>
+                        </div>
+                        <button
+                          onClick={() => handleRestore(filename)}
+                          disabled={restoringFile !== null}
+                          className={`shrink-0 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide flex items-center gap-1.5 transition-all ${
+                            isRestoringThis
+                              ? 'bg-purple-500/20 text-purple-300 cursor-wait'
+                              : restoringFile !== null
+                              ? 'bg-white/5 text-slate-600 cursor-not-allowed'
+                              : 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300'
+                          }`}
+                        >
+                          {isRestoringThis ? (
+                            <FaSyncAlt className="animate-spin" size={10} />
+                          ) : (
+                            <FaHistory size={10} />
+                          )}
+                          {isRestoringThis ? 'กำลังกู้คืน' : 'กู้คืน'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-[9px] text-slate-600 font-bold mt-3 text-center leading-relaxed">
+                ระบบจะสำรองข้อมูลปัจจุบันไว้อัตโนมัติทุกครั้งก่อนกู้คืน (ไฟล์ &ldquo;ก่อน Restore&rdquo;)
+              </p>
+            </WorkflowCard>
           </div>
 
           {/* RIGHT: Roster */}
@@ -633,18 +832,27 @@ function Stat({ label, value, icon, accent = 'blue' }: { label: string; value: n
   );
 }
 
-function WorkflowCard({ step, title, accent, children }: { step: number; title: string; accent: 'emerald' | 'blue' | 'amber'; children: React.ReactNode }) {
+function WorkflowCard({
+  step, icon, title, accent, children
+}: {
+  step?: number;
+  icon?: React.ReactNode;
+  title: string;
+  accent: 'emerald' | 'blue' | 'amber' | 'purple';
+  children: React.ReactNode;
+}) {
   const palette = {
     emerald: { text: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
     blue: { text: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' },
     amber: { text: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30' },
+    purple: { text: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/30' },
   }[accent];
 
   return (
     <section className="bg-white/[0.03] backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-xl">
       <div className="flex items-center gap-3 mb-5">
         <span className={`w-7 h-7 rounded-lg ${palette.bg} border ${palette.border} ${palette.text} text-xs font-black flex items-center justify-center shrink-0`}>
-          {step}
+          {step !== undefined ? step : icon}
         </span>
         <h2 className="text-sm font-black uppercase tracking-tight">{title}</h2>
       </div>
