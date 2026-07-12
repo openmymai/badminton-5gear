@@ -5485,8 +5485,10 @@
         "s2a": 9,
         "s2b": 0
       },
-      "isFinished": false,
-      "version": 51
+      "isFinished": true,
+      "version": 52,
+      "isBye": true,
+      "byeWinner": "a"
     },
     {
       "id": "M_a100_B_CU_KKU",
@@ -12498,5 +12500,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783823952184
+  "lastUpdated": 1783823975877
 }

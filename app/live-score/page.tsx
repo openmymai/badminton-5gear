@@ -1,5 +1,3 @@
-// app/live-score/page.tsx
-
 "use client"
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -26,24 +24,57 @@ interface Match {
   byeWinner?: 'a' | 'b' | null;
 }
 
-interface UniStat {
+interface H2HEntry {
+  category: string;
+  group: string;
+  sets: [number, number][];
+}
+
+interface Standing {
   university: string;
+  points: number;        
+  matchPoints: number;    
   setsWon: number;
   setsLost: number;
   pointsWon: number;
   pointsConceded: number;
-  matchesPlayed: number;
+  h2h: Record<string, H2HEntry[]>;
 }
 
-const UNIVERSITIES = ['CU', 'KU', 'KKU', 'PSU', 'CMU'];
-const EXHIBITION_CATEGORIES = ['คู่กิตติมศักดิ์'];
+interface CategoryGroupOption {
+  key: string;
+  category: string;
+  group: string;
+  label: string;
+}
+
+const NON_SCORING_CATEGORIES = ['กิตติมศักดิ์'];
+
+const CATEGORY_ORDER = [
+  'กิตติมศักดิ์',
+  'ทั่วไป',
+  '70',
+  '80',
+  '90',
+  '100',
+  '110',
+  '120',
+  '130',
+  'หญิงคู่ทั่วไป',
+  'อาวุโสหญิง 70+',
+];
+
+const categoryOrderIndex = (category: string) => {
+  const idx = CATEGORY_ORDER.indexOf(category);
+  return idx === -1 ? CATEGORY_ORDER.length : idx;
+};
 
 type MatchStatusFilter = 'ALL' | 'LIVE' | 'FINISHED';
 
 export default function LiveScorePage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [connected, setConnected] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<MatchStatusFilter>('ALL');
 
   useEffect(() => {
@@ -56,67 +87,139 @@ export default function LiveScorePage() {
     return () => { s.disconnect(); };
   }, []);
 
-  // รุ่นทั้งหมดที่มีในข้อมูล (ไม่รวมคู่กิตติมศักดิ์)
-  const categories = useMemo(() => {
-    const set = new Set(matches.map(m => m.category).filter(c => !EXHIBITION_CATEGORIES.includes(c)));
-    return Array.from(set).sort();
+  const categoryGroups = useMemo<CategoryGroupOption[]>(() => {
+    const map = new Map<string, CategoryGroupOption>();
+    matches.forEach(m => {
+      const key = `${m.category}__${m.group}`;
+      if (!map.has(key)) {
+        map.set(key, { key, category: m.category, group: m.group, label: `${m.category}${m.group}` });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => {
+      const ao = categoryOrderIndex(a.category);
+      const bo = categoryOrderIndex(b.category);
+      if (ao !== bo) return ao - bo;
+      if (a.category !== b.category) return a.category.localeCompare(b.category, 'th');
+      return a.group.localeCompare(b.group, 'th');
+    });
   }, [matches]);
 
-  const scorableMatches = useMemo(
-    () => matches.filter(m => !EXHIBITION_CATEGORIES.includes(m.category)),
-    [matches]
+  const selectedOption = useMemo(
+    () => categoryGroups.find(g => g.key === selectedGroupKey) ?? null,
+    [categoryGroups, selectedGroupKey]
   );
 
   const filteredMatches = useMemo(() => {
-    if (selectedCategory === 'ALL') return scorableMatches;
-    return scorableMatches.filter(m => m.category === selectedCategory);
-  }, [scorableMatches, selectedCategory]);
+    if (selectedGroupKey === 'ALL' || !selectedOption) return matches;
+    return matches.filter(
+      m => m.category === selectedOption.category && m.group === selectedOption.group
+    );
+  }, [matches, selectedGroupKey, selectedOption]);
 
-  // สรุปสถิติรายสถาบัน (เฉพาะแมตช์ที่แข่งจบแล้ว และไม่ใช่ No Result) ตามรุ่นที่เลือก
-  // หมายเหตุ: สถิติรวมนี้อิงจากรุ่นที่เลือกเท่านั้น ไม่ผูกกับ statusFilter ของรายการแมตช์ด้านล่าง
-  const uniStats = useMemo(() => {
-    const stats: Record<string, UniStat> = {};
-    UNIVERSITIES.forEach(u => {
-      stats[u] = { university: u, setsWon: 0, setsLost: 0, pointsWon: 0, pointsConceded: 0, matchesPlayed: 0 };
-    });
+  const isNonScoringView = useMemo(() => {
+    return selectedOption && NON_SCORING_CATEGORIES.includes(selectedOption.category);
+  }, [selectedOption]);
 
-    filteredMatches.forEach(m => {
-      if (!m.isFinished || isNoResult(m)) return;
+  const standings = useMemo(() => {
+    const stats: Record<string, Standing> = {};
+    const ensure = (u: string): Standing => {
+      if (!stats[u]) {
+        stats[u] = {
+          university: u, points: 0, matchPoints: 0,
+          setsWon: 0, setsLost: 0, pointsWon: 0, pointsConceded: 0, h2h: {},
+        };
+      }
+      return stats[u];
+    };
 
-      const s1a = Number(m.score.s1a) || 0;
-      const s1b = Number(m.score.s1b) || 0;
-      const s2a = Number(m.score.s2a) || 0;
-      const s2b = Number(m.score.s2b) || 0;
+    const groupKeys = Array.from(new Set(filteredMatches.map(m => `${m.category}-${m.group}`)));
 
-      const uniA = m.teamA.university;
-      const uniB = m.teamB.university;
-      if (!stats[uniA]) stats[uniA] = { university: uniA, setsWon: 0, setsLost: 0, pointsWon: 0, pointsConceded: 0, matchesPlayed: 0 };
-      if (!stats[uniB]) stats[uniB] = { university: uniB, setsWon: 0, setsLost: 0, pointsWon: 0, pointsConceded: 0, matchesPlayed: 0 };
+    groupKeys.forEach(key => {
+      const finishedInGroup = filteredMatches.filter(
+        m => `${m.category}-${m.group}` === key && m.isFinished
+      );
+      if (finishedInGroup.length === 0) return;
 
-      stats[uniA].matchesPlayed += 1;
-      stats[uniB].matchesPlayed += 1;
+      const currentCategory = finishedInGroup[0].category;
+      const isNonScoring = NON_SCORING_CATEGORIES.includes(currentCategory);
 
-      stats[uniA].pointsWon += s1a + s2a;
-      stats[uniA].pointsConceded += s1b + s2b;
-      stats[uniB].pointsWon += s1b + s2b;
-      stats[uniB].pointsConceded += s1a + s2a;
+      // internal เก็บ pWon เพิ่มเพื่อใช้ในการตัดสิน
+      const internal: Record<string, { mPts: number; pWon: number; pConceded: number }> = {};
+      const ensureInternal = (u: string) => {
+        if (!internal[u]) internal[u] = { mPts: 0, pWon: 0, pConceded: 0 };
+        return internal[u];
+      };
 
-      // เซตที่ 1
-      if (s1a > s1b) { stats[uniA].setsWon += 1; stats[uniB].setsLost += 1; }
-      else if (s1b > s1a) { stats[uniB].setsWon += 1; stats[uniA].setsLost += 1; }
+      finishedInGroup.forEach(m => {
+        const uniA = m.teamA.university;
+        const uniB = m.teamB.university;
+        ensureInternal(uniA);
+        ensureInternal(uniB);
+        const a = ensure(uniA);
+        const b = ensure(uniB);
 
-      // เซตที่ 2
-      if (s2a > s2b) { stats[uniA].setsWon += 1; stats[uniB].setsLost += 1; }
-      else if (s2b > s2a) { stats[uniB].setsWon += 1; stats[uniA].setsLost += 1; }
+        if (isNoResult(m)) return;
+
+        const s1a = Number(m.score.s1a) || 0;
+        const s1b = Number(m.score.s1b) || 0;
+        const s2a = Number(m.score.s2a) || 0;
+        const s2b = Number(m.score.s2b) || 0;
+
+        const winner = getMatchWinner(m);
+
+        // สะสมคะแนนภายในกลุ่มเพื่อจัดอันดับ
+        internal[uniA].pWon += s1a + s2a;
+        internal[uniA].pConceded += s1b + s2b;
+        internal[uniB].pWon += s1b + s2b;
+        internal[uniB].pConceded += s1a + s2a;
+
+        if (winner === 'a') internal[uniA].mPts += 2;
+        else if (winner === 'b') internal[uniB].mPts += 2;
+        else { internal[uniA].mPts += 1; internal[uniB].mPts += 1; }
+
+        // สะสมคะแนนรวมของสถาบัน
+        a.pointsWon += s1a + s2a; a.pointsConceded += s1b + s2b;
+        b.pointsWon += s1b + s2b; b.pointsConceded += s1a + s2a;
+        a.matchPoints += winner === 'a' ? 2 : winner === 'b' ? 0 : 1;
+        b.matchPoints += winner === 'b' ? 2 : winner === 'a' ? 0 : 1;
+
+        if (s1a > s1b) { a.setsWon += 1; b.setsLost += 1; }
+        else if (s1b > s1a) { b.setsWon += 1; a.setsLost += 1; }
+        if (s2a > s2b) { a.setsWon += 1; b.setsLost += 1; }
+        else if (s2b > s2a) { b.setsWon += 1; a.setsLost += 1; }
+
+        if (!a.h2h[uniB]) a.h2h[uniB] = [];
+        if (!b.h2h[uniA]) b.h2h[uniA] = [];
+        a.h2h[uniB].push({ category: m.category, group: m.group, sets: [[s1a, s1b], [s2a, s2b]] });
+        b.h2h[uniA].push({ category: m.category, group: m.group, sets: [[s1b, s1a], [s2b, s2a]] });
+      });
+
+      // จัดอันดับแจกแต้ม 5-4-3-2-1
+      if (!isNonScoring) {
+        const sortedInternal = Object.entries(internal).sort(([, x], [, y]) => {
+          // 1. ดูคะแนนแมตช์ก่อน (2, 1, 0)
+          if (y.mPts !== x.mPts) return y.mPts - x.mPts;
+          // 2. ถ้าเท่ากัน ดูคะแนนที่ทำได้ (pWon) - ใครมากกว่าอยู่บน
+          if (y.pWon !== x.pWon) return y.pWon - x.pWon;
+          // 3. ถ้ายังเท่ากัน ดูคะแนนที่เสีย (pConceded) - ใครน้อยกว่าอยู่บน
+          return x.pConceded - y.pConceded;
+        });
+        sortedInternal.forEach(([uni], idx) => {
+          stats[uni].points += Math.max(1, 5 - idx);
+        });
+      }
     });
 
     return Object.values(stats).sort((a, b) => {
-      if (b.setsWon !== a.setsWon) return b.setsWon - a.setsWon;
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+      if (b.pointsWon !== a.pointsWon) return b.pointsWon - a.pointsWon; // เพิ่ม tie-break ตรงนี้ด้วย
       return a.pointsConceded - b.pointsConceded;
     });
   }, [filteredMatches]);
 
-  // นับจำนวนแมตช์ live / จบแล้ว ของรุ่นที่เลือก (ใช้แสดงตัวเลขบนปุ่ม filter)
+  const standingUnis = useMemo(() => standings.map(s => s.university), [standings]);
+
   const statusCounts = useMemo(() => {
     let live = 0;
     let finished = 0;
@@ -127,7 +230,6 @@ export default function LiveScorePage() {
     return { live, finished, all: filteredMatches.length };
   }, [filteredMatches]);
 
-  // รายการแมตช์ (ทั้ง live และจบแล้ว) กรองตามสถานะที่เลือก แล้วเรียง live ขึ้นก่อน ตามด้วยเลขสนาม
   const matchList = useMemo(() => {
     const byStatus = filteredMatches.filter(m => {
       if (statusFilter === 'LIVE') return !m.isFinished;
@@ -141,6 +243,8 @@ export default function LiveScorePage() {
     });
   }, [filteredMatches, statusFilter]);
 
+  const selectedLabel = selectedOption?.label ?? null;
+
   return (
     <main className="min-h-screen bg-[#05070d] text-white font-sans p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -153,7 +257,7 @@ export default function LiveScorePage() {
             </div>
             <div>
               <h1 className="text-2xl font-black uppercase tracking-tight leading-none">Live Score</h1>
-              <p className="text-emerald-400/80 font-bold text-[10px] uppercase tracking-[3px] mt-1.5">สรุปคะแนนแยกตามสถาบันและรุ่น</p>
+              <p className="text-emerald-400/80 font-bold text-[10px] uppercase tracking-[3px] mt-1.5">สรุปคะแนนแยกตามสถาบันและรุ่น-สาย</p>
             </div>
             <span className={`ml-1 w-2 h-2 rounded-full ${connected ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-red-500 shadow-[0_0_6px_#ef4444]'}`} />
           </div>
@@ -168,81 +272,152 @@ export default function LiveScorePage() {
           </div>
         </header>
 
-        {/* Category filter buttons */}
+        {/* Category-Group filter buttons */}
         <div className="flex flex-wrap items-center gap-2 bg-white/[0.03] border border-white/10 rounded-2xl px-4 py-3">
           <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 mr-2">
-            <FaFilter size={10} /> รุ่น
+            <FaFilter size={10} /> รุ่น-สาย
           </span>
           <button
-            onClick={() => setSelectedCategory('ALL')}
+            onClick={() => setSelectedGroupKey('ALL')}
             className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all ${
-              selectedCategory === 'ALL'
+              selectedGroupKey === 'ALL'
                 ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]'
                 : 'bg-white/5 text-slate-400 hover:bg-white/10'
             }`}
           >
             ทั้งหมด
           </button>
-          {categories.map(cat => (
+          {categoryGroups.map(g => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              key={g.key}
+              onClick={() => setSelectedGroupKey(g.key)}
               className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all ${
-                selectedCategory === cat
+                selectedGroupKey === g.key
                   ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]'
                   : 'bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              {cat}
+              {g.label}
             </button>
           ))}
         </div>
 
-        {/* University stat cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <AnimatePresence mode="popLayout">
-            {uniStats.map((s, idx) => (
-              <motion.div
-                key={s.university}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className={`rounded-2xl border p-4 backdrop-blur-xl ${
-                  idx === 0 && s.setsWon > 0
-                    ? 'bg-emerald-500/10 border-emerald-400/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
-                    : 'bg-white/[0.03] border-white/10'
-                }`}
-              >
-                <h3 className="text-xl font-black uppercase tracking-tight">{s.university}</h3>
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    <span>Sets Won</span>
-                    <span className="text-emerald-400 text-sm tabular-nums">{s.setsWon}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    <span>Sets Lost</span>
-                    <span className="text-slate-400 text-sm tabular-nums">{s.setsLost}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    <span>Points Won</span>
-                    <span className="text-blue-400 text-sm tabular-nums">{s.pointsWon}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    <span>Conceded</span>
-                    <span className="text-red-400 text-sm tabular-nums">{s.pointsConceded}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+        {/* Head-to-head standings table */}
+        <div className="bg-white/[0.03] border border-white/10 rounded-3xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/5">
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-300">
+              ตารางคะแนนพบกันตัวต่อตัว{selectedLabel && <span className="text-emerald-400"> · {selectedLabel}</span>}
+            </h2>
+            <p className="text-[9px] font-bold text-slate-600 mt-1 leading-relaxed">
+              {isNonScoringView 
+                ? "รุ่นกิตติมศักดิ์: แสดงสถิติการแข่งขันและผลพบกันตัวต่อตัว (ไม่นำแต้มสถาบันมาคำนวณในตารางอันดับรวม)"
+                : "แต้มสถาบัน 5-4-3-2-1 คำนวณตาม: คะแนนแมตช์ > คะแนนที่ได้ > คะแนนที่เสีย (น้อยกว่าดีกว่า)"}
+            </p>
+          </div>
+
+          {standings.length === 0 ? (
+            <div className="py-10 flex flex-col items-center justify-center text-slate-700">
+              <p className="font-bold uppercase tracking-widest text-xs text-slate-600">
+                ยังไม่มีผลการแข่งขันในรุ่น-สายนี้
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[720px]">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="sticky left-0 bg-[#0b0f19] px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 z-10">
+                      สถาบัน
+                    </th>
+                    {!isNonScoringView && (
+                      <th className="px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center">แต้ม</th>
+                    )}
+                    <th className="px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center">เซตชนะ-แพ้</th>
+                    {standingUnis.map(u => (
+                      <th key={u} className="px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center whitespace-nowrap">
+                        vs {u}
+                      </th>
+                    ))}
+                    <th className="px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center whitespace-nowrap">
+                      คะแนนดิบรวม
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {standings.map((row, idx) => (
+                    <tr key={row.university} className={idx === 0 ? 'bg-emerald-500/[0.04]' : ''}>
+                      <td className="sticky left-0 bg-[#0b0f19] px-4 py-3 font-black text-sm">
+                        {row.university}
+                      </td>
+                      {!isNonScoringView && (
+                        <td className="px-3 py-3 text-center">
+                          <span className={`text-lg font-black tabular-nums ${idx === 0 ? 'text-emerald-400' : 'text-blue-400'}`}>
+                            {row.points}
+                          </span>
+                        </td>
+                      )}
+                      <td className="px-3 py-3 text-center text-xs font-bold tabular-nums text-slate-300">
+                        {row.setsWon}-{row.setsLost}
+                      </td>
+                      {standingUnis.map(u => {
+                        if (u === row.university) {
+                          return <td key={u} className="px-3 py-3 text-center text-slate-700">—</td>;
+                        }
+                        const meetings = row.h2h[u] || [];
+                        return (
+                          <td key={u} className="px-3 py-3 text-center">
+                            {meetings.length === 0 ? (
+                              <span className="text-slate-700 text-xs">-</span>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1.5">
+                                {meetings.map((mm, mi) => (
+                                  <div key={mi} className="flex flex-col items-center">
+                                    {!selectedLabel && (
+                                      <span className="text-[7px] text-slate-600 uppercase tracking-wide truncate max-w-[6rem]">
+                                        {mm.category}{mm.group}
+                                      </span>
+                                    )}
+                                    <div className="flex items-center gap-1 tabular-nums text-[11px] font-black">
+                                      {mm.sets.map((set, si) => (
+                                        <span
+                                          key={si}
+                                          className={`px-1.5 py-0.5 rounded ${
+                                            set[0] > set[1]
+                                              ? 'bg-emerald-500/10 text-emerald-400'
+                                              : set[1] > set[0]
+                                                ? 'bg-red-500/10 text-red-400'
+                                                : 'text-slate-500'
+                                          }`}
+                                        >
+                                          {set[0]}-{set[1]}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="px-3 py-3 text-center tabular-nums whitespace-nowrap">
+                        <span className="text-emerald-400 font-black text-sm">{row.pointsWon}</span>
+                        <span className="text-slate-600 mx-1">-</span>
+                        <span className="text-red-400 font-black text-sm">{row.pointsConceded}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Per-match set score breakdown */}
         <div className="bg-white/[0.03] border border-white/10 rounded-3xl overflow-hidden">
           <div className="px-5 py-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h2 className="text-sm font-black uppercase tracking-widest text-slate-300">
-              รายละเอียดแต้มแต่ละเซต{selectedCategory !== 'ALL' && <span className="text-emerald-400"> · {selectedCategory}</span>}
+              รายละเอียดแต้มแต่ละเซต{selectedLabel && <span className="text-emerald-400"> · {selectedLabel}</span>}
             </h2>
 
             <div className="flex items-center gap-2">
@@ -284,9 +459,9 @@ export default function LiveScorePage() {
             <div className="py-12 flex flex-col items-center justify-center text-slate-700">
               <GiShuttlecock size={40} className="mb-3 opacity-30" />
               <p className="font-bold uppercase tracking-widest text-xs text-slate-600">
-                {statusFilter === 'FINISHED' ? 'ยังไม่มีแมตช์ที่แข่งจบในรุ่นนี้' :
-                 statusFilter === 'LIVE' ? 'ไม่มีแมตช์ที่กำลังแข่งในรุ่นนี้' :
-                 'ไม่มีข้อมูลแมตช์ในรุ่นนี้'}
+                {statusFilter === 'FINISHED' ? 'ยังไม่มีแมตช์ที่แข่งจบในรุ่น-สายนี้' :
+                 statusFilter === 'LIVE' ? 'ไม่มีแมตช์ที่กำลังแข่งในรุ่น-สายนี้' :
+                 'ไม่มีข้อมูลแมตช์ในรุ่น-สายนี้'}
               </p>
             </div>
           ) : (
@@ -297,7 +472,6 @@ export default function LiveScorePage() {
 
                 return (
                   <div key={m.id}>
-                    {/* --- Desktop / tablet layout (sm and up): court col | teams+score centered | status col --- */}
                     <div className="hidden sm:flex px-5 py-3.5 items-start gap-4">
                       <div className="w-20 shrink-0 pt-0.5">
                         <p className="text-[8px] font-black uppercase tracking-widest text-slate-600">สนาม {m.court}</p>
@@ -334,7 +508,6 @@ export default function LiveScorePage() {
                       </div>
                     </div>
 
-                    {/* --- Mobile layout (below sm): stacked card, each team gets its own full-width row --- */}
                     <div className="sm:hidden px-4 py-3.5 space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -390,8 +563,6 @@ export default function LiveScorePage() {
   );
 }
 
-// TeamNames: university code + starters (bold) + all substitutes (dim, labeled) —
-// used in the desktop/tablet row layout, where both teams sit side by side around the score.
 function TeamNames({ team, align, color }: { team: Team; align: 'left' | 'right'; color: string }) {
   const starters = team.players?.filter(p => p.role === 'starter') ?? [];
   const substitutes = team.players?.filter(p => p.role === 'substitute') ?? [];
@@ -416,7 +587,6 @@ function TeamNames({ team, align, color }: { team: Team; align: 'left' | 'right'
   );
 }
 
-// ScorePair: shows the score of a single set with the winning side highlighted (used in desktop layout)
 function ScorePair({ a, b }: { a: number; b: number }) {
   const aWin = a > b;
   const bWin = b > a;
@@ -429,9 +599,6 @@ function ScorePair({ a, b }: { a: number; b: number }) {
   );
 }
 
-// MobileTeamRow: one full-width row per team - university code + all player names on the left
-// (given the full row width so nothing gets squeezed/truncated), that team's set scores on the
-// right, colored when that team won the set. Used only in the sub-sm stacked layout.
 function MobileTeamRow({
   team,
   color,

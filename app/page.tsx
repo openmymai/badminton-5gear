@@ -13,7 +13,8 @@ interface Rank {
   university: string;
   points: number;       // คะแนนรวมสถาบัน (5, 4, 3, 2, 1) จากทุกรุ่น
   matchPoints: number;  // คะแนนดิบรวม (ชนะ 2, เสมอ 1)
-  win: number;          // จำนวนเซตที่ชนะรวม (2 เซตต่อแมตช์)
+  win: number;          // จำนวนเซตที่ชนะรวม
+  pointsWon: number;    // แต้มที่ทำได้รวม (เพิ่มใหม่เพื่อความแม่นยำ)
   pointsConceded: number; // แต้มเสียรวม
 }
 
@@ -38,40 +39,32 @@ export default function LeaderboardPage() {
 
     socket.on('data-updated', (data: { matches: any[] }) => {
       if (data?.matches) {
-        // 1. กรองเฉพาะแมตช์ที่คิดคะแนนได้ (ไม่เอากิตติมศักดิ์)
         const scorableMatches = data.matches.filter(m => !EXHIBITION_CATEGORIES.includes(m.category));
 
-        // 2. เตรียมโครงสร้างเก็บคะแนนรวมของแต่ละมหาวิทยาลัย
         const schoolStats: Record<string, Rank> = {};
         UNIVERSITIES.forEach(u => {
-          schoolStats[u] = { university: u, points: 0, matchPoints: 0, win: 0, pointsConceded: 0 };
+          schoolStats[u] = { university: u, points: 0, matchPoints: 0, win: 0, pointsWon: 0, pointsConceded: 0 };
         });
 
-        // 3. จัดกลุ่มแมตช์ตาม รุ่น (Category) และ สาย (Group)
-        // เช่น "ทั่วไป-A", "ชายคู่-B"
         const groupKeys = [...new Set(scorableMatches.map(m => `${m.category}-${m.group}`))];
 
         groupKeys.forEach(key => {
-          // กรองแมตช์ในกลุ่มนี้ที่ "แข่งเสร็จแล้ว" เท่านั้น
           const finishedMatchesInGroup = scorableMatches.filter(
             m => `${m.category}-${m.group}` === key && m.isFinished
           );
 
-          // ถ้ากลุ่มนี้ยังไม่มีคู่ไหนแข่งเสร็จเลย ข้ามการแจกแต้ม 5,4,3,2,1 ในกลุ่มนี้ไปก่อน
           if (finishedMatchesInGroup.length === 0) return;
 
-          // คำนวณอันดับภายในกลุ่ม (Internal Ranking)
           const internalStats: Record<string, any> = {};
 
           finishedMatchesInGroup.forEach(m => {
             const unis = [m.teamA.university, m.teamB.university];
             unis.forEach(u => {
               if (!internalStats[u]) {
-                internalStats[u] = { university: u, mPts: 0, wins: 0, setsWon: 0, pConceded: 0 };
+                internalStats[u] = { university: u, mPts: 0, pWon: 0, pConceded: 0, setsWon: 0 };
               }
             });
 
-            // ถ้าเป็น No Result (เช่น Double Walkover) ไม่นับแต้ม
             if (isNoResult(m)) return;
 
             const s1a = Number(m.score.s1a) || 0;
@@ -79,55 +72,54 @@ export default function LeaderboardPage() {
             const s2a = Number(m.score.s2a) || 0;
             const s2b = Number(m.score.s2b) || 0;
 
-            // สะสมแต้มเสีย
+            // สะสมแต้มภายในกลุ่ม
+            internalStats[m.teamA.university].pWon += (s1a + s2a);
             internalStats[m.teamA.university].pConceded += (s1b + s2b);
+            internalStats[m.teamB.university].pWon += (s1b + s2b);
             internalStats[m.teamB.university].pConceded += (s1a + s2a);
 
-            // นับจำนวนเซตที่ชนะ (แข่งกัน 2 เซตต่อแมตช์)
             if (s1a > s1b) internalStats[m.teamA.university].setsWon += 1;
             else if (s1b > s1a) internalStats[m.teamB.university].setsWon += 1;
 
             if (s2a > s2b) internalStats[m.teamA.university].setsWon += 1;
             else if (s2b > s2a) internalStats[m.teamB.university].setsWon += 1;
 
-            // คำนวณผู้ชนะทั้งแมตช์ — ใช้จัดอันดับภายในกลุ่มเหมือนเดิม (ไม่กระทบ tie-break)
             const winner = getMatchWinner(m);
             if (winner === 'a') {
               internalStats[m.teamA.university].mPts += 2;
-              internalStats[m.teamA.university].wins += 1;
             } else if (winner === 'b') {
               internalStats[m.teamB.university].mPts += 2;
-              internalStats[m.teamB.university].wins += 1;
             } else {
-              // กรณีเสมอ (ถ้ามี)
               internalStats[m.teamA.university].mPts += 1;
               internalStats[m.teamB.university].mPts += 1;
             }
           });
 
-          // เรียงลำดับในกลุ่ม: แต้มแมตช์ > จำนวนที่ชนะ > แต้มเสีย (น้อยกว่าดีกว่า)
+          // จัดลำดับในกลุ่ม: 1.คะแนนแมตช์ 2.คะแนนที่ได้ (pWon) 3.คะแนนที่เสีย (pConceded)
           const sortedInternal = Object.values(internalStats).sort((a: any, b: any) => {
             if (b.mPts !== a.mPts) return b.mPts - a.mPts;
-            if (b.wins !== a.wins) return b.wins - a.wins;
+            if (b.pWon !== a.pWon) return b.pWon - a.pWon;
             return a.pConceded - b.pConceded;
           });
 
-          // 4. แจกแต้มสถาบัน (5, 4, 3, 2, 1) ตามลำดับที่ได้ ณ ปัจจุบัน
+          // แจกแต้มสถาบัน 5,4,3,2,1
           sortedInternal.forEach((stat: any, idx) => {
             const teamAward = Math.max(1, 5 - idx);
             if (schoolStats[stat.university]) {
               schoolStats[stat.university].points += teamAward;
               schoolStats[stat.university].matchPoints += stat.mPts;
               schoolStats[stat.university].win += stat.setsWon;
+              schoolStats[stat.university].pointsWon += stat.pWon;
               schoolStats[stat.university].pointsConceded += stat.pConceded;
             }
           });
         });
 
-        // 5. จัดอันดับมหาลัยทั้งหมดเพื่อแสดงผล
+        // จัดอันดับมหาลัย (Final)
         const finalRankings = Object.values(schoolStats).sort((a, b) => {
           if (b.points !== a.points) return b.points - a.points;
           if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+          if (b.pointsWon !== a.pointsWon) return b.pointsWon - a.pointsWon;
           return a.pointsConceded - b.pointsConceded;
         });
 
@@ -139,9 +131,6 @@ export default function LeaderboardPage() {
   }, []);
 
   return (
-    // h-screen ยังคงไว้ให้ desktop/TV เต็มจอไม่มี scroll เหมือนเดิม
-    // แต่ mobile เปลี่ยนเป็น overflow-y-auto แทน overflow-hidden — ถ้าการ์ด 5 ใบ
-    // รวมกับ header/footer สูงเกินจอมือถือจริงๆ จะเลื่อนดูได้แทนที่จะถูกตัดขาดหาย
     <main className="h-screen w-full bg-[#05070d] text-white flex flex-col overflow-y-auto md:overflow-hidden p-3 sm:p-4 md:p-6 gap-3 sm:gap-4">
       {/* Header */}
       <header className="shrink-0 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4 max-w-7xl mx-auto w-full">
@@ -157,11 +146,9 @@ export default function LeaderboardPage() {
           </div>
         </div>
         <div className="flex gap-2 sm:gap-3">
-          {/* Public links — ทุกคนเห็นเสมอ ไม่ครอบด้วย isAdmin */}
           <Link href="/live" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-amber-500/10 backdrop-blur-md border border-amber-500/30 rounded-xl hover:bg-amber-500/20 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs text-amber-400">Live</Link>
           <Link href="/live-score" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-amber-500/10 backdrop-blur-md border border-amber-500/30 rounded-xl hover:bg-amber-500/20 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs text-amber-400">Live Score</Link>
 
-          {/* Admin-only links */}
           {isAdmin && (
             <>
               <Link href="/matches" className="px-3.5 py-2 sm:px-5 sm:py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-blue-600 transition-all font-bold tracking-widest uppercase text-[10px] sm:text-xs">Matches</Link>
@@ -187,8 +174,6 @@ export default function LeaderboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                // flex-none บนมือถือ = สูงตามเนื้อหาจริง ไม่ถูกบีบให้เท่ากันแบบบังคับ
-                // md:flex-1 = พฤติกรรมเดิมเป๊ะบนจอใหญ่ (แบ่งความสูงเท่ากันเต็มจอ)
                 className={`relative overflow-hidden flex-none md:flex-1 min-h-[88px] sm:min-h-[96px] md:min-h-[80px] flex flex-col sm:flex-row items-stretch sm:items-center justify-center sm:justify-between gap-2 sm:gap-0 px-4 sm:px-6 md:px-10 py-3 sm:py-0 rounded-2xl sm:rounded-[1.75rem] border-2 transition-all duration-500 backdrop-blur-xl ${
                   isTop1
                     ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/10 border-yellow-400/80 shadow-[0_0_40px_rgba(250,204,21,0.2)]'
@@ -208,7 +193,7 @@ export default function LeaderboardPage() {
                       {rank.university}
                     </h2>
                     <div className="flex gap-2.5 sm:gap-4 mt-1 sm:mt-2">
-                      <span className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Wins <span className="text-emerald-400">{rank.win}</span></span>
+                      <span className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Won <span className="text-emerald-400">{rank.pointsWon}</span></span>
                       <span className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Conceded <span className="text-red-400">{rank.pointsConceded}</span></span>
                     </div>
                   </div>
@@ -230,7 +215,6 @@ export default function LeaderboardPage() {
                   </motion.span>
                 </div>
 
-                {/* Decorative Icon for Top 1 */}
                 {isTop1 && (
                   <div className="absolute -right-6 -bottom-6 sm:-right-8 sm:-bottom-8 opacity-[0.07] pointer-events-none text-yellow-400 rotate-12">
                     <FaTrophy size={110} className="sm:w-[180px] sm:h-[180px]" />
@@ -252,7 +236,7 @@ export default function LeaderboardPage() {
       {/* Footer Info */}
       <footer className="shrink-0 text-center py-1 sm:py-2">
         <p className="text-[8px] sm:text-[9px] text-slate-600 font-bold uppercase tracking-[2px] sm:tracking-[4px] px-2">
-          Points calculated from finished matches only (5, 4, 3, 2, 1 per category group)
+          Points calculated by: Rank Points &gt; Match Points &gt; Points Won &gt; Points Conceded (lower is better)
         </p>
       </footer>
 
