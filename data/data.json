@@ -50,14 +50,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 2,
+        "s1b": 21,
+        "s2a": 7,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
-      "version": 0
+      "version": 54,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_KKU_KU",
@@ -12622,5 +12624,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783863777503
+  "lastUpdated": 1783868523104
 }

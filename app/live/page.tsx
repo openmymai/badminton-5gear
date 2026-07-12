@@ -48,11 +48,23 @@ const mergeMatchUpdates = (prev: Match[], updates: Match[]): Match[] => {
   return Array.from(map.values());
 };
 
+// ทุกกี่วินาทีให้ dynamic mode หมุนไปคิวถัดไปทีละคู่ (ต่อสนาม)
+const DYNAMIC_ROTATE_MS = 4000;
+
+type DisplayMode = 'static' | 'dynamic';
+
 export default function LiveBoardPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [connected, setConnected] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
   const socketRef = useRef<Socket | null>(null);
+
+  // static = แสดงคิวทั้งหมดพร้อมกัน, dynamic = หมุนแสดงทีละคู่ต่อสนาม วนตามลำดับ
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('static');
+  // ตัวนับรอบสำหรับ dynamic mode — เพิ่มค่าเรื่อยๆ ทุก DYNAMIC_ROTATE_MS แล้วแต่ละ
+  // สนามใช้ tick % queued.length ของตัวเองในการเลือกว่าจะโชว์คิวลำดับไหน จึงวนครบ
+  // รอบตามจำนวนคิวจริงของสนามนั้นๆ โดยไม่ต้องมี state แยกรายสนาม
+  const [dynamicTick, setDynamicTick] = useState(0);
 
   useEffect(() => {
     const s = io();
@@ -86,6 +98,14 @@ export default function LiveBoardPage() {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Rotator สำหรับ dynamic mode — ทำงานเฉพาะตอนเลือกโหมดนี้เท่านั้น เพื่อไม่ให้
+  // re-render โดยไม่จำเป็นตอนอยู่ static mode
+  useEffect(() => {
+    if (displayMode !== 'dynamic') return;
+    const t = setInterval(() => setDynamicTick(tick => tick + 1), DYNAMIC_ROTATE_MS);
+    return () => clearInterval(t);
+  }, [displayMode]);
 
   // Group non-finished matches by their court, then sort each court's list by the
   // `order` field the Admin page attaches when it builds the rest-friendly
@@ -162,10 +182,38 @@ export default function LiveBoardPage() {
             </div>
           </div>
 
-          {/* Right-hand cluster: live count (desktop only, mobile shows it above instead),
-              clock, and nav links. Nav links scroll horizontally on narrow screens instead
-              of wrapping or overflowing the page. */}
+          {/* Right-hand cluster: display-mode toggle, live count (desktop only, mobile
+              shows it above instead), clock, and nav links. Nav links scroll
+              horizontally on narrow screens instead of wrapping or overflowing. */}
           <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 w-full lg:w-auto min-w-0">
+
+            {/* Static / Dynamic toggle — controls how the queue section of every
+                court card renders (see courtGroups.map below) */}
+            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setDisplayMode('static')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                  displayMode === 'static'
+                    ? 'bg-amber-400 text-black shadow'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                คงที่
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayMode('dynamic')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                  displayMode === 'dynamic'
+                    ? 'bg-amber-400 text-black shadow'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                หมุนเวียน
+              </button>
+            </div>
+
             <div className="hidden lg:flex items-center gap-2 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse" />
               <span className="text-sm font-bold text-slate-400">
@@ -205,6 +253,12 @@ export default function LiveBoardPage() {
                 const [current, ...queued] = group.matches;
                 const { setsA, setsB } = calculateEffectiveSets(current);
 
+                // Dynamic mode: pick a single queued match to show, rotating through
+                // the court's own queue length so each court cycles through all of
+                // its upcoming matches independently even though the tick is shared.
+                const dynamicIndex = queued.length > 0 ? dynamicTick % queued.length : 0;
+                const dynamicMatch = queued.length > 0 ? queued[dynamicIndex] : null;
+
                 return (
                   <motion.div
                     key={group.court}
@@ -235,7 +289,8 @@ export default function LiveBoardPage() {
 
                     {/* Current match */}
                     <div className="px-5 py-5">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-blue-400/80 mb-3">
+                      {/* รุ่น/สาย ของคู่ปัจจุบัน — ขยายขนาด font ให้เด่นชัดขึ้น */}
+                      <p className="text-base sm:text-lg font-black uppercase tracking-wide text-blue-400/90 mb-4">
                         รุ่น {current.category} · สาย {current.group}
                       </p>
 
@@ -259,18 +314,50 @@ export default function LiveBoardPage() {
                       </div>
                     </div>
 
-                    {/* Queue for this court */}
+                    {/* Queue for this court — layout depends on displayMode.
+                        static: full list, each row numbered 1..n.
+                        dynamic: one row at a time, crossfading every DYNAMIC_ROTATE_MS,
+                        with a "ลำดับที่ X จาก Y" badge showing its real queue position. */}
                     {queued.length > 0 && (
-                      <div className="px-5 py-3 border-t border-white/5 bg-black/20">
-                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-600 mb-2">คิวถัดไป ({queued.length})</p>
-                        <div className="space-y-1.5">
-                          {queued.map(m => (
-                            <div key={m.id} className="flex items-center justify-between text-[10px] font-bold text-slate-500">
-                              <span className="truncate">{m.teamA.university} <span className="text-slate-700">vs</span> {m.teamB.university}</span>
-                              <span className="text-slate-700 shrink-0 ml-2">รุ่น {m.category} · สาย {m.group}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="px-5 py-4 border-t border-white/5 bg-black/20">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-600 mb-2.5">
+                          คิวถัดไป ({queued.length})
+                        </p>
+
+                        {displayMode === 'static' ? (
+                          <div className="space-y-2">
+                            {queued.map((m, i) => (
+                              <div key={m.id} className="flex items-center gap-2.5">
+                                <span className="shrink-0 w-5 h-5 rounded-full bg-white/5 border border-white/10 text-amber-400 text-[10px] font-black flex items-center justify-center tabular-nums">
+                                  {i + 1}
+                                </span>
+                                <span className="truncate text-xs sm:text-sm font-bold text-slate-400">
+                                  {m.teamA.university} <span className="text-slate-700">vs</span> {m.teamB.university}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <AnimatePresence mode="wait">
+                            {dynamicMatch && (
+                              <motion.div
+                                key={dynamicMatch.id}
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.3 }}
+                                className="flex items-center gap-3"
+                              >
+                                <span className="shrink-0 px-2.5 py-1 rounded-lg bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-black tabular-nums whitespace-nowrap">
+                                  ลำดับที่ {dynamicIndex + 1}/{queued.length}
+                                </span>
+                                <span className="truncate text-sm sm:text-base font-bold text-slate-300">
+                                  {dynamicMatch.teamA.university} <span className="text-slate-600">vs</span> {dynamicMatch.teamB.university}
+                                </span>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        )}
                       </div>
                     )}
                   </motion.div>
