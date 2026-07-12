@@ -61,6 +61,8 @@ interface ScoreAck {
   isFinished: boolean;
 }
 
+type SetKey = '1' | '2';
+
 function getSetWinner(a: number, b: number): 'a' | 'b' | null {
   if (a === 21) return 'a';
   if (b === 21) return 'b';
@@ -86,6 +88,10 @@ function vibrate(pattern: number | number[]) {
 }
 
 const EMIT_DEBOUNCE_MS = 150;
+// Short pause before auto-advancing focus to the next set once the active
+// one is decided — long enough for the referee to register the "Set won"
+// state, short enough not to feel laggy.
+const AUTO_ADVANCE_MS = 600;
 
 export default function ScorerPage() {
   const params = useParams();
@@ -155,6 +161,14 @@ export default function ScorerPage() {
   const [canUndo, setCanUndo] = useState(false);
   const [server, setServer] = useState<{ s1: 'a' | 'b'; s2: 'a' | 'b' }>({ s1: 'a', s2: 'a' });
   const [byeMode, setByeMode] = useState(false);
+
+  // --- Sequential set focus ---
+  // null = "follow the match automatically" (first undecided set, or the
+  // last set once everything is decided). A referee can tap a collapsed
+  // set to pin focus there manually (e.g. to fix a mis-tap in Set 1 after
+  // Set 2 has already started) — that pin sticks until they tap another
+  // set or the auto-advance effect below moves it for them.
+  const [focusedSet, setFocusedSet] = useState<SetKey | null>(null);
 
   useEffect(() => {
     setCurrentUrl(window.location.href);
@@ -344,6 +358,34 @@ export default function ScorerPage() {
     router.push('/');
   };
 
+  const set1Winner = match ? getEffectiveSetWinner(match.score.s1a, match.score.s1b, match.isBye, match.byeWinner) : null;
+  const set2Winner = match ? getEffectiveSetWinner(match.score.s2a, match.score.s2b, match.isBye, match.byeWinner) : null;
+
+  // Auto-advance: fires only on the exact moment Set 1 flips from
+  // "undecided" to "decided" (tracked via a ref, not just "is it decided
+  // right now"). This is the key difference from a naive version-of-this
+  // effect: if we re-checked "is set 1 decided AND focus is on set 1" on
+  // every render, tapping a collapsed, already-decided Set 1 back open to
+  // fix a mis-tap would immediately re-trigger the same condition and the
+  // timer would collapse it again before the referee could touch anything.
+  // By only reacting to the null→non-null transition, manually re-opening
+  // an already-decided set to edit it never re-fires this effect — it only
+  // fires again if the correction itself causes the set to freshly become
+  // decided (e.g. score dips below 21 during editing, then reaches 21 again).
+  const prevSet1WinnerRef = useRef<'a' | 'b' | null>(null);
+  useEffect(() => {
+    if (!match || match.isFinished) {
+      prevSet1WinnerRef.current = set1Winner;
+      return;
+    }
+    const justDecided = prevSet1WinnerRef.current === null && set1Winner !== null;
+    prevSet1WinnerRef.current = set1Winner;
+    if (justDecided && set2Winner === null) {
+      const t = setTimeout(() => setFocusedSet('2'), AUTO_ADVANCE_MS);
+      return () => clearTimeout(t);
+    }
+  }, [set1Winner, set2Winner, match?.isFinished]);
+
   if (!match) return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
       <GiShuttlecock className="animate-bounce text-blue-500 mb-4" size={60} />
@@ -351,12 +393,12 @@ export default function ScorerPage() {
     </div>
   );
 
-  const set1Winner = getEffectiveSetWinner(match.score.s1a, match.score.s1b, match.isBye, match.byeWinner);
-  const set2Winner = getEffectiveSetWinner(match.score.s2a, match.score.s2b, match.isBye, match.byeWinner);
   const setsWonA = [set1Winner, set2Winner].filter(w => w === 'a').length;
   const setsWonB = [set1Winner, set2Winner].filter(w => w === 'b').length;
   const leadingA = match.isBye ? match.byeWinner === 'a' : setsWonA > setsWonB;
   const leadingB = match.isBye ? match.byeWinner === 'b' : setsWonB > setsWonA;
+
+  const activeSet: SetKey = focusedSet ?? (set1Winner === null ? '1' : '2');
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-blue-950 text-white font-sans pb-10">
@@ -384,15 +426,13 @@ export default function ScorerPage() {
             {isConnected ? <MdSync className="text-green-500 animate-spin-slow" size={18} /> : <MdSyncDisabled className="text-red-500" />}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`flex items-center justify-center gap-2 rounded-xl py-1.5 border transition-colors ${leadingA ? 'bg-blue-500/15 border-blue-400/40' : 'bg-white/5 border-white/10'}`}>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-300 truncate max-w-[90px]">{match.teamA.university}</span>
-            <span className="text-lg font-black text-blue-300 tabular-nums">{setsWonA}</span>
-          </div>
-          <div className={`flex items-center justify-center gap-2 rounded-xl py-1.5 border transition-colors ${leadingB ? 'bg-red-500/15 border-red-400/40' : 'bg-white/5 border-white/10'}`}>
-            <span className="text-lg font-black text-red-300 tabular-nums">{setsWonB}</span>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-red-300 truncate max-w-[90px]">{match.teamB.university}</span>
-          </div>
+
+        {/* Team + player identity strip — pinned in the sticky header so it
+            never scrolls out of view, since referees glance here after
+            every rally to confirm who they're scoring for. */}
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <TeamHeaderInfo team={match.teamA} color="blue" align="left" setsWon={setsWonA} isMatchWinner={match.isFinished && leadingA} />
+          <TeamHeaderInfo team={match.teamB} color="red" align="right" setsWon={setsWonB} isMatchWinner={match.isFinished && leadingB} />
         </div>
       </header>
 
@@ -406,11 +446,7 @@ export default function ScorerPage() {
         )}
       </AnimatePresence>
 
-      <main className="max-w-md mx-auto p-4 space-y-5">
-        <div className="grid grid-cols-2 bg-white/5 backdrop-blur-md rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden divide-x divide-white/5">
-          <TeamDisplay team={match.teamA} color="text-blue-400" won={setsWonA} align="left" isMatchWinner={match.isFinished && leadingA} />
-          <TeamDisplay team={match.teamB} color="text-red-400" won={setsWonB} align="right" isMatchWinner={match.isFinished && leadingB} />
-        </div>
+      <main className="max-w-md mx-auto p-4 space-y-4">
 
         {match.isBye && (
           <div className="flex items-center justify-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-2xl py-2.5">
@@ -428,47 +464,88 @@ export default function ScorerPage() {
           const scoreB = match.score[bKey];
           const winner = s === '1' ? set1Winner : set2Winner;
           const isDecided = winner !== null;
-          const leader = scoreA > scoreB ? 'a' : scoreB > scoreA ? 'b' : null;
           const leadScore = Math.max(scoreA, scoreB);
           const serverKey = s === '1' ? 's1' : 's2';
 
+          // Once the match is finished we show every set fully (there's
+          // nothing left to "focus" on) — otherwise only the active set
+          // gets the big tap targets, and the rest collapse to a compact,
+          // tappable summary so the referee always sees Set 1 above Set 2
+          // without needing to scroll past a set that's already over.
+          const isExpanded = match.isFinished || s === activeSet;
+
           return (
-            <div key={s} className={`relative rounded-[3rem] p-6 border shadow-2xl transition-all ${isDecided ? 'bg-white/[0.02] border-white/5 opacity-60' : 'bg-white/5 border-white/10'}`}>
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[4px]">Set {s}</span>
-                {isDecided && <MdCheckCircle className="text-green-500" size={14} />}
-                {!isDecided && leadScore >= 20 && (
-                  <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full animate-pulse">
-                    <MdEmojiEvents size={11} /> {leadScore >= 29 ? 'Final Point' : 'Game Point'}
-                  </span>
+            <motion.div layout key={s} transition={{ duration: 0.3, ease: 'easeInOut' }}>
+              <AnimatePresence mode="wait" initial={false}>
+                {isExpanded ? (
+                  <motion.div
+                    key="expanded"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.22 }}
+                    className={`relative rounded-[3rem] p-6 border shadow-2xl transition-colors ${isDecided ? 'bg-white/[0.02] border-white/5 opacity-60' : 'bg-white/5 border-white/10'}`}
+                  >
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[4px]">Set {s}</span>
+                      {isDecided && <MdCheckCircle className="text-green-500" size={14} />}
+                      {!isDecided && leadScore >= 20 && (
+                        <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full animate-pulse">
+                          <MdEmojiEvents size={11} /> {leadScore >= 29 ? 'Final Point' : 'Game Point'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex justify-around items-start relative z-10">
+                      {/*
+                        จุดแก้ไขสำคัญ: ปุ่ม ScoreControl จะ disable เฉพาะเมื่อ "จบแมตช์ (match.isFinished)" เท่านั้น
+                        แม้จะจบเซ็ต (isDecided) ก็ยังยอมให้กดเพื่อแก้ไขความผิดพลาดได้
+                      */}
+                      <ScoreControl
+                        value={scoreA}
+                        color="blue"
+                        disabled={match.isFinished}
+                        isServing={!isDecided && server[serverKey] === 'a'}
+                        onTap={() => setServer(v => ({ ...v, [serverKey]: 'a' }))}
+                        onUp={() => updateScore(aKey, 1)}
+                        onDown={() => updateScore(aKey, -1)}
+                      />
+                      <div className="h-24 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent mt-6" />
+                      <ScoreControl
+                        value={scoreB}
+                        color="red"
+                        disabled={match.isFinished}
+                        isServing={!isDecided && server[serverKey] === 'b'}
+                        onTap={() => setServer(v => ({ ...v, [serverKey]: 'b' }))}
+                        onUp={() => updateScore(bKey, 1)}
+                        onDown={() => updateScore(bKey, -1)}
+                      />
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    key="collapsed"
+                    type="button"
+                    onClick={() => setFocusedSet(s)}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.22 }}
+                    className="w-full flex items-center justify-between px-6 py-4 rounded-[2rem] bg-white/[0.03] border border-white/5 active:scale-[0.98] active:bg-white/[0.06] transition-transform"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[3px]">Set {s}</span>
+                      {isDecided && <MdCheckCircle className="text-green-500" size={13} />}
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className={`text-2xl font-black tabular-nums ${winner === 'a' ? 'text-blue-300' : 'text-slate-500'}`}>{scoreA}</span>
+                      <span className="text-slate-600 text-sm font-bold">–</span>
+                      <span className={`text-2xl font-black tabular-nums ${winner === 'b' ? 'text-red-300' : 'text-slate-500'}`}>{scoreB}</span>
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">แก้ไข</span>
+                  </motion.button>
                 )}
-              </div>
-              <div className="flex justify-around items-start relative z-10">
-                {/* 
-                  จุดแก้ไขสำคัญ: ปุ่ม ScoreControl จะ disable เฉพาะเมื่อ "จบแมตช์ (match.isFinished)" เท่านั้น
-                  แม้จะจบเซ็ต (isDecided) ก็ยังยอมให้กดเพื่อแก้ไขความผิดพลาดได้
-                */}
-                <ScoreControl 
-                  value={scoreA} 
-                  color="blue" 
-                  disabled={match.isFinished} 
-                  isServing={!isDecided && server[serverKey] === 'a'} 
-                  onTap={() => setServer(v => ({ ...v, [serverKey]: 'a' }))} 
-                  onUp={() => updateScore(aKey, 1)} 
-                  onDown={() => updateScore(aKey, -1)} 
-                />
-                <div className="h-24 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent mt-6" />
-                <ScoreControl 
-                  value={scoreB} 
-                  color="red" 
-                  disabled={match.isFinished} 
-                  isServing={!isDecided && server[serverKey] === 'b'} 
-                  onTap={() => setServer(v => ({ ...v, [serverKey]: 'b' }))} 
-                  onUp={() => updateScore(bKey, 1)} 
-                  onDown={() => updateScore(bKey, -1)} 
-                />
-              </div>
-            </div>
+              </AnimatePresence>
+            </motion.div>
           );
         })}
 
@@ -534,25 +611,31 @@ export default function ScorerPage() {
   );
 }
 
-function TeamDisplay({ team, color, won, align, isMatchWinner }: any) {
+// Compact team identity block used inside the sticky header: university
+// name + starting/substitute players + set-win count, sized to stay
+// legible at a glance without pushing the score controls below the fold
+// on small phone screens.
+function TeamHeaderInfo({ team, color, align, setsWon, isMatchWinner }: any) {
+  const textColor = color === 'blue' ? 'text-blue-300' : 'text-red-300';
+  const bgActive = color === 'blue' ? 'bg-blue-500/15 border-blue-400/40' : 'bg-red-500/15 border-red-400/40';
+  const reversed = align === 'right' ? 'flex-row-reverse' : '';
+
   return (
-    <div className="p-6 text-center space-y-3">
-      <div className={`flex items-center justify-center gap-2 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
-        <h3 className={`text-4xl font-black italic tracking-tighter ${color} drop-shadow-sm leading-none`}>{team.university}</h3>
-        {isMatchWinner ? (
-          <MdEmojiEvents className="text-amber-400" size={18} />
-        ) : won > 0 && (
-          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md border ${color} border-current/30`}>{won}</span>
-        )}
+    <div className={`flex items-center gap-2 rounded-xl py-1.5 px-2 border transition-colors ${setsWon > 0 ? bgActive : 'bg-white/5 border-white/10'} ${reversed}`}>
+      <div className={`flex-1 min-w-0 ${align === 'right' ? 'text-right' : 'text-left'}`}>
+        <div className={`flex items-center gap-1 ${reversed}`}>
+          <span className={`text-[11px] font-black uppercase tracking-tight truncate ${textColor}`}>{team.university}</span>
+          {isMatchWinner && <MdEmojiEvents className="text-amber-400 shrink-0" size={12} />}
+        </div>
+        <div className={`flex flex-wrap gap-x-1.5 ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
+          {team.players.map((p: any) => (
+            <span key={p.id} className="text-[8px] font-bold text-slate-400 uppercase truncate max-w-[70px]">
+              {p.name}
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="space-y-1">
-        {team.players.map((p: any) => (
-          <div key={p.id} className="flex items-center justify-center gap-1.5 opacity-60">
-            <div className={`w-1 h-1 rounded-full ${p.role === 'starter' ? 'bg-green-400' : 'bg-orange-400'}`} />
-            <span className="text-[10px] font-bold uppercase truncate max-w-[80px]">{p.name}</span>
-          </div>
-        ))}
-      </div>
+      <span className={`text-base font-black tabular-nums shrink-0 ${textColor}`}>{setsWon}</span>
     </div>
   );
 }

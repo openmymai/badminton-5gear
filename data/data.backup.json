@@ -235,8 +235,10 @@
         "s2a": 21,
         "s2b": 0
       },
-      "isFinished": false,
-      "version": 42
+      "isFinished": true,
+      "version": 43,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_CU_KKU",
@@ -288,13 +290,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 4,
+        "s2a": 21,
+        "s2b": 8
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 57,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_CU_KU",
@@ -346,13 +350,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 4,
+        "s2a": 21,
+        "s2b": 8
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 56,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_CU_PSU",
@@ -1800,13 +1806,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 4,
+        "s1b": 21,
+        "s2a": 3,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 50,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a70_B_CMU_KKU",
@@ -3542,13 +3550,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 10,
+        "s1b": 21,
+        "s2a": 6,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 62,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a90_A_CMU_KKU",
@@ -3600,13 +3610,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 8,
+        "s2a": 21,
+        "s2b": 5
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 58,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a90_A_CMU_KU",
@@ -3658,13 +3670,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 4,
+        "s2a": 21,
+        "s2b": 8
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 57,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a90_A_CMU_PSU",
@@ -4702,13 +4716,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 6,
+        "s1b": 21,
+        "s2a": 9,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 60,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a100_A_CMU_KKU",
@@ -4760,13 +4776,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 3,
+        "s2a": 21,
+        "s2b": 4
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 52,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a100_A_CMU_KU",
@@ -5282,13 +5300,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 4,
+        "s1b": 21,
+        "s2a": 4,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 56,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a100_B_CMU_KKU",
@@ -5340,13 +5360,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 13,
+        "s1b": 21,
+        "s2a": 4,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 67,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a100_B_CMU_KU",
@@ -5398,13 +5420,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 12,
+        "s2a": 21,
+        "s2b": 10
       },
       "isFinished": false,
-      "version": 0
+      "version": 67,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a100_B_CMU_PSU",
@@ -5456,13 +5480,13 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
+        "s1a": 21,
+        "s1b": 15,
+        "s2a": 9,
         "s2b": 0
       },
       "isFinished": false,
-      "version": 0
+      "version": 51
     },
     {
       "id": "M_a100_B_CU_KKU",
@@ -6442,13 +6466,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 5,
+        "s1b": 21,
+        "s2a": 3,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 53,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a110_B_CMU_KKU",
@@ -6500,13 +6526,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 7,
+        "s2a": 21,
+        "s2b": 6
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 56,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a110_B_CMU_KU",
@@ -6558,13 +6586,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 7,
+        "s2a": 21,
+        "s2b": 10
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 61,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a110_B_CMU_PSU",
@@ -6616,13 +6646,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 6,
+        "s2a": 21,
+        "s2b": 9
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 60,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a110_B_CU_KKU",
@@ -7022,13 +7054,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 4,
+        "s1b": 21,
+        "s2a": 9,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 60,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a120_A_CMU_KKU",
@@ -7602,13 +7636,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 6,
+        "s1b": 21,
+        "s2a": 10,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 60,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a120_B_CMU_KKU",
@@ -8182,13 +8218,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 7,
+        "s1b": 21,
+        "s2a": 9,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 63,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a130_-_CMU_KKU",
@@ -9986,13 +10024,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 5,
+        "s1b": 21,
+        "s2a": 7,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 57,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_cat10_-_CMU_KU",
@@ -12458,5 +12498,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783787656738
+  "lastUpdated": 1783823952184
 }
