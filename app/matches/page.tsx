@@ -65,6 +65,19 @@ interface HighlightTarget {
   tone: 'purple' | 'green';
 }
 
+// รวม array ของแมตช์ที่อัปเดตเข้ากับ state เดิม โดยแทนที่เฉพาะรายการที่ id ตรงกัน
+// แมตช์อื่นที่ไม่เกี่ยวข้องคง reference เดิมไว้ — ใช้กับทั้ง "match-updated" (แมตช์
+// เดียว จากหน้า Score ที่กรรมการกดคะแนน) และ "matches-updated" (หลายแมตช์พร้อมกัน
+// เช่นแก้สนามทั้งรุ่น/สาย หรือแก้ชื่อนักกีฬาที่หน้านี้เองก็เป็นคนส่ง event ไป)
+const mergeMatchUpdates = (prev: Match[], updates: Match[]): Match[] => {
+  if (updates.length === 0) return prev;
+  const map = new Map(prev.map(m => [m.id, m]));
+  updates.forEach(m => {
+    if (m && m.id) map.set(m.id, m);
+  });
+  return Array.from(map.values());
+};
+
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('All');
@@ -90,9 +103,28 @@ export default function MatchesPage() {
   useEffect(() => {
     setBaseUrl(window.location.origin);
     socketRef.current = io();
+
+    // ทั้งชุด — ตอนเชื่อมต่อครั้งแรก และตอน import Excel / ล้างข้อมูลทั้งหมด
     socketRef.current.on('data-updated', (data: { matches: Match[] }) => {
       if (data?.matches) setMatches(data.matches);
     });
+
+    // คะแนน/สถานะของแมตช์เดียวเปลี่ยน — เกิดถี่ที่สุด เพราะทุกครั้งที่กรรมการกด
+    // คะแนนในหน้า Score จะยิง event นี้มาที่นี่ด้วย (แทนที่ data-updated เดิม)
+    socketRef.current.on('match-updated', (updatedMatch: Match) => {
+      if (!updatedMatch?.id) return;
+      setMatches(prev => mergeMatchUpdates(prev, [updatedMatch]));
+    });
+
+    // แก้สนามทั้งรุ่น/สาย หรือแก้ชื่อนักกีฬาที่กระทบหลายแมตช์พร้อมกัน (รวมถึงตอน
+    // ที่หน้านี้เองเป็นคนส่ง update-group-court / update-player-name ไป — server
+    // จะ broadcast event นี้กลับมาหาทุกคนรวมถึงตัวเองด้วย ทำให้ state ตรงกันเสมอ
+    // โดยไม่ต้อง setState เองที่ handler ฝั่ง client)
+    socketRef.current.on('matches-updated', (updatedMatches: Match[]) => {
+      if (!Array.isArray(updatedMatches) || updatedMatches.length === 0) return;
+      setMatches(prev => mergeMatchUpdates(prev, updatedMatches));
+    });
+
     socketRef.current.on('action-error', (err: { message?: string }) => {
       if (err?.message) alert(err.message);
     });

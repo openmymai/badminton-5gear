@@ -356,6 +356,11 @@ app.prepare().then(() => {
 
     try {
       const data = readData();
+      // Full snapshot is only needed once, right after a client connects —
+      // every subsequent change is pushed incrementally via
+      // "match-updated" / "matches-updated" (see handlers below), so a
+      // client that's been open for a while never has to re-receive the
+      // whole match list just because one score changed somewhere.
       socket.emit("data-updated", data);
       // Send the roster separately too so the admin page (which only cares
       // about roster, not match results) can listen to a lighter event.
@@ -432,12 +437,16 @@ app.prepare().then(() => {
 
         data.lastUpdated = Date.now();
         if (saveData(data)) {
-          // Broadcast to everyone EXCEPT the sender. The sender already
-          // applied this change optimistically the instant they tapped, so
-          // echoing the same update back to them only risks visibly
+          // Broadcast ONLY this single match, not the whole dataset — this is
+          // the highest-frequency event in the app (every +1/-1 tap), so
+          // keeping the payload to one match instead of the full match list
+          // is what actually makes the live views feel instant as the
+          // tournament grows. Sent to everyone EXCEPT the sender, since the
+          // sender already applied this change optimistically the instant
+          // they tapped — echoing the same update back only risks visibly
           // "snapping" the score if a slightly-stale packet from an earlier
           // save happens to arrive after this one.
-          socket.broadcast.emit("data-updated", data);
+          socket.broadcast.emit("match-updated", current);
 
           // The sender still needs to know their update actually landed and,
           // more importantly, what version the SERVER assigned to it — which
@@ -462,6 +471,11 @@ app.prepare().then(() => {
     // รับตารางแข่งขันที่สร้างใหม่ทั้งชุดจากหน้า Admin แล้ว merge เข้ากับของเดิม
     // (แมตช์ที่มีอยู่แล้วจะคงคะแนน/ผลเดิม รวมถึงแท็ก walkover/bye และ version ไว้
     // ไม่ถูกรีเซ็ต)
+    //
+    // หมายเหตุ: การ import เปลี่ยนรูปร่างของตารางทั้งชุด (มีแมตช์ใหม่เพิ่ม/แมตช์
+    // เดิมหาย) จึงยัง broadcast แบบ "data-updated" (ทั้งชุด) ตามเดิม ต่างจาก
+    // update-score/update-group-court/update-player-name ที่แก้แค่บางแมตช์และ
+    // เปลี่ยนไปส่งเฉพาะส่วนที่อัปเดตแล้ว
     //
     // รองรับ payload สองรูปแบบ เพื่อความเข้ากันได้ย้อนหลัง:
     //   1. รูปแบบเดิม — array ของแมตช์ล้วนๆ (รวมถึง [] สำหรับปุ่ม "ล้างข้อมูล
@@ -605,17 +619,21 @@ app.prepare().then(() => {
 
         const data = readData();
         let touched = false;
+        // เก็บเฉพาะแมตช์ที่ถูกแก้ไขจริง เพื่อ broadcast แบบเจาะจงแทนตารางทั้งชุด
+        const affectedMatches = [];
 
         data.matches.forEach((m) => {
           if (m.category !== category || m.group !== group) return;
+          let matchTouched = false;
           ["teamA", "teamB"].forEach((key) => {
             const team = m[key];
             if (team && team.university === university) {
               team.players.forEach((p) => {
-                if (p.id === playerId) { p.name = trimmed; touched = true; }
+                if (p.id === playerId) { p.name = trimmed; touched = true; matchTouched = true; }
               });
             }
           });
+          if (matchTouched) affectedMatches.push(m);
         });
 
         data.roster.entries.forEach((e) => {
@@ -633,7 +651,11 @@ app.prepare().then(() => {
 
         data.lastUpdated = Date.now();
         if (saveData(data)) {
-          io.emit("data-updated", data);
+          // ส่งเฉพาะแมตช์ที่ชื่อถูกแก้ไข (อาจมีหลายแมตช์ถ้าทีมนี้ลงแข่งหลายคู่ใน
+          // รุ่น/สายเดียวกัน) แทนที่จะส่งตารางทั้งหมด
+          if (affectedMatches.length > 0) {
+            io.emit("matches-updated", affectedMatches);
+          }
           io.emit("roster-updated", data.roster);
         } else {
           socket.emit("action-error", { message: "บันทึกชื่อนักกีฬาไม่สำเร็จ กรุณาลองใหม่" });
@@ -669,22 +691,24 @@ app.prepare().then(() => {
         }
 
         const data = readData();
-        let touched = false;
+        // เก็บเฉพาะแมตช์ที่ถูกแก้ไขจริง เพื่อ broadcast แบบเจาะจงแทนตารางทั้งชุด
+        const affectedMatches = [];
         data.matches.forEach((m) => {
           if (m.category === category && m.group === group) {
             m.court = courtStr;
-            touched = true;
+            affectedMatches.push(m);
           }
         });
 
-        if (!touched) {
+        if (affectedMatches.length === 0) {
           socket.emit("action-error", { message: "ไม่พบคู่แข่งขันในรุ่น/สายนี้" });
           return;
         }
 
         data.lastUpdated = Date.now();
         if (saveData(data)) {
-          io.emit("data-updated", data);
+          // ส่งเฉพาะแมตช์ในรุ่น/สายที่แก้สนาม แทนที่จะส่งตารางทั้งหมด
+          io.emit("matches-updated", affectedMatches);
         } else {
           socket.emit("action-error", { message: "บันทึกสนามไม่สำเร็จ กรุณาลองใหม่" });
         }

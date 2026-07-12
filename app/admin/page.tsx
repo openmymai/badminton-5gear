@@ -79,6 +79,19 @@ const CATEGORY_SLUG_MAP: { [key: string]: string } = {
 // ตอนพิมพ์เลขสนามในช่อง input)
 const ROSTER_SYNC_DEBOUNCE_MS = 400;
 
+// รวม array ของแมตช์ที่อัปเดต (จาก "match-updated" / "matches-updated") เข้ากับ
+// state เดิม โดยแทนที่เฉพาะรายการที่ id ตรงกัน — ใช้กับ currentMatches ด้านล่าง
+// ซึ่งหน้านี้ใช้แค่พรีวิว "จะมีคู่เดิมหายไปกี่คู่" ก่อนสร้างตารางใหม่ทับ ไม่ได้ใช้
+// render คะแนนสด จึงไม่จำเป็นต้อง merge ลึกไปกว่านี้ (any[] พอ)
+const mergeMatchesById = (prev: any[], updates: any[]): any[] => {
+  if (!updates || updates.length === 0) return prev;
+  const map = new Map(prev.map((m: any) => [m.id, m]));
+  updates.forEach((m: any) => {
+    if (m && m.id) map.set(m.id, m);
+  });
+  return Array.from(map.values());
+};
+
 // ---- Backup filename parsing helpers ----
 // แปลงชื่อไฟล์ backup ให้อ่านง่าย พร้อมระบุประเภท (Manual / ก่อน Restore อัตโนมัติ)
 function parseBackupLabel(filename: BackupFileName): { typeLabel: string; typeAccent: 'blue' | 'amber'; dateLabel: string } {
@@ -122,8 +135,11 @@ export default function AdminPage() {
   const socketRef = useRef<Socket | null>(null);
   const { logout } = useIsAdmin();
 
-  // ตารางแข่งขัน "ปัจจุบัน" ตามที่ server รายงานล่าสุดผ่าน "data-updated" —
-  // ใช้พรีวิวว่าถ้าสร้างตารางใหม่ตอนนี้ จะมีคู่เดิมคู่ไหนหายไปบ้าง ก่อนกดปุ่มจริง
+  // ตารางแข่งขัน "ปัจจุบัน" ตามที่ server รายงานล่าสุด — ใช้พรีวิวว่าถ้าสร้าง
+  // ตารางใหม่ตอนนี้ จะมีคู่เดิมคู่ไหนหายไปบ้าง ก่อนกดปุ่มจริง
+  // อัปเดตจากทั้ง "data-updated" (ทั้งชุด ตอน connect/import/clear) และ
+  // "match-updated"/"matches-updated" (เฉพาะคู่ที่เปลี่ยน เช่น มีคนกดคะแนนอยู่
+  // ระหว่างที่ admin เปิดหน้านี้ค้างไว้) เพื่อให้พรีวิวไม่ค้างข้อมูลเก่า
   const [currentMatches, setCurrentMatches] = useState<any[]>([]);
 
   // เปิดอยู่เมื่อ server ตอบกลับ "import-would-drop-matches" — แปลว่าตารางใหม่
@@ -170,10 +186,22 @@ export default function AdminPage() {
       setManualCourts(roster.manualCourts || {});
     });
 
-    // ตารางแข่งขันปัจจุบันจาก server (ทั้งตอนเชื่อมต่อครั้งแรก และทุกครั้งที่มี
-    // การเปลี่ยนแปลง) — เก็บไว้ใช้พรีวิวว่าตารางใหม่จะทำให้คู่ไหนหายไปบ้าง
+    // ตารางแข่งขันปัจจุบันแบบเต็มชุดจาก server — เกิดตอนเชื่อมต่อครั้งแรก และ
+    // ตอน import Excel / ล้างข้อมูลทั้งหมด (กรณีที่รูปร่างตารางเปลี่ยนจริงๆ)
     s.on('data-updated', (data: { matches?: any[] }) => {
       if (data && Array.isArray(data.matches)) setCurrentMatches(data.matches);
+    });
+
+    // มีคนกดคะแนน/แก้แมตช์เดียวที่อื่น (เช่นหน้า Score หรือ Matches) ระหว่างที่
+    // admin เปิดหน้านี้ค้างไว้ — merge เข้า currentMatches เพื่อให้พรีวิวจำนวน
+    // คู่ที่จะหายไปยังคงถูกต้อง ไม่ใช้ข้อมูลเก่าค้าง
+    s.on('match-updated', (updatedMatch: any) => {
+      if (!updatedMatch?.id) return;
+      setCurrentMatches(prev => mergeMatchesById(prev, [updatedMatch]));
+    });
+    s.on('matches-updated', (updatedMatches: any[]) => {
+      if (!Array.isArray(updatedMatches) || updatedMatches.length === 0) return;
+      setCurrentMatches(prev => mergeMatchesById(prev, updatedMatches));
     });
 
     // Server ตรวจพบว่าตารางที่กำลังจะบันทึกจะทำให้คู่เดิมบางคู่หายไป และยังไม่

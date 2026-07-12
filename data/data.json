@@ -410,13 +410,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 6,
+        "s1b": 21,
+        "s2a": 10,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 60,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_KKU_KU",
@@ -468,13 +470,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 2,
+        "s2a": 4,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 51,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_A_KKU_PSU",
@@ -12512,5 +12516,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783832382690
+  "lastUpdated": 1783842019370
 }

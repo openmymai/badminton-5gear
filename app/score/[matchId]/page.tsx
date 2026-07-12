@@ -115,8 +115,9 @@ export default function ScorerPage() {
   // versionRef is our local sequence counter. It only ever increases:
   //   - +1 every time WE make a change (tap, undo, finish, bye).
   //   - snapped forward to whatever the server reports, via 'match-data',
-  //     'data-updated' (only if incoming.version >= versionRef.current), or
-  //     'score-ack' (always, since that's the server's own authoritative count).
+  //     'data-updated' / 'match-updated' / 'matches-updated' (only if
+  //     incoming.version >= versionRef.current), or 'score-ack' (always,
+  //     since that's the server's own authoritative count).
   // A server/broadcast update is only allowed to overwrite our local score
   // when its version is >= our current version — this replaces the old
   // "ignore anything within 2s of my last tap" timer with something that
@@ -183,7 +184,8 @@ export default function ScorerPage() {
 
     // Broadcast of the full match list (someone — possibly us, possibly
     // another scorer on the same match, possibly the admin — changed
-    // something). Only accept it if it's not older than what we already have.
+    // something via import-excel). Only accept it if it's not older than
+    // what we already have.
     socketRef.current.on('data-updated', (data: { matches: MatchData[] }) => {
       const currentMatch = data.matches.find(m => m.id === matchId);
       if (!currentMatch) return;
@@ -197,6 +199,35 @@ export default function ScorerPage() {
       // else: this is a stale packet (e.g. it was already in flight when we
       // made a newer local change) — our local optimistic state is newer,
       // so we simply ignore it instead of letting it snap the score backward.
+    });
+
+    // อัปเดตเฉพาะแมตช์เดียว — ยิงมาจาก update-score ของอุปกรณ์อื่นที่คะแนน
+    // แมตช์นี้พร้อมกัน (server.js broadcast เฉพาะแมตช์นี้ ไม่ใช่ทั้งชุด,
+    // และไม่ส่งกลับไปหาผู้ส่งเอง จึงมีผลเฉพาะกับ "อีกเครื่อง" ที่เปิดหน้านี้
+    // ค้างไว้พร้อมกัน) ใช้ version-check เดียวกับ data-updated เพื่อกัน
+    // ไม่ให้ packet เก่ากว่ามา snap คะแนนที่เพิ่งกดในเครื่องนี้ย้อนกลับ
+    socketRef.current.on('match-updated', (updatedMatch: MatchData) => {
+      if (updatedMatch.id !== matchId) return;
+      const incomingVersion = updatedMatch.version ?? 0;
+      if (incomingVersion >= versionRef.current) {
+        versionRef.current = incomingVersion;
+        scoreRef.current = updatedMatch.score;
+        setMatch(updatedMatch);
+      }
+    });
+
+    // อัปเดตหลายแมตช์พร้อมกัน — ยิงมาจาก update-group-court (แอดมินแก้สนาม
+    // ทั้งรุ่น/สาย) หรือ update-player-name (แก้ชื่อนักกีฬาที่กระทบหลายแมตช์
+    // ในรุ่น/สายเดียวกัน) ต้องเช็คว่ามีแมตช์นี้อยู่ในชุดที่ส่งมาหรือไม่ก่อน
+    socketRef.current.on('matches-updated', (updatedMatches: MatchData[]) => {
+      const currentMatch = updatedMatches.find(m => m.id === matchId);
+      if (!currentMatch) return;
+      const incomingVersion = currentMatch.version ?? 0;
+      if (incomingVersion >= versionRef.current) {
+        versionRef.current = incomingVersion;
+        scoreRef.current = currentMatch.score;
+        setMatch(currentMatch);
+      }
     });
 
     // Initial load for this match — always authoritative, always accepted.

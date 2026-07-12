@@ -1,3 +1,5 @@
+// app/live-score/page.tsx
+
 "use client"
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -70,6 +72,19 @@ const categoryOrderIndex = (category: string) => {
   return idx === -1 ? CATEGORY_ORDER.length : idx;
 };
 
+// รวม array ของแมตช์ที่อัปเดตเข้ากับ state เดิม โดย "แทนที่เฉพาะรายการที่ id ตรงกัน"
+// ส่วนแมตช์อื่นที่ไม่เกี่ยวข้องจะไม่ถูกแตะต้องเลย (คง reference เดิมไว้ ไม่ re-render
+// โดยไม่จำเป็น) ถ้ามี id ใหม่ที่ยังไม่เคยเห็น จะถูกเพิ่มต่อท้าย — กรณีนี้แทบไม่เกิดขึ้น
+// เพราะแมตช์ใหม่ทั้งหมดมาจาก import-excel ซึ่งยังคงส่ง "data-updated" (ทั้งชุด) อยู่
+const mergeMatchUpdates = (prev: Match[], updates: Match[]): Match[] => {
+  if (updates.length === 0) return prev;
+  const map = new Map(prev.map(m => [m.id, m]));
+  updates.forEach(m => {
+    if (m && m.id) map.set(m.id, m);
+  });
+  return Array.from(map.values());
+};
+
 type MatchStatusFilter = 'ALL' | 'LIVE' | 'FINISHED';
 
 export default function LiveScorePage() {
@@ -82,9 +97,28 @@ export default function LiveScorePage() {
     const s: Socket = io();
     s.on('connect', () => setConnected(true));
     s.on('disconnect', () => setConnected(false));
+
+    // "data-updated" ตอนนี้ยิงเฉพาะตอน: (1) เพิ่งเชื่อมต่อครั้งแรก และ
+    // (2) มีการ import Excel / ล้างข้อมูลทั้งหมดจากหน้า Admin — ซึ่งเป็นกรณีที่
+    // รูปร่างของตารางทั้งชุดเปลี่ยนจริงๆ จึงจำเป็นต้อง replace ทั้งหมด
     s.on('data-updated', (data) => {
       if (data?.matches && Array.isArray(data.matches)) setMatches(data.matches);
     });
+
+    // "match-updated" — คะแนน/สถานะของแมตช์เดียวเปลี่ยน (เกิดถี่ที่สุด เช่น
+    // ทุกครั้งที่กดคะแนน +1/-1) อัปเดตเฉพาะแมตช์นั้นในตาราง ไม่ต้องรอ/แทนที่ทั้งชุด
+    s.on('match-updated', (updatedMatch: Match) => {
+      if (!updatedMatch?.id) return;
+      setMatches(prev => mergeMatchUpdates(prev, [updatedMatch]));
+    });
+
+    // "matches-updated" — แก้สนามทั้งรุ่น/สาย หรือแก้ชื่อนักกีฬาที่กระทบหลายแมตช์
+    // พร้อมกัน อัปเดตเฉพาะแมตช์ที่อยู่ใน payload
+    s.on('matches-updated', (updatedMatches: Match[]) => {
+      if (!Array.isArray(updatedMatches) || updatedMatches.length === 0) return;
+      setMatches(prev => mergeMatchUpdates(prev, updatedMatches));
+    });
+
     return () => { s.disconnect(); };
   }, []);
 

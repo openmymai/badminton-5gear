@@ -30,6 +30,18 @@ interface Match {
   byeWinner?: 'a' | 'b' | null;
 }
 
+// รวม array ของแมตช์ที่อัปเดตเข้ากับ state เดิม โดยแทนที่เฉพาะรายการที่ id ตรงกัน
+// แมตช์อื่นที่ไม่เกี่ยวข้องคง reference เดิมไว้ — ใช้กับทั้ง "match-updated" (แมตช์
+// เดียว) และ "matches-updated" (หลายแมตช์พร้อมกัน เช่นแก้สนามทั้งรุ่น/สาย)
+const mergeMatchUpdates = (prev: Match[], updates: Match[]): Match[] => {
+  if (updates.length === 0) return prev;
+  const map = new Map(prev.map(m => [m.id, m]));
+  updates.forEach(m => {
+    if (m && m.id) map.set(m.id, m);
+  });
+  return Array.from(map.values());
+};
+
 export default function LiveBoardPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [connected, setConnected] = useState(false);
@@ -41,9 +53,24 @@ export default function LiveBoardPage() {
     socketRef.current = s;
     s.on('connect', () => setConnected(true));
     s.on('disconnect', () => setConnected(false));
+
+    // ทั้งชุด — ตอนเชื่อมต่อครั้งแรก และตอน import Excel / ล้างข้อมูลทั้งหมด
     s.on('data-updated', (data) => {
       if (data?.matches && Array.isArray(data.matches)) setMatches(data.matches);
     });
+
+    // คะแนน/สถานะของแมตช์เดียวเปลี่ยน (เกิดถี่ที่สุด) — merge เฉพาะแมตช์นั้น
+    s.on('match-updated', (updatedMatch: Match) => {
+      if (!updatedMatch?.id) return;
+      setMatches(prev => mergeMatchUpdates(prev, [updatedMatch]));
+    });
+
+    // แก้สนามทั้งรุ่น/สาย หรือแก้ชื่อนักกีฬาที่กระทบหลายแมตช์พร้อมกัน
+    s.on('matches-updated', (updatedMatches: Match[]) => {
+      if (!Array.isArray(updatedMatches) || updatedMatches.length === 0) return;
+      setMatches(prev => mergeMatchUpdates(prev, updatedMatches));
+    });
+
     return () => { s.disconnect(); };
   }, []);
 
