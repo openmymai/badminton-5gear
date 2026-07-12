@@ -28,6 +28,12 @@ interface Match {
   // appear as the "current" match on this board.
   isBye?: boolean;
   byeWinner?: 'a' | 'b' | null;
+  // ลำดับคิวภายในสนามนี้ ตามที่หน้า Admin จัดไว้ด้วย scheduleAvoidingBackToBack
+  // (ให้แต่ละทีมได้พักระหว่างคู่มากที่สุด) — ใช้ sort คิวในหน้านี้แทนการพึ่งลำดับ
+  // array ที่ได้รับผ่าน socket ตรงๆ ซึ่งอาจถูกต่อท้ายผิดลำดับตอน merge event
+  // "match-updated"/"matches-updated" เข้ามาทีหลัง แมตช์เก่าที่ยังไม่มีค่านี้
+  // (สร้างก่อนมีการเปลี่ยนแปลงนี้) จะ fallback เป็น 0 ในตอนคำนวณ
+  order?: number;
 }
 
 // รวม array ของแมตช์ที่อัปเดตเข้ากับ state เดิม โดยแทนที่เฉพาะรายการที่ id ตรงกัน
@@ -81,8 +87,19 @@ export default function LiveBoardPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Group non-finished matches by their court. Courts with everything finished
-  // (or no matches at all) simply don't appear — nothing left to watch there.
+  // Group non-finished matches by their court, then sort each court's list by the
+  // `order` field the Admin page attaches when it builds the rest-friendly
+  // schedule (scheduleAvoidingBackToBack). Without this, "current" (matches[0]
+  // per court) and the queue below it just reflected whatever order the matches
+  // happened to sit in the `matches` state array — which drifts from the intended
+  // schedule as soon as a match-updated/matches-updated event appends a
+  // previously-unseen match to the end instead of inserting it at its real queue
+  // position. That's what caused same-institution matches to line up back-to-back
+  // here even though Admin had spaced them out. Matches created before this field
+  // existed fall back to order 0, so they keep behaving as before (stable sort).
+  //
+  // Courts with everything finished (or no matches at all) simply don't appear —
+  // nothing left to watch there.
   const courtGroups = useMemo(() => {
     const map = new Map<string, Match[]>();
     matches.forEach(m => {
@@ -92,7 +109,10 @@ export default function LiveBoardPage() {
       map.set(m.court, list);
     });
     return Array.from(map.entries())
-      .map(([court, ms]) => ({ court, matches: ms }))
+      .map(([court, ms]) => ({
+        court,
+        matches: [...ms].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      }))
       .sort((a, b) => {
         const na = Number(a.court);
         const nb = Number(b.court);
@@ -105,7 +125,7 @@ export default function LiveBoardPage() {
 
   return (
     <main className="min-h-screen bg-[#05070d] text-white font-sans p-4 sm:p-6">
-      <div className="max-w-[1920px] mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
         <header className="bg-white/[0.03] backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/10 shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -169,17 +189,9 @@ export default function LiveBoardPage() {
           </div>
         </header>
 
-        {/* Court grid — fluid auto-fit columns, NOT a fixed column-count breakpoint.
-            The key change from before: the minimum card width itself grows at wider
-            breakpoints (300px -> 360px -> 420px -> 480px) instead of staying pinned
-            at 320px forever. On a narrow screen that still packs courts in tightly;
-            on a wide desktop or a TV plugged in over HDMI, the SAME auto-fit rule
-            naturally settles on fewer, much larger columns that stretch to fill the
-            full width — never a hardcoded "3 columns", just "as many columns as fit
-            at this minimum size, and stretch them to fill whatever's left over".
-            `auto-rows-fr` + each card using `h-full flex flex-col` also makes every
-            card in a row match height, so a court with a long queue list doesn't
-            leave its neighbors looking short and unfilled. */}
+        {/* Court grid — fluid auto-fit columns instead of a fixed 1/2/3-column breakpoint
+            cap, so cards stretch to fill the full width available at any screen size
+            (a wide monitor can show more than 3 across, a tablet gets exactly what fits). */}
         {courtGroups.length === 0 ? (
           <div className="h-[420px] flex flex-col items-center justify-center text-slate-700 bg-white/[0.02] rounded-3xl border border-white/10">
             <GiShuttlecock size={64} className="mb-4 opacity-30" />
@@ -187,13 +199,7 @@ export default function LiveBoardPage() {
             <p className="text-[11px] text-slate-700 mt-1">รอตารางแข่งขันหรือคู่แข่งขันถัดไป</p>
           </div>
         ) : (
-          <div
-            className="grid auto-rows-fr gap-4 sm:gap-5 xl:gap-6 2xl:gap-8
-                       grid-cols-[repeat(auto-fit,minmax(300px,1fr))]
-                       md:grid-cols-[repeat(auto-fit,minmax(340px,1fr))]
-                       xl:grid-cols-[repeat(auto-fit,minmax(400px,1fr))]
-                       2xl:grid-cols-[repeat(auto-fit,minmax(480px,1fr))]"
-          >
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 sm:gap-5">
             <AnimatePresence mode="popLayout">
               {courtGroups.map(group => {
                 const [current, ...queued] = group.matches;
@@ -206,48 +212,45 @@ export default function LiveBoardPage() {
                     initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.97 }}
-                    className="h-full flex flex-col bg-white/[0.03] rounded-3xl border border-amber-500/20 shadow-xl overflow-hidden"
+                    className="bg-white/[0.03] rounded-3xl border border-amber-500/20 shadow-xl overflow-hidden"
                   >
                     {/* Court header */}
-                    <div className="flex items-center justify-between px-5 xl:px-7 py-4 xl:py-5 border-b border-white/5">
-                      <div className="flex items-center gap-3 xl:gap-4">
-                        <span className="w-11 h-11 xl:w-14 xl:h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-lg xl:text-2xl flex items-center justify-center tabular-nums">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+                      <div className="flex items-center gap-3">
+                        <span className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-lg flex items-center justify-center tabular-nums">
                           {group.court}
                         </span>
                         <div className="leading-tight">
-                          <p className="text-[8px] xl:text-[10px] font-black uppercase tracking-[2px] text-slate-600 flex items-center gap-1">
+                          <p className="text-[8px] font-black uppercase tracking-[2px] text-slate-600 flex items-center gap-1">
                             <FaMapMarkerAlt size={8} /> Court
                           </p>
-                          <p className="text-xs xl:text-base font-bold text-slate-400">สนามที่ {group.court}</p>
+                          <p className="text-xs font-bold text-slate-400">สนามที่ {group.court}</p>
                         </div>
                       </div>
-                      <span className="flex items-center gap-1.5 px-2.5 xl:px-3.5 py-1 xl:py-1.5 bg-amber-400/10 border border-amber-400/30 rounded-full">
-                        <span className="w-1.5 h-1.5 xl:w-2 xl:h-2 rounded-full bg-amber-400 animate-pulse" />
-                        <span className="text-[9px] xl:text-[11px] font-black text-amber-400 uppercase tracking-widest">Live</span>
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-400/10 border border-amber-400/30 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Live</span>
                       </span>
                     </div>
 
-                    {/* Current match — flex-1 so this section stretches to absorb
-                        any extra vertical space from auto-rows-fr, keeping the
-                        score block vertically centered instead of top-pinned when
-                        a neighboring court has a longer queue. */}
-                    <div className="flex-1 flex flex-col justify-center px-5 xl:px-7 py-5 xl:py-7">
-                      <p className="text-[9px] xl:text-xs font-black uppercase tracking-widest text-blue-400/80 mb-3 xl:mb-5">
+                    {/* Current match */}
+                    <div className="px-5 py-5">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-blue-400/80 mb-3">
                         รุ่น {current.category} · สาย {current.group}
                       </p>
 
-                      <div className="flex items-center justify-between gap-3 xl:gap-6">
+                      <div className="flex items-center justify-between gap-3">
                         <TeamBlock team={current.teamA} align="right" color="text-blue-400" />
 
-                        <div className="shrink-0 bg-black/40 border border-white/10 rounded-2xl px-4 xl:px-6 py-2 xl:py-4 flex flex-col items-center">
-                          <div className="flex items-center gap-2 xl:gap-3 text-3xl xl:text-5xl 2xl:text-6xl font-black tabular-nums leading-none">
+                        <div className="shrink-0 bg-black/40 border border-white/10 rounded-2xl px-4 py-2 flex flex-col items-center">
+                          <div className="flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
                             <span className={setsA >= setsB ? 'text-blue-400' : 'text-slate-600'}>{setsA}</span>
-                            <span className="text-slate-700 text-lg xl:text-3xl">–</span>
+                            <span className="text-slate-700 text-lg">–</span>
                             <span className={setsB >= setsA ? 'text-red-400' : 'text-slate-600'}>{setsB}</span>
                           </div>
-                          <div className="mt-1 xl:mt-2 flex items-center gap-1.5 xl:gap-2.5 text-[9px] xl:text-xs font-bold tabular-nums text-slate-600">
+                          <div className="mt-1 flex items-center gap-1.5 text-[9px] font-bold tabular-nums text-slate-600">
                             <span>{current.score.s1a}-{current.score.s1b}</span>
-                            <span className="w-px h-2.5 xl:h-3.5 bg-white/10" />
+                            <span className="w-px h-2.5 bg-white/10" />
                             <span>{current.score.s2a}-{current.score.s2b}</span>
                           </div>
                         </div>
@@ -258,11 +261,11 @@ export default function LiveBoardPage() {
 
                     {/* Queue for this court */}
                     {queued.length > 0 && (
-                      <div className="px-5 xl:px-7 py-3 xl:py-4 border-t border-white/5 bg-black/20">
-                        <p className="text-[8px] xl:text-[10px] font-black uppercase tracking-widest text-slate-600 mb-2 xl:mb-3">คิวถัดไป ({queued.length})</p>
-                        <div className="space-y-1.5 xl:space-y-2">
+                      <div className="px-5 py-3 border-t border-white/5 bg-black/20">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-600 mb-2">คิวถัดไป ({queued.length})</p>
+                        <div className="space-y-1.5">
                           {queued.map(m => (
-                            <div key={m.id} className="flex items-center justify-between text-[10px] xl:text-xs font-bold text-slate-500">
+                            <div key={m.id} className="flex items-center justify-between text-[10px] font-bold text-slate-500">
                               <span className="truncate">{m.teamA.university} <span className="text-slate-700">vs</span> {m.teamB.university}</span>
                               <span className="text-slate-700 shrink-0 ml-2">รุ่น {m.category} · สาย {m.group}</span>
                             </div>
@@ -293,10 +296,7 @@ export default function LiveBoardPage() {
 // labeled) — matches the same "show every substitute" behavior as the Matches page,
 // instead of silently dropping every substitute after the first one. Names wrap onto
 // extra lines instead of being clipped, so the full name is always visible to
-// spectators — no inputs here, this page is for spectators, not editing. Font sizes
-// and the max-width cap on the name block scale up at xl/2xl so text stays legible
-// from across a room on a TV instead of looking tiny inside an otherwise much
-// bigger card.
+// spectators — no inputs here, this page is for spectators, not editing.
 function TeamBlock({ team, align, color }: { team: Team; align: 'left' | 'right'; color: string }) {
   const starters = team.players.filter(p => p.role === 'starter');
   const substitutes = team.players.filter(p => p.role === 'substitute');
@@ -304,16 +304,16 @@ function TeamBlock({ team, align, color }: { team: Team; align: 'left' | 'right'
 
   return (
     <div className={`flex-1 min-w-0 flex flex-col ${alignItems}`}>
-      <h3 className={`text-2xl sm:text-3xl xl:text-5xl 2xl:text-6xl font-black uppercase tracking-tight leading-none truncate max-w-full ${color}`}>
+      <h3 className={`text-2xl sm:text-3xl font-black uppercase tracking-tight leading-none truncate max-w-full ${color}`}>
         {team.university}
       </h3>
       {starters.length > 0 && (
-        <p className="mt-1 xl:mt-3 text-[10px] xl:text-sm font-bold text-slate-400 leading-snug break-words max-w-[10rem] xl:max-w-[16rem]">
+        <p className="mt-1 text-[10px] font-bold text-slate-400 leading-snug break-words max-w-[10rem]">
           {starters.map(p => p.name).join(' · ')}
         </p>
       )}
       {substitutes.length > 0 && (
-        <p className="mt-0.5 xl:mt-1.5 text-[9px] xl:text-xs italic text-slate-600 leading-snug break-words max-w-[10rem] xl:max-w-[16rem]">
+        <p className="mt-0.5 text-[9px] italic text-slate-600 leading-snug break-words max-w-[10rem]">
           สำรอง: {substitutes.map(p => p.name).join(' · ')}
         </p>
       )}

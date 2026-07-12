@@ -79,6 +79,49 @@ const CATEGORY_SLUG_MAP: { [key: string]: string } = {
 // ตอนพิมพ์เลขสนามในช่อง input)
 const ROSTER_SYNC_DEBOUNCE_MS = 400;
 
+// ลำดับการแสดงผลรุ่น/สาย ที่ admin ต้องการเวลาตรวจสอบรายชื่อ — ไม่ใช่ลำดับการแข่ง
+// (อันนั้นคุมด้วย `categories` ที่ลาก reorder ได้ในหน้านี้) แต่เป็นลำดับคงที่สำหรับ
+// "กรอง/เรียงดู" รายชื่อนักกีฬาให้หาเจอง่าย โดยเรียงเป็น key `category|group`
+//
+// หมายเหตุสำคัญ: processData() ด้านล่างจะข้ามแถวที่คอลัมน์ Group ว่างเปล่าไปเลย
+// (ดูเงื่อนไข `!grp` ในฟังก์ชันนั้น) ดังนั้นรุ่นที่ไม่มีสาย A/B แยก (กิตติมศักดิ์,
+// 130, หญิงคู่ทั่วไป, อาวุโสหญิง 70+) จึงต้องมีค่าในคอลัมน์ Group ของ Excel ด้วย
+// เสมอ — ที่นี่สมมติว่าใช้เครื่องหมาย "-" เป็นค่า placeholder ถ้าไฟล์ Excel จริง
+// ใช้ค่าอื่น (เช่น "A" เดี่ยวๆ หรือคำว่า "รวม") ให้แก้ไข '-' ด้านล่างให้ตรงกับที่ใช้จริง
+const CATEGORY_GROUP_ORDER: string[] = [
+  'กิตติมศักดิ์|-', 'ทั่วไป|A', 'ทั่วไป|B',
+  '70|A', '70|B', '80|A', '80|B', '90|A', '90|B',
+  '100|A', '100|B', '110|A', '110|B', '120|A', '120|B',
+  '130|-', 'หญิงคู่ทั่วไป|-', 'อาวุโสหญิง 70+|-'
+];
+
+// คืนลำดับ (rank) ของ entry ตาม CATEGORY_GROUP_ORDER ด้านบน — รุ่น/สายที่ไม่ตรง
+// กับลิสต์ที่กำหนดไว้เลย (เช่น สาย C หรือรุ่นที่เพิ่งเพิ่มใหม่ยังไม่ได้ใส่ในลิสต์)
+// จะได้ rank ท้ายสุดเสมอ (Infinity) เพื่อไม่ให้หายไปจากลิสต์ แค่ไปต่อท้าย
+function getCategoryGroupRank(category: string, group: string): number {
+  const exactIdx = CATEGORY_GROUP_ORDER.indexOf(`${category}|${group}`);
+  if (exactIdx !== -1) return exactIdx;
+  // รุ่นเดียวกันแต่สายไม่ตรง (เช่นมีสาย C เพิ่มมาโดยไม่ได้อยู่ในลิสต์) — จัดให้อยู่
+  // ถัดจากสายสุดท้ายที่รู้จักของรุ่นนั้น แทนที่จะกระโดดไปท้ายสุดทั้งลิสต์
+  const catIdx = CATEGORY_GROUP_ORDER.findIndex(k => k.startsWith(`${category}|`));
+  if (catIdx !== -1) {
+    let lastIdx = catIdx;
+    for (let i = catIdx; i < CATEGORY_GROUP_ORDER.length; i++) {
+      if (CATEGORY_GROUP_ORDER[i].startsWith(`${category}|`)) lastIdx = i; else break;
+    }
+    return lastIdx + 0.5;
+  }
+  return Infinity;
+}
+
+// ระยะพักขั้นต่ำ (นับเป็นจำนวน "คู่" ที่ต้องคั่นในสนามเดียวกัน) ก่อนที่ทีมใดทีมหนึ่ง
+// จะถูกจัดให้ลงเล่นอีกครั้ง — ตั้งไว้ที่ 1 หมายถึง "ต้องมีอีกอย่างน้อย 1 คู่คั่นก่อน"
+// ไม่ใช่แค่ห้ามลงเล่นติดกันทันที เพื่อความปลอดภัยของนักกีฬา (งานนี้เน้นกระชับมิตร
+// ไม่ใช่แข่งเอาเป็นเอาตาย) ถ้าอยากให้พักยาวกว่านี้ ปรับตัวเลขนี้เพิ่มได้
+// หมายเหตุ: สายที่มีทีมน้อย (3 ทีม) จะพักครบตามนี้ไม่ได้เสมอไปตามหลักคณิตศาสตร์ของ
+// round-robin — อัลกอริทึมจะ fallback ไปเลือกคู่ที่ทำให้พักได้มากที่สุดเท่าที่เป็นไปได้แทน
+const MIN_REST_GAP = 1;
+
 // รวม array ของแมตช์ที่อัปเดต (จาก "match-updated" / "matches-updated") เข้ากับ
 // state เดิม โดยแทนที่เฉพาะรายการที่ id ตรงกัน — ใช้กับ currentMatches ด้านล่าง
 // ซึ่งหน้านี้ใช้แค่พรีวิว "จะมีคู่เดิมหายไปกี่คู่" ก่อนสร้างตารางใหม่ทับ ไม่ได้ใช้
@@ -91,6 +134,52 @@ const mergeMatchesById = (prev: any[], updates: any[]): any[] => {
   });
   return Array.from(map.values());
 };
+
+// จัดลำดับคู่แข่งขัน "ภายในสนามเดียวกัน" (court เดียวใช้ทั้งรุ่น/สาย) ใหม่ ให้แต่ละ
+// ทีม (ตัวแทนสถาบัน) ได้พักระหว่างคู่ของตัวเองให้มากที่สุดเท่าที่เป็นไปได้ ไม่ต้องถูก
+// เรียกลงเล่นถี่เกินไป — เพื่อความปลอดภัยของนักกีฬา ไม่ใช่เพื่อความได้เปรียบเสียเปรียบ
+// ในการแข่งขัน (งานนี้เป็นกระชับมิตร ไม่มีเงินรางวัล)
+//
+// วิธีเดิม (loop i,j ตรงๆ ตามลำดับตัวอักษรมหาลัย) ทำให้ทีมแรกในลิสต์โดนเรียกลงเล่น
+// ทุกคู่ของตัวเองก่อนใครเพื่อนเลย ไม่แฟร์เรื่องการพัก — ฟังก์ชันนี้จัดใหม่แบบ greedy:
+// ทุกก้าวเลือกคู่ที่ทำให้ทั้งสองทีมได้พักครบตาม MIN_REST_GAP ก่อนเสมอถ้าเลือกได้
+// (ให้คะแนนก้อนใหญ่ตัดหน้า) แล้วในกลุ่มที่เลือกได้ ให้ priority กับทีมที่ "รอมานาน
+// ที่สุด" (ยังไม่ได้ลงเล่นนานสุด) เพื่อกระจายจำนวนรอบพักให้เท่ากันทุกทีม
+//
+// ข้อจำกัดทางคณิตศาสตร์: ถ้าสายมี 3 ทีม (round-robin มี 3 คู่ ทุกทีมเล่น 2 ใน 3 คู่)
+// จะพิสูจน์ได้ว่ามีอย่างน้อย 1 ทีมที่ต้องเล่นติดกันเสมอ ไม่ใช่ bug ของอัลกอริทึม แต่
+// เป็นข้อจำกัดของ round-robin บนสนามเดียวเมื่อทีมน้อย — กรณีนี้ยอมรับสภาพ ให้ทีมที่
+// เกี่ยวข้องดูแลจัดสรรพักกันเอง
+function scheduleAvoidingBackToBack<T extends { teamA: TeamEntry; teamB: TeamEntry }>(matches: T[]): T[] {
+  const remaining = [...matches];
+  const schedule: T[] = [];
+  const lastPlayedAt: Record<string, number> = {}; // university -> index ล่าสุดที่ลงเล่นใน schedule นี้
+
+  while (remaining.length > 0) {
+    let bestIdx = 0;
+    let bestScore = -Infinity;
+
+    remaining.forEach((m, i) => {
+      const teams = [m.teamA.university, m.teamB.university];
+      // ระยะห่างจากคู่ล่าสุดที่แต่ละทีมเคยลงเล่น (ยังไม่เคยเล่นเลย = ห่างเต็มที่)
+      const gaps = teams.map(t => (lastPlayedAt[t] === undefined ? Infinity : schedule.length - lastPlayedAt[t]));
+      const minGap = Math.min(...gaps);
+      const satisfiesRest = minGap > MIN_REST_GAP; // พักครบตามที่กำหนดหรือยัง
+      const waited = Math.min(...gaps.map(g => (g === Infinity ? schedule.length : g)));
+      // พักครบ > ยังไม่ครบแต่พักได้มากกว่า (กันชนกรณีสาย 3-4 ทีมที่พักครบเป๊ะไม่ได้จริง)
+      const score = (satisfiesRest ? 100000 : 0) + waited;
+      if (score > bestScore) { bestScore = score; bestIdx = i; }
+    });
+
+    const [chosen] = remaining.splice(bestIdx, 1);
+    schedule.push(chosen);
+    const idx = schedule.length - 1;
+    lastPlayedAt[chosen.teamA.university] = idx;
+    lastPlayedAt[chosen.teamB.university] = idx;
+  }
+
+  return schedule;
+}
 
 // ---- Backup filename parsing helpers ----
 // แปลงชื่อไฟล์ backup ให้อ่านง่าย พร้อมระบุประเภท (Manual / ก่อน Restore อัตโนมัติ)
@@ -468,6 +557,18 @@ export default function AdminPage() {
   // แต่ละคู่คงที่ ไม่ขึ้นกับลำดับที่ทีมถูก insert เข้ามาใน roster — กันปัญหา id
   // เปลี่ยนไปมาเวลาลำดับแถวใน Excel เปลี่ยน ซึ่งจะทำให้คู่เดิม (พร้อมผลที่บันทึก
   // ไว้แล้ว) ดูเหมือนหายไปทั้งที่จริงๆ เป็นทีมชุดเดิม
+  //
+  // หลังสร้างคู่ทั้งหมดของแต่ละ combo (id คำนวณคงที่เหมือนเดิมทุกประการ) จะจัด
+  // ลำดับการลงเล่นใหม่ผ่าน scheduleAvoidingBackToBack เพื่อให้แต่ละทีมได้พัก
+  // ระหว่างคู่มากที่สุดเท่าที่เป็นไปได้ — ไม่กระทบ id เลย จึง preview "คู่เดิมจะ
+  // หายไป" ยังทำงานถูกต้องเหมือนเดิมทุกกรณี
+  //
+  // "order" ถูกติดไปกับแต่ละแมตช์ตรงๆ (ลำดับคิวภายในสนามนี้ 0,1,2,...) เพื่อให้
+  // ทุกหน้าที่ต้องคำนวณ "คู่ไหนต้องเล่นก่อน/รอคิว" (Matches, Live) sort ตามค่านี้
+  // ได้เสมอ แทนที่จะพึ่งลำดับ array ที่ได้รับผ่าน socket ซึ่งอาจถูกต่อท้ายผิดลำดับ
+  // ตอน merge match-updated/matches-updated เข้ามาทีหลัง (เช่นกรรมการกดคะแนน
+  // ระหว่างที่หน้าอื่นเปิดค้างไว้) — มี field นี้ติดตัวแมตช์แล้ว ไม่ว่าจะ merge
+  // ยังไงก็เรียงกลับมาถูกต้องเสมอ
   const buildAllMatches = useCallback(() => {
     const allMatches: any[] = [];
     courtCombos.forEach(combo => {
@@ -478,9 +579,10 @@ export default function AdminPage() {
       const catIndex = categories.indexOf(combo.category);
       const catSlug = CATEGORY_SLUG_MAP[combo.category] || `cat${catIndex >= 0 ? catIndex : 0}`;
 
+      const comboMatches: any[] = [];
       for (let i = 0; i < teams.length; i++) {
         for (let j = i + 1; j < teams.length; j++) {
-          allMatches.push({
+          comboMatches.push({
             id: `M_${catSlug}_${combo.group}_${teams[i].university}_${teams[j].university}`,
             category: combo.category,
             group: combo.group,
@@ -492,6 +594,15 @@ export default function AdminPage() {
           });
         }
       }
+
+      // จัดลำดับคู่ภายในสนามนี้ใหม่ ให้แต่ละทีมได้พักระหว่างคู่มากที่สุดเท่าที่ทำได้
+      const scheduledCombo = scheduleAvoidingBackToBack(comboMatches);
+      // ติด "order" (ลำดับคิวภายในสนามนี้) ไปกับแมตช์แต่ละคู่ตรงๆ เพื่อให้หน้าอื่นๆ
+      // sort คิวตามลำดับที่พักสลับกันแล้วนี้ได้เสมอ ไม่ต้องพึ่งลำดับ array ที่ได้รับ
+      // ผ่าน socket (ซึ่งอาจถูกต่อท้ายผิดลำดับตอน merge match-updated/matches-updated
+      // เข้ามา)
+      scheduledCombo.forEach((m, idx) => { m.order = idx; });
+      allMatches.push(...scheduledCombo);
     });
     return allMatches;
   }, [courtCombos, entries, categories]);
@@ -557,6 +668,79 @@ export default function AdminPage() {
 
   const teamCount = entries.length;
   const playerCount = entries.reduce((sum, e) => sum + e.players.length, 0);
+
+  // --- Roster filter/sort for the checking view (right panel) ---
+  // ใช้ CATEGORY_GROUP_ORDER คงที่ด้านบน ไม่เกี่ยวกับลำดับการแข่ง (categories ที่
+  // ลาก reorder ได้) — อันนี้มีไว้เพื่อให้ admin ไล่ตรวจรายชื่อนักกีฬาได้ง่ายเป็น
+  // ระเบียบเดียวกันทุกครั้ง ไม่ว่าจะ import Excel มาลำดับไหนก็ตาม
+  const [rosterFilter, setRosterFilter] = useState<string>('all');
+
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort((a, b) => {
+      const rankA = getCategoryGroupRank(a.category, a.group);
+      const rankB = getCategoryGroupRank(b.category, b.group);
+      if (rankA !== rankB) return rankA - rankB;
+      return a.university.localeCompare(b.university);
+    });
+  }, [entries]);
+
+  // ตัวเลือกใน dropdown filter — เอาเฉพาะรุ่น/สายที่มีข้อมูลจริงอยู่ในระบบ เรียงตาม
+  // ลำดับคงที่เดียวกัน ไม่โชว์ตัวเลือกที่ยังไม่มีทีมนำเข้ามาให้สับสน
+  const rosterFilterOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const opts: { key: string; label: string }[] = [];
+    sortedEntries.forEach(e => {
+      const key = `${e.category}|${e.group}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      opts.push({ key, label: (e.group && e.group !== '-') ? `รุ่น ${e.category} สาย ${e.group}` : `รุ่น ${e.category}` });
+    });
+    return opts;
+  }, [sortedEntries]);
+
+  const displayedEntries = useMemo(() => {
+    if (rosterFilter === 'all') return sortedEntries;
+    return sortedEntries.filter(e => `${e.category}|${e.group}` === rosterFilter);
+  }, [sortedEntries, rosterFilter]);
+
+  // เคลียร์ filter อัตโนมัติถ้ารุ่น/สายที่เลือกไว้ไม่มีข้อมูลเหลืออยู่แล้ว (เช่นลบทีม
+  // สุดท้ายของสายนั้นออกไป) กันหน้าจอค้างว่างเปล่าโดยไม่รู้สาเหตุ
+  useEffect(() => {
+    if (rosterFilter === 'all') return;
+    if (!rosterFilterOptions.some(o => o.key === rosterFilter)) setRosterFilter('all');
+  }, [rosterFilterOptions, rosterFilter]);
+
+  // ลบทีม/นักกีฬาต้องอ้างอิงด้วย "ตัวตนของ entry" (university+category+group) แทน
+  // index เดิม เพราะ displayedEntries ผ่านการ sort/filter แล้ว ลำดับไม่ตรงกับ
+  // entries ต้นฉบับอีกต่อไป — ใช้ฟังก์ชันนี้แทน index ทุกจุดในส่วน roster ด้านล่าง
+  const removeTeam = (entry: TeamEntry) => {
+    setEntries(prev => prev.filter(e => !(e.university === entry.university && e.category === entry.category && e.group === entry.group)));
+  };
+  const removePlayer = (entry: TeamEntry, playerId: string) => {
+    setEntries(prev => prev.map(e => {
+      if (e.university === entry.university && e.category === entry.category && e.group === entry.group) {
+        return { ...e, players: e.players.filter(p => p.id !== playerId) };
+      }
+      return e;
+    }));
+  };
+
+  // แก้ไขชื่อผู้เล่นจากหน้า Admin — ยิง event เดียวกับหน้า Matches ("update-player-name")
+  // เพื่อให้ server อัปเดตทั้ง roster (ส่งกลับมาที่หน้านี้ผ่าน "roster-updated") และ
+  // matches ที่มีผู้เล่นคนนี้อยู่ (ถ้าสร้างตารางแข่งไปแล้ว) ให้ตรงกันโดยอัตโนมัติ
+  // ไม่ setEntries เองที่นี่ เพราะ server จะ broadcast "roster-updated" กลับมา
+  // ทำให้ state ของทุกหน้า (รวมถึงหน้านี้เอง) sync กันโดยไม่ต้อง handle เองซ้ำซ้อน
+  const handlePlayerNameUpdate = (entry: TeamEntry, playerId: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    socketRef.current?.emit('update-player-name', {
+      university: entry.university,
+      category: entry.category,
+      group: entry.group,
+      playerId,
+      newName: trimmed
+    });
+  };
 
   return (
     <main className="min-h-screen bg-[#05070d] text-white font-sans p-6">
@@ -963,13 +1147,31 @@ export default function AdminPage() {
           {/* RIGHT: Roster */}
           <div className="lg:col-span-8">
             <section className="bg-white/[0.03] backdrop-blur-xl p-7 rounded-3xl border border-white/10 shadow-xl min-h-[600px]">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
                 <h2 className="text-lg font-black uppercase tracking-tight flex items-center gap-3">
                   <span className="w-1.5 h-6 bg-blue-500 rounded-full" /> รายชื่อนักกีฬาที่นำเข้า
                 </h2>
-                {entries.length > 0 && (
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{teamCount} ทีม · {playerCount} คน</span>
-                )}
+                <div className="flex items-center gap-3">
+                  {entries.length > 0 && (
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">
+                      {displayedEntries.length === teamCount ? `${teamCount} ทีม · ${playerCount} คน` : `${displayedEntries.length}/${teamCount} ทีม`}
+                    </span>
+                  )}
+                  {/* Filter — เรียงตามลำดับคงที่ กิตติมศักดิ์ / ทั่วไป A-B / 70-130 / หญิงคู่ทั่วไป /
+                      อาวุโสหญิง 70+ เพื่อให้ admin ไล่ตรวจรายชื่อทีละรุ่นได้สะดวก */}
+                  {rosterFilterOptions.length > 0 && (
+                    <select
+                      value={rosterFilter}
+                      onChange={(e) => setRosterFilter(e.target.value)}
+                      className="bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-blue-500/40"
+                    >
+                      <option value="all">ทุกรุ่น/สาย</option>
+                      {rosterFilterOptions.map(o => (
+                        <option key={o.key} value={o.key}>{o.label}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
 
               {entries.length === 0 ? (
@@ -978,19 +1180,26 @@ export default function AdminPage() {
                   <p className="font-bold uppercase tracking-widest text-sm text-slate-600">รอไฟล์ Excel</p>
                   <p className="text-[11px] text-slate-700 mt-1">นำเข้าไฟล์รายชื่อนักกีฬาเพื่อเริ่มต้น</p>
                 </div>
+              ) : displayedEntries.length === 0 ? (
+                <div className="h-[480px] flex flex-col items-center justify-center text-slate-700">
+                  <FaUsers size={64} className="mb-4 opacity-30" />
+                  <p className="font-bold uppercase tracking-widest text-sm text-slate-600">ไม่พบทีมในรุ่น/สายนี้</p>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {entries.map((entry, eIdx) => (
+                  {displayedEntries.map((entry) => (
                     <div key={`${entry.university}-${entry.category}-${entry.group}`} className="bg-black/30 rounded-2xl border border-white/5 overflow-hidden group hover:border-blue-500/30 transition-all">
                       <div className="bg-white/[0.03] px-4 py-3 flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           <span className="bg-blue-600/90 text-white font-black px-2.5 py-1 rounded-lg text-xs">{entry.university}</span>
                           <div className="leading-tight">
                             <p className="text-xs font-bold">รุ่น {entry.category}</p>
-                            <p className="text-[9px] text-amber-500 font-bold uppercase mt-0.5">สาย {entry.group}</p>
+                            {entry.group && entry.group !== '-' && (
+                              <p className="text-[9px] text-amber-500 font-bold uppercase mt-0.5">สาย {entry.group}</p>
+                            )}
                           </div>
                         </div>
-                        <button onClick={() => setEntries(entries.filter((_, i) => i !== eIdx))} className="text-slate-600 hover:text-red-500 transition-colors p-1">
+                        <button onClick={() => removeTeam(entry)} className="text-slate-600 hover:text-red-500 transition-colors p-1">
                           <FaTrash size={12} />
                         </button>
                       </div>
@@ -1000,15 +1209,17 @@ export default function AdminPage() {
                         )}
                         {entry.players.map(p => (
                           <div key={p.id} className="flex justify-between items-center bg-white/[0.02] px-3 py-1.5 rounded-lg border border-white/5 group/p">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-1.5 h-1.5 rounded-full ${p.role === 'starter' ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-orange-500'}`} />
-                              <span className="text-[11px] font-bold text-slate-300">{p.name}</span>
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.role === 'starter' ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-orange-500'}`} />
+                              <input
+                                key={`${p.id}-${p.name}`}
+                                type="text"
+                                defaultValue={p.name}
+                                onBlur={(e) => handlePlayerNameUpdate(entry, p.id, e.target.value)}
+                                className="bg-transparent text-[11px] font-bold text-slate-300 focus:outline-none border-b border-transparent hover:border-white/20 focus:border-blue-400 transition-all min-w-0 w-full"
+                              />
                             </div>
-                            <button onClick={() => {
-                              const up = [...entries];
-                              up[eIdx] = { ...up[eIdx], players: up[eIdx].players.filter(pl => pl.id !== p.id) };
-                              setEntries(up);
-                            }} className="opacity-0 group-hover/p:opacity-100 text-slate-500 hover:text-red-500 transition-all">
+                            <button onClick={() => removePlayer(entry, p.id)} className="opacity-0 group-hover/p:opacity-100 text-slate-500 hover:text-red-500 transition-all shrink-0 ml-2">
                               <FaTrash size={9} />
                             </button>
                           </div>

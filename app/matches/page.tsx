@@ -1,3 +1,5 @@
+// app/matches/page.tsx
+
 "use client"
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -39,6 +41,12 @@ interface Match {
   isFinished: boolean;
   isBye?: boolean;
   byeWinner?: 'a' | 'b' | null;
+  // ลำดับคิวภายในสนามนี้ ตามที่หน้า Admin จัดไว้ด้วย scheduleAvoidingBackToBack
+  // (ให้แต่ละทีมได้พักระหว่างคู่มากที่สุด) — ใช้ sort คิวในหน้านี้แทนการพึ่งลำดับ
+  // array ที่ได้รับผ่าน socket ตรงๆ ซึ่งอาจถูกต่อท้ายผิดลำดับตอน merge event
+  // "match-updated"/"matches-updated" เข้ามาทีหลัง แมตช์เก่าที่ยังไม่มีค่านี้
+  // (สร้างก่อนมีการเปลี่ยนแปลงนี้) จะ fallback เป็น 0 ในตอนคำนวณ
+  order?: number;
 }
 
 interface TeamPlayersProps {
@@ -76,6 +84,25 @@ const mergeMatchUpdates = (prev: Match[], updates: Match[]): Match[] => {
     if (m && m.id) map.set(m.id, m);
   });
   return Array.from(map.values());
+};
+
+// จัดกลุ่มแมตช์ตามสนาม แล้วเรียงลำดับ "ภายในแต่ละสนาม" ตาม field order ที่หน้า
+// Admin ติดมาให้เสมอ (ดูคอมเมนต์ที่ interface Match ด้านบน) แทนที่จะพึ่งลำดับที่
+// แมตช์เหล่านั้นบังเอิญเรียงอยู่ใน array `matches` ของ state ตอนนั้น — เพราะลำดับ
+// array อาจไม่ตรงกับคิวจริงอีกต่อไปหลังมี match-updated/matches-updated เข้ามา
+// merge ทับ (event ใหม่ที่ยังไม่เคยเห็น id จะถูกต่อท้าย ไม่ได้แทรกตามคิวที่ถูกต้อง)
+// แมตช์ที่ยังไม่มี order (ข้อมูลเก่าก่อน deploy ฟีเจอร์นี้) จะ fallback เป็น 0 —
+// การ sort เป็นแบบ stable จึงยังคงลำดับเดิมไว้ให้เหมือนพฤติกรรมก่อนหน้า
+const groupMatchesByCourtOrdered = (list: Match[]): Record<string, Match[]> => {
+  const byCourt: Record<string, Match[]> = {};
+  list.forEach(m => {
+    if (!byCourt[m.court]) byCourt[m.court] = [];
+    byCourt[m.court].push(m);
+  });
+  Object.values(byCourt).forEach(arr => {
+    arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  });
+  return byCourt;
 };
 
 export default function MatchesPage() {
@@ -136,14 +163,11 @@ export default function MatchesPage() {
   const categories = ['All', ...new Set(matches.map(m => m.category))];
   const filteredMatches = filterCategory === 'All' ? matches : matches.filter(m => m.category === filterCategory);
 
-  // คำนวณสถานะของแต่ละคู่ โดยยึดลำดับข้อมูลเดิม (array order) ต่อคอร์ท
+  // คำนวณสถานะของแต่ละคู่ โดยยึดลำดับคิวจริงต่อคอร์ท (field `order` ที่ admin
+  // จัดพักทีมไว้) แทนลำดับ array เดิม — ดู groupMatchesByCourtOrdered ด้านบน
   const matchStatusMap = useMemo(() => {
     const map: Record<string, CourtMatchStatus> = {};
-    const byCourt: Record<string, Match[]> = {};
-    matches.forEach(m => {
-      if (!byCourt[m.court]) byCourt[m.court] = [];
-      byCourt[m.court].push(m);
-    });
+    const byCourt = groupMatchesByCourtOrdered(matches);
     Object.values(byCourt).forEach(list => {
       let announced = false;
       list.forEach(m => {
@@ -160,13 +184,10 @@ export default function MatchesPage() {
     return map;
   }, [matches]);
 
-  // สรุปสถานะรายคอร์ท ใช้แสดงในแผงประกาศด่วนด้านบน
+  // สรุปสถานะรายคอร์ท ใช้แสดงในแผงประกาศด่วนด้านบน — group เดียวกับ matchStatusMap
+  // (เรียงตามคิวจริง) เพื่อให้ "คู่ถัดไปที่ต้องประกาศ" ตรงกับสถานะที่คำนวณไว้เป๊ะ
   const courtSummaries: CourtSummary[] = useMemo(() => {
-    const byCourt: Record<string, Match[]> = {};
-    matches.forEach(m => {
-      if (!byCourt[m.court]) byCourt[m.court] = [];
-      byCourt[m.court].push(m);
-    });
+    const byCourt = groupMatchesByCourtOrdered(matches);
     return Object.entries(byCourt)
       .map(([court, list]) => {
         const announceMatch = list.find(m => matchStatusMap[m.id] === 'announce') ?? null;
