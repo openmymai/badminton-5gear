@@ -146,6 +146,16 @@ const mergeMatchesById = (prev: any[], updates: any[]): any[] => {
 // (ให้คะแนนก้อนใหญ่ตัดหน้า) แล้วในกลุ่มที่เลือกได้ ให้ priority กับทีมที่ "รอมานาน
 // ที่สุด" (ยังไม่ได้ลงเล่นนานสุด) เพื่อกระจายจำนวนรอบพักให้เท่ากันทุกทีม
 //
+// สุ่มเลือกในกลุ่มที่คะแนนเท่ากัน (แก้ปัญหา CMU vs CU ขึ้นก่อนทุกรุ่น): ตอนเริ่มต้น
+// ของแต่ละสนาม ทุกคู่ยังไม่มีใครลงเล่นเลย จึงได้คะแนนเท่ากันหมด (gap เป็น Infinity
+// เท่ากันทุกคู่) เดิมโค้ดใช้ `>` เทียบ ทำให้คู่แรกที่เจอ (index 0) ชนะเสมอ — และ
+// เพราะ comboMatches ถูกสร้างด้วย loop i<j บนทีมที่ sort ตามตัวอักษรชื่อมหาลัย
+// (CMU มาก่อน CU เสมอ) คู่แรกจึงเป็น CMU vs CU ทุกรุ่นไปโดยไม่ได้ตั้งใจ
+// ตอนนี้เก็บ "ทุก index ที่ได้คะแนนสูงสุด" แล้วสุ่มเลือกหนึ่งในนั้น ทำให้ทั้งคู่เริ่ม
+// ต้นของแต่ละรุ่น และการเลือกคู่ในทุกๆ ก้อนคะแนนเท่ากันตลอดทั้งตาราง มีความสุ่มจริง
+// โดยยังคงกติกาการพักเท่าเดิมทุกประการ (ยังให้ความสำคัญกับคู่ที่พักครบ/รอนานที่สุด
+// ก่อนเสมอ แค่สุ่มเมื่อคะแนนเท่ากันเป๊ะเท่านั้น)
+//
 // ข้อจำกัดทางคณิตศาสตร์: ถ้าสายมี 3 ทีม (round-robin มี 3 คู่ ทุกทีมเล่น 2 ใน 3 คู่)
 // จะพิสูจน์ได้ว่ามีอย่างน้อย 1 ทีมที่ต้องเล่นติดกันเสมอ ไม่ใช่ bug ของอัลกอริทึม แต่
 // เป็นข้อจำกัดของ round-robin บนสนามเดียวเมื่อทีมน้อย — กรณีนี้ยอมรับสภาพ ให้ทีมที่
@@ -155,23 +165,27 @@ function scheduleAvoidingBackToBack<T extends { teamA: TeamEntry; teamB: TeamEnt
   const schedule: T[] = [];
   const lastPlayedAt: Record<string, number> = {}; // university -> index ล่าสุดที่ลงเล่นใน schedule นี้
 
+  const scoreOf = (m: T): number => {
+    const teams = [m.teamA.university, m.teamB.university];
+    // ระยะห่างจากคู่ล่าสุดที่แต่ละทีมเคยลงเล่น (ยังไม่เคยเล่นเลย = ห่างเต็มที่)
+    const gaps = teams.map(t => (lastPlayedAt[t] === undefined ? Infinity : schedule.length - lastPlayedAt[t]));
+    const minGap = Math.min(...gaps);
+    const satisfiesRest = minGap > MIN_REST_GAP; // พักครบตามที่กำหนดหรือยัง
+    const waited = Math.min(...gaps.map(g => (g === Infinity ? schedule.length : g)));
+    // พักครบ > ยังไม่ครบแต่พักได้มากกว่า (กันชนกรณีสาย 3-4 ทีมที่พักครบเป๊ะไม่ได้จริง)
+    return (satisfiesRest ? 100000 : 0) + waited;
+  };
+
   while (remaining.length > 0) {
-    let bestIdx = 0;
-    let bestScore = -Infinity;
+    const scores = remaining.map(scoreOf);
+    const bestScore = Math.max(...scores);
+    // เก็บทุก index ที่ได้คะแนนสูงสุดเท่ากัน แล้วสุ่มเลือกหนึ่งในนั้น แทนที่จะเลือก
+    // ตัวแรกที่เจอเสมอ — นี่คือจุดที่ทำให้คู่เริ่มต้น/การจัดลำดับมีความสุ่มจริง
+    const bestIndices: number[] = [];
+    scores.forEach((s, i) => { if (s === bestScore) bestIndices.push(i); });
+    const chosenIdx = bestIndices[Math.floor(Math.random() * bestIndices.length)];
 
-    remaining.forEach((m, i) => {
-      const teams = [m.teamA.university, m.teamB.university];
-      // ระยะห่างจากคู่ล่าสุดที่แต่ละทีมเคยลงเล่น (ยังไม่เคยเล่นเลย = ห่างเต็มที่)
-      const gaps = teams.map(t => (lastPlayedAt[t] === undefined ? Infinity : schedule.length - lastPlayedAt[t]));
-      const minGap = Math.min(...gaps);
-      const satisfiesRest = minGap > MIN_REST_GAP; // พักครบตามที่กำหนดหรือยัง
-      const waited = Math.min(...gaps.map(g => (g === Infinity ? schedule.length : g)));
-      // พักครบ > ยังไม่ครบแต่พักได้มากกว่า (กันชนกรณีสาย 3-4 ทีมที่พักครบเป๊ะไม่ได้จริง)
-      const score = (satisfiesRest ? 100000 : 0) + waited;
-      if (score > bestScore) { bestScore = score; bestIdx = i; }
-    });
-
-    const [chosen] = remaining.splice(bestIdx, 1);
+    const [chosen] = remaining.splice(chosenIdx, 1);
     schedule.push(chosen);
     const idx = schedule.length - 1;
     lastPlayedAt[chosen.teamA.university] = idx;
@@ -560,7 +574,8 @@ export default function AdminPage() {
   //
   // หลังสร้างคู่ทั้งหมดของแต่ละ combo (id คำนวณคงที่เหมือนเดิมทุกประการ) จะจัด
   // ลำดับการลงเล่นใหม่ผ่าน scheduleAvoidingBackToBack เพื่อให้แต่ละทีมได้พัก
-  // ระหว่างคู่มากที่สุดเท่าที่เป็นไปได้ — ไม่กระทบ id เลย จึง preview "คู่เดิมจะ
+  // ระหว่างคู่มากที่สุดเท่าที่เป็นไปได้ (และตอนนี้สุ่มคู่เริ่มต้น/คู่ที่คะแนนเท่ากัน
+  // ด้วย — ดูคอมเมนต์ในฟังก์ชันนั้น) — ไม่กระทบ id เลย จึง preview "คู่เดิมจะ
   // หายไป" ยังทำงานถูกต้องเหมือนเดิมทุกกรณี
   //
   // "order" ถูกติดไปกับแต่ละแมตช์ตรงๆ (ลำดับคิวภายในสนามนี้ 0,1,2,...) เพื่อให้
@@ -596,6 +611,8 @@ export default function AdminPage() {
       }
 
       // จัดลำดับคู่ภายในสนามนี้ใหม่ ให้แต่ละทีมได้พักระหว่างคู่มากที่สุดเท่าที่ทำได้
+      // (การสุ่มเมื่อคะแนนเท่ากันอยู่ในฟังก์ชันนี้แล้ว ไม่ต้อง shuffle comboMatches
+      // ก่อนส่งเข้าไปเอง)
       const scheduledCombo = scheduleAvoidingBackToBack(comboMatches);
       // ติด "order" (ลำดับคิวภายในสนามนี้) ไปกับแมตช์แต่ละคู่ตรงๆ เพื่อให้หน้าอื่นๆ
       // sort คิวตามลำดับที่พักสลับกันแล้วนี้ได้เสมอ ไม่ต้องพึ่งลำดับ array ที่ได้รับ
