@@ -138,6 +138,7 @@ export default function LeaderboardPage() {
             fill
             className="object-contain"
             priority
+            sizes="(max-width: 640px) 300px, (max-width: 1024px) 500px, 700px"
           />
         </div>
       </div>

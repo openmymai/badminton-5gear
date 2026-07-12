@@ -96,6 +96,7 @@ export default function LiveBoardPage() {
                   /* 2. object-cover จะทำให้รูปขยายเต็มกรอบพอดี ถ้าสัดส่วนไม่พอดีมันจะตัดขอบเล็กน้อยแต่ไม่เหลือที่ว่าง */
                   className="object-cover" 
                   priority
+                  sizes="(max-width: 640px) 48px, 56px"
                 />
               </div>
               <div className="min-w-0">
