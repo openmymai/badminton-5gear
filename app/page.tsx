@@ -2,20 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { GiShuttlecock } from 'react-icons/gi';
 import { FaTrophy, FaMedal, FaAward } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getMatchWinner, isNoResult } from '../lib/scoring';
 import { useIsAdmin } from '@/lib/useIsAdmin';
 
 interface Rank {
   university: string;
-  points: number;       // คะแนนรวมสถาบัน (5, 4, 3, 2, 1) จากทุกรุ่น
-  matchPoints: number;  // คะแนนดิบรวม (ชนะ 2, เสมอ 1)
-  win: number;          // จำนวนเซตที่ชนะรวม
-  pointsWon: number;    // แต้มที่ทำได้รวม (เพิ่มใหม่เพื่อความแม่นยำ)
-  pointsConceded: number; // แต้มเสียรวม
+  points: number;
+  matchPoints: number;
+  win: number;
+  pointsWon: number;
+  pointsConceded: number;
 }
 
 const UNIVERSITIES = ['CU', 'KU', 'KKU', 'PSU', 'CMU'];
@@ -72,7 +72,6 @@ export default function LeaderboardPage() {
             const s2a = Number(m.score.s2a) || 0;
             const s2b = Number(m.score.s2b) || 0;
 
-            // สะสมแต้มภายในกลุ่ม
             internalStats[m.teamA.university].pWon += (s1a + s2a);
             internalStats[m.teamA.university].pConceded += (s1b + s2b);
             internalStats[m.teamB.university].pWon += (s1b + s2b);
@@ -95,14 +94,12 @@ export default function LeaderboardPage() {
             }
           });
 
-          // จัดลำดับในกลุ่ม: 1.คะแนนแมตช์ 2.คะแนนที่ได้ (pWon) 3.คะแนนที่เสีย (pConceded)
           const sortedInternal = Object.values(internalStats).sort((a: any, b: any) => {
             if (b.mPts !== a.mPts) return b.mPts - a.mPts;
             if (b.pWon !== a.pWon) return b.pWon - a.pWon;
             return a.pConceded - b.pConceded;
           });
 
-          // แจกแต้มสถาบัน 5,4,3,2,1
           sortedInternal.forEach((stat: any, idx) => {
             const teamAward = Math.max(1, 5 - idx);
             if (schoolStats[stat.university]) {
@@ -115,7 +112,6 @@ export default function LeaderboardPage() {
           });
         });
 
-        // จัดอันดับมหาลัย (Final)
         const finalRankings = Object.values(schoolStats).sort((a, b) => {
           if (b.points !== a.points) return b.points - a.points;
           if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
@@ -131,16 +127,26 @@ export default function LeaderboardPage() {
   }, []);
 
   return (
-    <main className="h-screen w-full bg-[#05070d] text-white flex flex-col overflow-y-auto md:overflow-hidden p-3 sm:p-4 md:p-6 gap-3 sm:gap-4">
-      {/* Header */}
-      <header className="shrink-0 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4 max-w-7xl mx-auto w-full">
+    <main className="relative h-screen w-full bg-[#05070d] text-white flex flex-col overflow-y-auto md:overflow-hidden p-3 sm:p-4 md:p-6 gap-3 sm:gap-4">
+      
+      {/* 5 GEAR Artwork (Background Watermark) */}
+      <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-0">
+        <div className="relative w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] md:w-[700px] md:h-[700px] opacity-[0.12] blur-[2px]">
+          <Image 
+            src="/5gearlogo.png" 
+            alt="5 Gear Background Artwork" 
+            fill
+            className="object-contain"
+            priority
+          />
+        </div>
+      </div>
+
+      {/* Header - Logo removed, wrapped in z-10 */}
+      <header className="relative z-10 shrink-0 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-3 sm:gap-4">
-          <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4 }}
-            className="p-2.5 sm:p-3 bg-blue-500/10 rounded-2xl border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-          >
-            <GiShuttlecock className="text-blue-400 text-2xl sm:text-3xl" />
-          </motion.div>
-          <div className="leading-tight">
+          {/* Logo was here - Removed as requested */}
+          <div className="leading-tight text-center md:text-left">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight italic uppercase">5 GEAR</h1>
             <p className="text-blue-300/80 tracking-[2px] sm:tracking-[4px] uppercase font-bold text-[9px] sm:text-[10px] mt-0.5">Badminton Tournament</p>
           </div>
@@ -161,8 +167,8 @@ export default function LeaderboardPage() {
         </div>
       </header>
 
-      {/* Rankings List */}
-      <div className="flex-1 min-h-0 flex flex-col gap-2 sm:gap-3 max-w-7xl mx-auto w-full">
+      {/* Rankings List - wrapped in z-10 */}
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col gap-2 sm:gap-3 max-w-7xl mx-auto w-full">
         <AnimatePresence mode="popLayout">
           {rankings.map((rank, idx) => {
             const isTop1 = idx === 0;
@@ -180,7 +186,6 @@ export default function LeaderboardPage() {
                     : 'bg-white/[0.03] border-white/10'
                 }`}
               >
-                {/* Left Side: Rank & Name */}
                 <div className="flex items-center gap-2.5 sm:gap-4 md:gap-8 min-w-0 w-full sm:w-auto">
                   <div className="w-7 sm:w-10 md:w-16 flex justify-center items-center shrink-0">
                     <RankBadge index={idx} />
@@ -199,7 +204,6 @@ export default function LeaderboardPage() {
                   </div>
                 </div>
 
-                {/* Right Side: Score */}
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto justify-end">
                   <div className="text-right mr-1 sm:mr-2 hidden md:block">
                     <p className={`text-[10px] font-black uppercase tracking-widest ${isTop1 ? 'text-yellow-400/60' : 'text-blue-500/60'}`}>Total Points</p>
@@ -226,15 +230,21 @@ export default function LeaderboardPage() {
         </AnimatePresence>
 
         {rankings.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center opacity-20 py-10">
-            <GiShuttlecock size={56} className="mb-4 sm:mb-6 animate-bounce text-blue-400 sm:w-20 sm:h-20" />
-            <p className="text-lg sm:text-2xl md:text-3xl font-black uppercase tracking-[4px] sm:tracking-[8px] text-center px-4">Waiting for Matches</p>
+          <div className="flex-1 flex flex-col items-center justify-center py-10">
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-4 sm:mb-6 animate-pulse opacity-40">
+              <Image 
+                src="/5gearlogo.png" 
+                alt="Loading" 
+                fill
+                className="object-contain"
+              />
+            </div>
+            <p className="text-lg sm:text-2xl md:text-3xl font-black uppercase tracking-[4px] sm:tracking-[8px] text-center px-4 opacity-40">Waiting for Matches</p>
           </div>
         )}
       </div>
 
-      {/* Footer Info */}
-      <footer className="shrink-0 text-center py-1 sm:py-2">
+      <footer className="relative z-10 shrink-0 text-center py-1 sm:py-2">
         <p className="text-[8px] sm:text-[9px] text-slate-600 font-bold uppercase tracking-[2px] sm:tracking-[4px] px-2">
           Points calculated by: Rank Points &gt; Match Points &gt; Points Won &gt; Points Conceded (lower is better)
         </p>

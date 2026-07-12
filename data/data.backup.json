@@ -762,13 +762,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 4,
+        "s1b": 21,
+        "s2a": 21,
+        "s2b": 6
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 54,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_B_CMU_PSU",
@@ -820,13 +822,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 3,
+        "s2a": 4,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 51,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_B_CU_KKU",
@@ -878,13 +882,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 11,
+        "s2a": 19,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 74,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_B_CU_KU",
@@ -936,13 +942,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 4,
+        "s1b": 21,
+        "s2a": 3,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 52,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_B_CU_PSU",
@@ -994,13 +1002,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 4,
+        "s1b": 21,
+        "s2a": 2,
+        "s2b": 21
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 50,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_general_B_KKU_KU",
@@ -1226,13 +1236,15 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 10,
+        "s2a": 21,
+        "s2b": 6
       },
-      "isFinished": false,
-      "version": 0
+      "isFinished": true,
+      "version": 64,
+      "isBye": false,
+      "byeWinner": null
     },
     {
       "id": "M_a70_A_CMU_KKU",
@@ -12500,5 +12512,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783823975877
+  "lastUpdated": 1783832382690
 }

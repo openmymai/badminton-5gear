@@ -6,6 +6,7 @@ import { GiShuttlecock } from 'react-icons/gi';
 import { FaCheckCircle, FaTimes, FaExternalLinkAlt, FaTrophy, FaBullhorn, FaHourglassHalf } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { calculateEffectiveSets } from '../../lib/scoring';
 
 // --- Interfaces ---
@@ -237,8 +238,15 @@ export default function MatchesPage() {
       <nav className="z-50 bg-white/[0.03] backdrop-blur-xl border-b border-white/10 px-4 lg:px-8 py-3 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 shrink-0">
         <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-8">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-blue-600/15 border border-blue-500/30 rounded-xl p-2 shrink-0">
-              <GiShuttlecock className="text-blue-400 text-xl lg:text-2xl" />
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-2xl overflow-hidden shrink-0 shadow-lg border border-white">
+              <Image 
+                src="/5gearlogo.jpg" 
+                alt="5 Gear Logo" 
+                fill 
+                /* 2. object-cover จะทำให้รูปขยายเต็มกรอบพอดี ถ้าสัดส่วนไม่พอดีมันจะตัดขอบเล็กน้อยแต่ไม่เหลือที่ว่าง */
+                className="object-cover" 
+                priority
+              />
             </div>
             <div className="leading-tight min-w-0">
               <h1 className="text-base lg:text-xl font-black uppercase tracking-tight truncate">Tournament Live</h1>

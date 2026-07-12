@@ -15,6 +15,7 @@ import {
 import { MdOutlineCleaningServices } from 'react-icons/md';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useIsAdmin } from '@/lib/useIsAdmin';
 
 interface Player { id: string; name: string; role: 'starter' | 'substitute'; }
@@ -537,8 +538,15 @@ export default function AdminPage() {
         <header className="bg-white/[0.03] backdrop-blur-xl p-7 rounded-3xl border border-white/10 shadow-xl">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             <div className="flex items-center gap-4">
-              <div className="p-3.5 bg-blue-600/15 border border-blue-500/30 rounded-2xl">
-                <FaRunning size={26} className="text-blue-400" />
+              <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-2xl overflow-hidden shrink-0 shadow-lg border border-white">
+                <Image 
+                  src="/5gearlogo.jpg" 
+                  alt="5 Gear Logo" 
+                  fill 
+                  /* 2. object-cover จะทำให้รูปขยายเต็มกรอบพอดี ถ้าสัดส่วนไม่พอดีมันจะตัดขอบเล็กน้อยแต่ไม่เหลือที่ว่าง */
+                  className="object-cover" 
+                  priority
+                />
               </div>
               <div>
                 <h1 className="text-2xl font-black uppercase tracking-tight leading-none">Admin Panel</h1>

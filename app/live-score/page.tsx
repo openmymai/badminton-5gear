@@ -6,6 +6,7 @@ import { GiShuttlecock } from 'react-icons/gi';
 import { FaFilter } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getMatchWinner, isNoResult, calculateEffectiveSets } from '../../lib/scoring';
 
 interface Player { id: string; name: string; role: 'starter' | 'substitute'; }
@@ -252,8 +253,15 @@ export default function LiveScorePage() {
         {/* Header */}
         <header className="bg-white/[0.03] backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl">
-              <GiShuttlecock className="text-emerald-400 text-2xl" />
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-2xl overflow-hidden shrink-0 shadow-lg border border-white">
+              <Image 
+                src="/5gearlogo.jpg" 
+                alt="5 Gear Logo" 
+                fill 
+                /* 2. object-cover จะทำให้รูปขยายเต็มกรอบพอดี ถ้าสัดส่วนไม่พอดีมันจะตัดขอบเล็กน้อยแต่ไม่เหลือที่ว่าง */
+                className="object-cover" 
+                priority
+              />
             </div>
             <div>
               <h1 className="text-2xl font-black uppercase tracking-tight leading-none">Live Score</h1>

@@ -8,6 +8,7 @@ import { GiShuttlecock } from 'react-icons/gi';
 import { FaMapMarkerAlt, FaClock } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { calculateEffectiveSets } from '../../lib/scoring';
 
 interface Player { id: string; name: string; role: 'starter' | 'substitute'; }
@@ -87,8 +88,15 @@ export default function LiveBoardPage() {
               the right-hand cluster instead, see below. */}
           <div className="flex items-center justify-between w-full lg:w-auto gap-3">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <div className="p-3 sm:p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-2xl shrink-0">
-                <GiShuttlecock className="text-amber-400 text-xl sm:text-2xl" />
+              <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-2xl overflow-hidden shrink-0 shadow-lg border border-white">
+                <Image 
+                  src="/5gearlogo.jpg" 
+                  alt="5 Gear Logo" 
+                  fill 
+                  /* 2. object-cover จะทำให้รูปขยายเต็มกรอบพอดี ถ้าสัดส่วนไม่พอดีมันจะตัดขอบเล็กน้อยแต่ไม่เหลือที่ว่าง */
+                  className="object-cover" 
+                  priority
+                />
               </div>
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight leading-none truncate">Live Board</h1>
