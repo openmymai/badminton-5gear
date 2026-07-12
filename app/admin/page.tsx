@@ -62,7 +62,8 @@ interface DropWarningState {
 }
 
 // ไฟล์ backup ที่ได้จาก GET /api/backups (ชื่อไฟล์ล้วนๆ เช่น
-// "manual_2026-07-11T10-23-45-123Z.json" หรือ "pre-restore_1699999999999.json")
+// "manual_2026-07-11T10-23-45-123Z.json", "auto_2026-07-11T10-23-45-123Z.json"
+// หรือ "pre-restore_1699999999999.json")
 type BackupFileName = string;
 
 // รายชื่อสถาบันที่รับเข้าระบบ — แก้ไข/เพิ่มได้ตามต้องการ
@@ -196,10 +197,17 @@ function scheduleAvoidingBackToBack<T extends { teamA: TeamEntry; teamB: TeamEnt
 }
 
 // ---- Backup filename parsing helpers ----
-// แปลงชื่อไฟล์ backup ให้อ่านง่าย พร้อมระบุประเภท (Manual / ก่อน Restore อัตโนมัติ)
-function parseBackupLabel(filename: BackupFileName): { typeLabel: string; typeAccent: 'blue' | 'amber'; dateLabel: string } {
+// แปลงชื่อไฟล์ backup ให้อ่านง่าย พร้อมระบุประเภท (สร้างเอง / อัตโนมัติ / ก่อน Restore)
+//
+// รูปแบบชื่อไฟล์ที่ต้องรองรับ (ดู server.js):
+//   - manual_<ISO-with-dashes>.json       สร้างเองจากปุ่ม "สร้าง Backup ตอนนี้"
+//   - auto_<ISO-with-dashes>.json         สร้างอัตโนมัติจาก performAutoBackup()
+//                                         (ทุก 5 นาทีที่ไม่มีการแก้ไข หรืออย่างช้า
+//                                         ทุก 15 นาทีถ้ามีการแก้ไขต่อเนื่องไม่หยุด)
+//   - pre-restore_<epoch-ms>.json         สำรองอัตโนมัติก่อนกด "กู้คืน" ทุกครั้ง
+function parseBackupLabel(filename: BackupFileName): { typeLabel: string; typeAccent: 'blue' | 'amber' | 'emerald'; dateLabel: string } {
   let typeLabel = 'Backup';
-  let typeAccent: 'blue' | 'amber' = 'blue';
+  let typeAccent: 'blue' | 'amber' | 'emerald' = 'blue';
   let dateSource: Date | null = null;
 
   if (filename.startsWith('manual_')) {
@@ -216,6 +224,15 @@ function parseBackupLabel(filename: BackupFileName): { typeLabel: string; typeAc
     const raw = filename.replace('pre-restore_', '').replace('.json', '');
     const ms = Number(raw);
     if (!isNaN(ms)) dateSource = new Date(ms);
+  } else if (filename.startsWith('auto_')) {
+    // สร้างจาก performAutoBackup() ใน server.js — ใช้ timestamp รูปแบบเดียวกับ
+    // manual_ (ISO string ที่แทน ":" และ "." ด้วย "-") จึงแปลงกลับด้วยวิธีเดียวกัน
+    typeLabel = 'อัตโนมัติ';
+    typeAccent = 'emerald';
+    const raw = filename.replace('auto_', '').replace('.json', '');
+    const isoGuess = raw.replace(/-(\d{2})-(\d{2})-(\d{3})Z$/, ':$1:$2.$3Z');
+    const d = new Date(isoGuess);
+    if (!isNaN(d.getTime())) dateSource = d;
   }
 
   const dateLabel = dateSource
@@ -1120,6 +1137,8 @@ export default function AdminPage() {
                     const isRestoringThis = restoringFile === filename;
                     const chipColor = typeAccent === 'amber'
                       ? 'bg-amber-400/10 border-amber-400/30 text-amber-400'
+                      : typeAccent === 'emerald'
+                      ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
                       : 'bg-blue-400/10 border-blue-400/30 text-blue-400';
                     return (
                       <div
@@ -1156,7 +1175,7 @@ export default function AdminPage() {
                 </div>
               )}
               <p className="text-[9px] text-slate-600 font-bold mt-3 text-center leading-relaxed">
-                ระบบจะสำรองข้อมูลปัจจุบันไว้อัตโนมัติทุกครั้งก่อนกู้คืน (ไฟล์ &ldquo;ก่อน Restore&rdquo;)
+                ระบบจะสำรองข้อมูลปัจจุบันไว้อัตโนมัติทุกครั้งก่อนกู้คืน (ไฟล์ &ldquo;ก่อน Restore&rdquo;) และจะสำรองข้อมูลให้เองเป็นระยะระหว่างวัน (ไฟล์ &ldquo;อัตโนมัติ&rdquo;)
               </p>
             </WorkflowCard>
           </div>

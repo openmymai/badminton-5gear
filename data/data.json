@@ -50,16 +50,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 9,
+        "s1b": 21,
+        "s2a": 17,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 69
     },
     {
       "id": "M_general_A_CMU_PSU",
@@ -111,16 +111,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 1,
+        "s2a": 21,
+        "s2b": 1
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 45
     },
     {
       "id": "M_general_A_KKU_KU",
@@ -172,16 +172,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 16,
+        "s1b": 21,
+        "s2a": 3,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 65
     },
     {
       "id": "M_general_A_CU_PSU",
@@ -233,16 +233,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 17,
+        "s2a": 4,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 65
     },
     {
       "id": "M_general_A_CMU_KU",
@@ -294,16 +294,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 3,
+        "s2a": 21,
+        "s2b": 3
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 4,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 50
     },
     {
       "id": "M_general_A_KKU_PSU",
@@ -355,16 +355,16 @@
         ]
       },
       "score": {
-        "s1a": 6,
-        "s1b": 21,
-        "s2a": 6,
-        "s2b": 21
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 5,
       "isBye": false,
       "byeWinner": null,
-      "version": 60
+      "version": 121
     },
     {
       "id": "M_general_A_CU_KU",
@@ -660,16 +660,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
+        "s1a": 21,
         "s1b": 0,
-        "s2a": 0,
+        "s2a": 21,
         "s2b": 0
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 46
     },
     {
       "id": "M_general_B_CU_KKU",
@@ -1880,16 +1880,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 5
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 58
     },
     {
       "id": "M_a70_B_KKU_KU",
@@ -8590,16 +8590,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 13
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 68
     },
     {
       "id": "M_a130_-_KKU_KU",
@@ -12980,5 +12980,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783870355566
+  "lastUpdated": 1783876629319
 }

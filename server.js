@@ -18,6 +18,12 @@ const DATA_FILE = path.join(DATA_DIR, "data.json");
 const BACKUP_FILE = path.join(DATA_DIR, "data.backup.json");
 const TMP_FILE = path.join(DATA_DIR, "data.json.tmp");
 
+// Same backups/ directory that app/api/backups/route.ts reads from (that
+// route resolves it as path.join(process.cwd(), "data", "backups") — in the
+// deployed layout process.cwd() and __dirname point at the same project
+// root, so both land on the same folder on disk).
+const BACKUP_DIR = path.join(DATA_DIR, "backups");
+
 // Make sure the data directory exists before anything tries to read/write into it.
 // This matters a lot for Docker: bind-mounting a *directory* that doesn't exist yet
 // on the host is safe (Docker creates it), but bind-mounting a *single file* that
@@ -28,6 +34,9 @@ const TMP_FILE = path.join(DATA_DIR, "data.json.tmp");
 try {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(BACKUP_DIR)) {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
   }
   // Fail loudly at startup if this process can't actually write here — a silent
   // EACCES on every save is the other classic cause of "works in dev, not in
@@ -157,6 +166,89 @@ let flushAgainAfter = false;
 const SAVE_DEBOUNCE_MS = 400; // wait for this much quiet before writing
 const SAVE_MAX_WAIT_MS = 3000; // ...but never let writes be delayed longer than this
 
+// ---------- Auto-backup (separate from the data.json disk flush above) ----------
+//
+// Goal: back up whenever things have gone quiet for a while (idle window),
+// but during a long uninterrupted scoring session (referees tapping scores
+// back-to-back for hours) the idle timer would keep getting reset and never
+// fire — so this uses the exact same debounce-with-a-ceiling pattern as
+// scheduleSave()/SAVE_MAX_WAIT_MS above, just on a much longer timescale:
+// wait for AUTO_BACKUP_IDLE_MS of quiet, but force a backup at least every
+// AUTO_BACKUP_MAX_WAIT_MS even if changes never stop coming in.
+//
+// This writes directly from the in-memory cachedData (not by copying
+// data.json off disk), so the snapshot is always current even if the
+// debounced disk flush above hasn't run yet.
+let autoBackupTimer = null;
+let firstPendingBackupChangeAt = null;
+
+const AUTO_BACKUP_IDLE_MS = 5 * 60 * 1000;      // back up after 5 min of quiet
+const AUTO_BACKUP_MAX_WAIT_MS = 15 * 60 * 1000; // ...but at least every 15 min regardless
+const MAX_AUTO_BACKUPS = 30;                    // retention cap so this can't grow forever
+
+const scheduleAutoBackup = () => {
+  const now = Date.now();
+  if (firstPendingBackupChangeAt === null) {
+    firstPendingBackupChangeAt = now;
+  }
+  if (autoBackupTimer) clearTimeout(autoBackupTimer);
+
+  const elapsed = now - firstPendingBackupChangeAt;
+  const remainingMaxWait = AUTO_BACKUP_MAX_WAIT_MS - elapsed;
+  const delay = Math.max(0, Math.min(AUTO_BACKUP_IDLE_MS, remainingMaxWait));
+
+  autoBackupTimer = setTimeout(() => {
+    autoBackupTimer = null;
+    firstPendingBackupChangeAt = null;
+    performAutoBackup();
+  }, delay);
+};
+
+async function performAutoBackup() {
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) {
+      await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const snapshot = JSON.stringify(cachedData, null, 2); // sync snapshot of current memory state
+    await fs.promises.writeFile(path.join(BACKUP_DIR, `auto_${timestamp}.json`), snapshot);
+    console.log(`[Backup] Auto backup saved: auto_${timestamp}.json`);
+    await pruneOldAutoBackups();
+  } catch (err) {
+    console.error("[Backup] Auto backup failed:", err.message);
+  }
+}
+
+// Keeps only the newest MAX_AUTO_BACKUPS "auto_*" files. Manual ("manual_*")
+// and pre-restore ("pre-restore_*") backups are never touched here — only
+// the automatic ones are pruned, since those are the ones that accumulate
+// on their own without an admin deciding to keep them.
+async function pruneOldAutoBackups() {
+  try {
+    const files = await fs.promises.readdir(BACKUP_DIR);
+    const autoFiles = files.filter((f) => f.startsWith("auto_") && f.endsWith(".json"));
+    if (autoFiles.length <= MAX_AUTO_BACKUPS) return;
+
+    const withTimes = await Promise.all(
+      autoFiles.map(async (f) => {
+        const stat = await fs.promises.stat(path.join(BACKUP_DIR, f));
+        return { file: f, mtime: stat.mtimeMs };
+      })
+    );
+    withTimes.sort((a, b) => b.mtime - a.mtime); // newest first
+
+    const toDelete = withTimes.slice(MAX_AUTO_BACKUPS);
+    await Promise.all(
+      toDelete.map((f) => fs.promises.unlink(path.join(BACKUP_DIR, f.file)).catch(() => {}))
+    );
+    if (toDelete.length > 0) {
+      console.log(`[Backup] Pruned ${toDelete.length} old auto backup(s)`);
+    }
+  } catch (err) {
+    console.error("[Backup] Prune old auto backups failed:", err.message);
+  }
+}
+
 // One-time synchronous load at boot, including the old backup-recovery logic.
 // Fine to be sync here — it happens once, before the server starts accepting
 // connections, not on the hot path of every score tap.
@@ -207,13 +299,15 @@ const loadDataFromDisk = () => {
 const readData = () => cachedData;
 
 // Commits `data` into the in-memory cache and schedules a debounced disk
-// flush. Returns true immediately — the "save" has already logically
-// succeeded the moment it's in cachedData, since that's what every other
-// handler and every future readData() call will see. Disk persistence is a
-// backstop that happens shortly after, off the request path.
+// flush, plus a debounced auto-backup. Returns true immediately — the "save"
+// has already logically succeeded the moment it's in cachedData, since
+// that's what every other handler and every future readData() call will see.
+// Disk persistence and backup snapshots are backstops that happen shortly
+// after, off the request path.
 const saveData = (data) => {
   cachedData = data;
   scheduleSave();
+  scheduleAutoBackup();
   return true;
 };
 
@@ -773,6 +867,10 @@ function gracefulShutdown(signal) {
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
+  }
+  if (autoBackupTimer) {
+    clearTimeout(autoBackupTimer);
+    autoBackupTimer = null;
   }
   flushToDiskSync();
   process.exit(0);
