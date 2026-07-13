@@ -597,11 +597,11 @@ export default function LiveScorePage() {
         </div>
       </div>
 
-      <style jsx global>{`
+      {/* <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@600;700&display=swap');
         body { font-family: 'Rajdhani', sans-serif; background-color: #05070d; }
         h1, h2, h3, .font-black { font-family: 'Orbitron', sans-serif; }
-      `}</style>
+      `}</style> */}
     </main>
   );
 }

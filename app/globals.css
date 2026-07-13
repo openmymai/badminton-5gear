@@ -6,10 +6,14 @@
 }
 
 @theme inline {
+  /* กำหนด font-sans (ใช้ทั่วเว็บ) ให้เป็น Rajdhani + Prompt */
+  --font-sans: var(--font-rajdhani), var(--font-prompt), sans-serif;
+  
+  /* กำหนด font-black (ใช้กับหัวข้อ) ให้เป็น Orbitron + Prompt */
+  --font-black: var(--font-orbitron), var(--font-prompt), sans-serif;
+  
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,8 +23,19 @@
   }
 }
 
+/* 2. บังคับใช้ Font Prompt กับทุก Element */
+*, ::after, ::before {
+  font-family: var(--font-prompt), var(--font-geist-sans), ui-sans-serif, system-ui;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* ใช้ font-sans ที่เราตั้งไว้ข้างบน */
+  font-family: var(--font-rajdhani), var(--font-prompt), sans-serif;
+}
+
+/* 4. กรณีที่ h1-h6 ยังไม่เปลี่ยน ให้ระบุเจาะจง */
+h1, h2, h3, h4, h5, h6, .font-black {
+  font-family: var(--font-orbitron), var(--font-prompt), sans-serif !important;
 }

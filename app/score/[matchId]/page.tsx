@@ -633,11 +633,11 @@ export default function ScorerPage() {
         )}
       </AnimatePresence>
 
-      <style jsx global>{`
+      {/* <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@600;700&display=swap');
         body { font-family: 'Rajdhani', sans-serif; }
         .font-black { font-family: 'Orbitron', sans-serif; }
-      `}</style>
+      `}</style> */}
     </div>
   );
 }

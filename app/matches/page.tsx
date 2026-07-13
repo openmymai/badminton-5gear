@@ -578,14 +578,13 @@ export default function MatchesPage() {
         )}
       </AnimatePresence>
 
-      <style jsx global>{`
+      {/* <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@600;700&display=swap');
         body { font-family: 'Rajdhani', sans-serif; background-color: #05070d; overflow: hidden; }
         h1, h3, .font-black { font-family: 'Orbitron', sans-serif; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Flash highlight สำหรับการ์ดคอร์ทในแผงประกาศด่วน เมื่อสถานะเปลี่ยน (มีคู่จบใหม่ / คิวขยับ) */
         @keyframes courtFlashPurple {
           0%, 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.55); transform: scale(1); }
           50% { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); transform: scale(1.05); }
@@ -596,6 +595,26 @@ export default function MatchesPage() {
         }
         .court-flash-purple { animation: courtFlashPurple 1.1s ease-in-out infinite; }
         .court-flash-green { animation: courtFlashGreen 1.1s ease-in-out infinite; }
+      `}</style> */}
+
+      <style jsx global>{`
+        /* เก็บเฉพาะการซ่อน Scrollbar */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* เก็บเฉพาะ Animation พิเศษสำหรับการประกาศคอร์ท */
+        @keyframes courtFlashPurple {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.55); transform: scale(1); }
+          50% { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); transform: scale(1.05); }
+        }
+        @keyframes courtFlashGreen {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); transform: scale(1); }
+          50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); transform: scale(1.05); }
+        }
+        .court-flash-purple { animation: courtFlashPurple 1.1s ease-in-out infinite; }
+        .court-flash-green { animation: courtFlashGreen 1.1s ease-in-out infinite; }
+        
+        /* ลบส่วน @import และการตั้งค่า body { font-family } ออกไปเลย */
       `}</style>
     </main>
   );
