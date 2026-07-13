@@ -73,7 +73,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเชียงใหม่ หนึ่ง",
+            "name": "นายเหนก หนึ่ง",
             "role": "starter"
           },
           {
@@ -256,7 +256,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเชียงใหม่ หนึ่ง",
+            "name": "นายเหนก หนึ่ง",
             "role": "starter"
           },
           {
@@ -355,16 +355,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 12,
+        "s1b": 21,
+        "s2a": 11,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 5,
       "isBye": false,
       "byeWinner": null,
-      "version": 121
+      "version": 189
     },
     {
       "id": "M_general_A_CU_KU",
@@ -416,16 +416,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
+        "s1a": 21,
         "s1b": 0,
-        "s2a": 0,
+        "s2a": 21,
         "s2b": 0
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 6,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 44
     },
     {
       "id": "M_general_A_CMU_KKU",
@@ -439,7 +439,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเชียงใหม่ หนึ่ง",
+            "name": "นายเหนก หนึ่ง",
             "role": "starter"
           },
           {
@@ -561,7 +561,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเชียงใหม่ หนึ่ง",
+            "name": "นายเหนก หนึ่ง",
             "role": "starter"
           },
           {
@@ -1270,16 +1270,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 5,
+        "s1b": 21,
+        "s2a": 3,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 51
     },
     {
       "id": "M_a70_A_CMU_CU",
@@ -1331,16 +1331,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 5,
+        "s2a": 21,
+        "s2b": 4
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 54
     },
     {
       "id": "M_a70_A_KU_PSU",
@@ -1392,16 +1392,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 12,
+        "s2a": 21,
+        "s2b": 10
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 66
     },
     {
       "id": "M_a70_A_CMU_KKU",
@@ -1453,16 +1453,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 4,
+        "s2a": 21,
+        "s2b": 2
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 49
     },
     {
       "id": "M_a70_A_CU_PSU",
@@ -1514,16 +1514,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 5,
+        "s1b": 21,
+        "s2a": 10,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 4,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 58
     },
     {
       "id": "M_a70_A_CMU_KU",
@@ -3100,16 +3100,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 8
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 64
     },
     {
       "id": "M_a80_B_CU_PSU",
@@ -3162,15 +3162,15 @@
       },
       "score": {
         "s1a": 0,
-        "s1b": 0,
+        "s1b": 21,
         "s2a": 0,
-        "s2b": 0
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 55
     },
     {
       "id": "M_a80_B_KKU_KU",
@@ -3222,16 +3222,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 3,
+        "s1b": 21,
+        "s2a": 5,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 52
     },
     {
       "id": "M_a80_B_CMU_CU",
@@ -3283,16 +3283,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 10,
+        "s2a": 21,
+        "s2b": 18
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 102
     },
     {
       "id": "M_a80_B_KKU_PSU",
@@ -3344,16 +3344,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
+        "s1a": 21,
         "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s2a": 6,
+        "s2b": 1
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 4,
-      "isBye": false,
-      "byeWinner": null,
-      "version": 0
+      "isBye": true,
+      "byeWinner": "a",
+      "version": 33
     },
     {
       "id": "M_a80_B_CU_KU",
@@ -3405,16 +3405,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 11,
+        "s2a": 21,
+        "s2b": 12
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 5,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 66
     },
     {
       "id": "M_a80_B_CMU_KKU",
@@ -5540,16 +5540,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 3
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 56
     },
     {
       "id": "M_a100_B_KU_PSU",
@@ -7980,16 +7980,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 7,
+        "s1b": 21,
+        "s2a": 4,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 55
     },
     {
       "id": "M_a120_B_CMU_CU",
@@ -11078,7 +11078,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเชียงใหม่ หนึ่ง",
+            "name": "นายเหนก หนึ่ง",
             "role": "starter"
           },
           {
@@ -12980,5 +12980,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783876629319
+  "lastUpdated": 1783944810399
 }

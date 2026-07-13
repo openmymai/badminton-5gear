@@ -73,7 +73,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเหนก หนึ่ง",
+            "name": "นายเชียงใหม่ หนึ่ง",
             "role": "starter"
           },
           {
@@ -256,7 +256,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเหนก หนึ่ง",
+            "name": "นายเชียงใหม่ หนึ่ง",
             "role": "starter"
           },
           {
@@ -439,7 +439,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเหนก หนึ่ง",
+            "name": "นายเชียงใหม่ หนึ่ง",
             "role": "starter"
           },
           {
@@ -561,7 +561,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเหนก หนึ่ง",
+            "name": "นายเชียงใหม่ หนึ่ง",
             "role": "starter"
           },
           {
@@ -3100,16 +3100,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 9,
-        "s2a": 21,
-        "s2b": 8
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 64
+      "version": 0
     },
     {
       "id": "M_a80_B_CU_PSU",
@@ -3162,15 +3162,15 @@
       },
       "score": {
         "s1a": 0,
-        "s1b": 21,
+        "s1b": 0,
         "s2a": 0,
-        "s2b": 21
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 55
+      "version": 0
     },
     {
       "id": "M_a80_B_KKU_KU",
@@ -3222,16 +3222,16 @@
         ]
       },
       "score": {
-        "s1a": 3,
-        "s1b": 21,
-        "s2a": 5,
-        "s2b": 21
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 52
+      "version": 0
     },
     {
       "id": "M_a80_B_CMU_CU",
@@ -3283,16 +3283,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 10,
-        "s2a": 21,
-        "s2b": 18
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 102
+      "version": 0
     },
     {
       "id": "M_a80_B_KKU_PSU",
@@ -3344,16 +3344,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
+        "s1a": 0,
         "s1b": 0,
-        "s2a": 6,
-        "s2b": 1
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 4,
-      "isBye": true,
-      "byeWinner": "a",
-      "version": 33
+      "isBye": false,
+      "byeWinner": null,
+      "version": 0
     },
     {
       "id": "M_a80_B_CU_KU",
@@ -3405,16 +3405,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 11,
-        "s2a": 21,
-        "s2b": 12
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 5,
       "isBye": false,
       "byeWinner": null,
-      "version": 66
+      "version": 0
     },
     {
       "id": "M_a80_B_CMU_KKU",
@@ -11078,7 +11078,7 @@
         "players": [
           {
             "id": "ohz3c2eaj",
-            "name": "นายเหนก หนึ่ง",
+            "name": "นายเชียงใหม่ หนึ่ง",
             "role": "starter"
           },
           {
@@ -12980,5 +12980,5 @@
     "courtMode": "auto",
     "manualCourts": {}
   },
-  "lastUpdated": 1783944810399
+  "lastUpdated": 1783935481383
 }

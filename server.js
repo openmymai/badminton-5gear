@@ -382,6 +382,50 @@ function flushToDiskSync() {
   }
 }
 
+// Synchronous auto-backup — only used during graceful shutdown, for the same
+// reason flushToDiskSync() exists alongside flushToDisk(): if the process is
+// about to exit, we can't rely on an in-flight Promise chain (performAutoBackup
+// is async) actually finishing before process.exit() tears everything down.
+// This mirrors performAutoBackup()'s naming/pruning behavior but writes
+// synchronously so it's guaranteed to land on disk before the process dies.
+//
+// Without this, any pending backup window (up to AUTO_BACKUP_IDLE_MS /
+// AUTO_BACKUP_MAX_WAIT_MS) that hadn't fired yet would simply be discarded on
+// deploy/restart — e.g. a short burst of activity (someone showing a score to
+// a friend, then walking away) that never reached the 5-minute idle mark
+// before the container got redeployed.
+function performAutoBackupSync() {
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) {
+      fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const snapshot = JSON.stringify(cachedData, null, 2);
+    fs.writeFileSync(path.join(BACKUP_DIR, `auto_${timestamp}.json`), snapshot);
+    console.log(`[Backup] Final sync auto backup saved before shutdown: auto_${timestamp}.json`);
+
+    // Prune synchronously too, same retention rule as the async path.
+    const files = fs.readdirSync(BACKUP_DIR);
+    const autoFiles = files.filter((f) => f.startsWith("auto_") && f.endsWith(".json"));
+    if (autoFiles.length > MAX_AUTO_BACKUPS) {
+      const withTimes = autoFiles.map((f) => {
+        const stat = fs.statSync(path.join(BACKUP_DIR, f));
+        return { file: f, mtime: stat.mtimeMs };
+      });
+      withTimes.sort((a, b) => b.mtime - a.mtime); // newest first
+      const toDelete = withTimes.slice(MAX_AUTO_BACKUPS);
+      toDelete.forEach((f) => {
+        try { fs.unlinkSync(path.join(BACKUP_DIR, f.file)); } catch (_) { /* best effort */ }
+      });
+      if (toDelete.length > 0) {
+        console.log(`[Backup] Pruned ${toDelete.length} old auto backup(s) during shutdown`);
+      }
+    }
+  } catch (err) {
+    console.error("[Backup] Final sync auto backup failed:", err.message);
+  }
+}
+
 // Merges a freshly generated match list with what's already persisted.
 // Any match that already exists (matched by id) keeps its recorded score /
 // isFinished status — regenerating the schedule from Excel must never wipe
@@ -859,6 +903,12 @@ process.on("unhandledRejection", (reason) => {
 // one last SYNCHRONOUS flush of whatever's sitting in cachedData but hasn't
 // hit disk yet, before actually exiting. Without this, up to SAVE_MAX_WAIT_MS
 // worth of scores could be lost on every deploy.
+//
+// This also forces one last SYNCHRONOUS auto-backup if a backup window was
+// still pending (autoBackupTimer was armed but hadn't fired yet) — otherwise
+// a short activity burst (e.g. showing a live score to someone, then leaving
+// it idle) that never reached AUTO_BACKUP_IDLE_MS before a deploy/restart
+// would simply vanish with no backup ever taken for that session.
 let isShuttingDown = false;
 function gracefulShutdown(signal) {
   if (isShuttingDown) return;
@@ -868,11 +918,15 @@ function gracefulShutdown(signal) {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
+  const hadPendingBackup = autoBackupTimer !== null;
   if (autoBackupTimer) {
     clearTimeout(autoBackupTimer);
     autoBackupTimer = null;
   }
   flushToDiskSync();
+  if (hadPendingBackup) {
+    performAutoBackupSync();
+  }
   process.exit(0);
 }
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
