@@ -76,6 +76,29 @@ const CATEGORY_SLUG_MAP: { [key: string]: string } = {
   '100': 'a100', '110': 'a110', '120': 'a120', '130': 'a130'
 };
 
+// แปลงชื่อรุ่น (category) เป็น slug สำหรับสร้าง id คู่แข่งขัน — ต้อง "คงที่เสมอ" ไม่ขึ้น
+// กับตำแหน่ง/ลำดับใน state `categories` เพราะ id นี้ใช้เทียบว่าเป็นคู่เดิมหรือไม่ตอน
+// สร้างตารางซ้ำ (ดู buildAllMatches)
+//
+// *** บั๊กที่แก้ในไฟล์นี้ ***
+// เดิมโค้ด fallback เป็น `cat${categories.indexOf(category)}` สำหรับรุ่นที่ไม่ได้แมป
+// ไว้ใน CATEGORY_SLUG_MAP ด้านบน (เช่น "กิตติมศักดิ์", "หญิงคู่ทั่วไป",
+// "อาวุโสหญิง 70+") ทำให้พอ admin ลาก reorder รุ่น (Step 2) หรือมีรุ่นถูกลบแล้ว
+// เพิ่มกลับมาใหม่ ตำแหน่ง index ใน `categories` เปลี่ยนไป → slug เปลี่ยน → id คู่
+// แข่งขันทั้งรุ่นเปลี่ยนตามไปด้วย ระบบเลยมองว่าคู่เดิม (ที่อาจมีผลบันทึกไว้แล้ว)
+// "หายไป" ทั้งที่จริงๆ เป็นทีม/รุ่นเดิมเป๊ะ แค่ import excel เพิ่มชื่อผู้เล่นที่ตกหล่น
+// แล้วกดสร้างตารางซ้ำ — ผลคือคู่เดิมถูกแทนที่ด้วยคู่ใหม่ (0-0) และนักกีฬาที่แข่งไป
+// แล้วอาจต้องแข่งซ้ำ
+//
+// ตอนนี้สร้าง slug จากตัวอักษรของชื่อรุ่นเองตรงๆ (encode เป็นเลขฐาน 36 ทีละตัว)
+// ไม่พึ่ง index ของ state ใดๆ ทั้งสิ้น จึงคงที่ตลอดไปไม่ว่าจะสร้างตารางซ้ำกี่ครั้ง
+// หรือสลับลำดับรุ่นยังไงก็ตาม
+function getCategorySlug(category: string): string {
+  if (CATEGORY_SLUG_MAP[category]) return CATEGORY_SLUG_MAP[category];
+  const encoded = Array.from(category).map(ch => ch.codePointAt(0)!.toString(36)).join('');
+  return `cat_${encoded}`;
+}
+
 // รอนานแค่ไหนหลังพิมพ์/แก้ไข ก่อนส่งค่าล่าสุดขึ้น server (กันการยิง event ถี่เกินไป
 // ตอนพิมพ์เลขสนามในช่อง input)
 const ROSTER_SYNC_DEBOUNCE_MS = 400;
@@ -557,25 +580,58 @@ export default function AdminPage() {
 
   // --- Court combos: one fixed court per (category, group) ---
   // Order follows the admin-defined `categories` order, then groups sorted within each category.
+  //
+  // *** สำคัญ: เลขสนาม auto ต้องไม่ขยับของ combo ที่มีตารางแข่งอยู่แล้ว ***
+  // เดิมเลขสนาม auto คำนวณจากตัวนับที่ไล่ต่อเนื่อง (autoIndex++) ข้ามทุก combo ตาม
+  // ลำดับ categories/groups ทำให้ถ้ามีรุ่น/สายใหม่โผล่มาแทรกอยู่ "ก่อนหน้า" ใน
+  // ลำดับนั้น (เช่น import excel เพิ่มทีมที่ตกหล่นเข้าไปในสายที่มาก่อนในลิสต์) เลข
+  // สนามของทุก combo ที่ตามมาหลังจากนั้นจะขยับหมดทันที ทั้งที่คู่แข่งขันเดิมไม่ได้
+  // เปลี่ยนเลย — ทำให้ admin/นักกีฬาสับสนว่าต้องไปแข่งสนามไหนกันแน่
+  //
+  // ตอนนี้ใช้ `existingCourtByCombo` (คำนวณจาก currentMatches จริงจาก server) มา
+  // "ตรึง" เลขสนามของ combo ที่มีตารางแข่งอยู่แล้วให้คงเดิมเสมอ ส่วน combo ที่ยังไม่
+  // เคยมีตารางแข่งเลย (ทีม/สายใหม่ล้วนๆ) ถึงจะได้รับเลขสนามว่างถัดไปที่ยังไม่ถูกใช้
+  const existingCourtByCombo = useMemo(() => {
+    const map: Record<string, number> = {};
+    currentMatches.forEach((m: any) => {
+      const key = `${m.category}__${m.group}`;
+      if (map[key] === undefined) {
+        const c = Number(m.court);
+        if (!isNaN(c)) map[key] = c;
+      }
+    });
+    return map;
+  }, [currentMatches]);
+
   const courtCombos: ComboInfo[] = useMemo(() => {
     const combos: ComboInfo[] = [];
-    let autoIndex = 0;
+    // เลขสนามที่ถูก "ตรึง" ไว้แล้วจาก combo เดิม — กันชนกับเลขที่จะจัดสรรให้ combo ใหม่
+    const usedAutoCourts = new Set<number>(Object.values(existingCourtByCombo));
+    let nextAutoCourt = 1;
+    const allocateAutoCourt = (): number => {
+      while (usedAutoCourts.has(nextAutoCourt)) nextAutoCourt++;
+      usedAutoCourts.add(nextAutoCourt);
+      return nextAutoCourt;
+    };
+
     categories.forEach(cat => {
       const groupsForCat = Array.from(
         new Set(entries.filter(e => e.category === cat).map(e => e.group))
       ).sort();
       groupsForCat.forEach(grp => {
-        autoIndex += 1;
         const key = `${cat}__${grp}`;
         const teamCount = entries.filter(e => e.category === cat && e.group === grp).length;
         const matchCount = (teamCount * (teamCount - 1)) / 2;
+        // combo ที่มีตารางแข่งอยู่แล้ว → ใช้เลขสนามเดิมเสมอ ไม่คำนวณใหม่จากลำดับ
+        // combo ใหม่ล้วนๆ → ค่อยจัดสรรเลขสนามว่างถัดไปที่ยังไม่ถูกใช้
+        const autoCourt = existingCourtByCombo[key] ?? allocateAutoCourt();
         const manualVal = manualCourts[key];
-        const court = courtMode === 'manual' && manualVal ? manualVal : autoIndex;
-        combos.push({ key, category: cat, group: grp, teamCount, matchCount, autoCourt: autoIndex, court });
+        const court = courtMode === 'manual' && manualVal ? manualVal : autoCourt;
+        combos.push({ key, category: cat, group: grp, teamCount, matchCount, autoCourt, court });
       });
     });
     return combos;
-  }, [categories, entries, courtMode, manualCourts]);
+  }, [categories, entries, courtMode, manualCourts, existingCourtByCombo]);
 
   // Prune stale manual-court entries when the underlying combos change (e.g. category removed)
   useEffect(() => {
@@ -608,6 +664,10 @@ export default function AdminPage() {
   // แต่ละคู่คงที่ ไม่ขึ้นกับลำดับที่ทีมถูก insert เข้ามาใน roster — กันปัญหา id
   // เปลี่ยนไปมาเวลาลำดับแถวใน Excel เปลี่ยน ซึ่งจะทำให้คู่เดิม (พร้อมผลที่บันทึก
   // ไว้แล้ว) ดูเหมือนหายไปทั้งที่จริงๆ เป็นทีมชุดเดิม
+  //
+  // catSlug คำนวณผ่าน getCategorySlug() ด้านบนไฟล์เสมอ — ไม่ใช้ index ของ
+  // `categories` อีกต่อไป (ดูคอมเมนต์อธิบายบั๊กที่ getCategorySlug) เพื่อให้ id คงที่
+  // ตลอดไปไม่ว่าจะลาก reorder รุ่นหรือสร้างตารางซ้ำกี่ครั้งก็ตาม
   //
   // *** สำคัญ: กันตารางที่แข่งไปแล้วเปลี่ยนเวลาสร้างซ้ำ ***
   // ก่อนหน้านี้ทุกครั้งที่กดสร้างตาราง ฟังก์ชันนี้จะ schedule คู่ทั้งหมดของแต่ละ
@@ -643,8 +703,7 @@ export default function AdminPage() {
         .filter(e => e.category === combo.category && e.group === combo.group)
         .slice()
         .sort((a, b) => a.university.localeCompare(b.university));
-      const catIndex = categories.indexOf(combo.category);
-      const catSlug = CATEGORY_SLUG_MAP[combo.category] || `cat${catIndex >= 0 ? catIndex : 0}`;
+      const catSlug = getCategorySlug(combo.category);
 
       // สร้างคู่ทั้งหมดที่ "ควรมี" ตามรายชื่อปัจจุบัน (id คำนวณคงที่เหมือนเดิมทุก
       // ประการ ไม่เปลี่ยนแม้ทีมใหม่จะถูกเพิ่มเข้ามา เพราะอิง university ไม่ใช่ index)
