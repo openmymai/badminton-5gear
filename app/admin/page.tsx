@@ -161,10 +161,28 @@ const mergeMatchesById = (prev: any[], updates: any[]): any[] => {
 // จะพิสูจน์ได้ว่ามีอย่างน้อย 1 ทีมที่ต้องเล่นติดกันเสมอ ไม่ใช่ bug ของอัลกอริทึม แต่
 // เป็นข้อจำกัดของ round-robin บนสนามเดียวเมื่อทีมน้อย — กรณีนี้ยอมรับสภาพ ให้ทีมที่
 // เกี่ยวข้องดูแลจัดสรรพักกันเอง
-function scheduleAvoidingBackToBack<T extends { teamA: TeamEntry; teamB: TeamEntry }>(matches: T[]): T[] {
+//
+// fixedPrefix: คิวเดิมที่ "ตรึงลำดับไว้แล้ว" (มาจากตารางที่เคยสร้าง/แข่งไปแล้ว) —
+// เพิ่มเข้ามาเพื่อรองรับกรณี import Excel เพิ่มทีมที่ตกหล่นแล้วกดสร้างตารางซ้ำ:
+// เดิมฟังก์ชันนี้จะรื้อคิวทั้งหมดใหม่ทุกครั้ง (รวมคู่ที่แข่งไปแล้ว) ทำให้ลำดับที่
+// กรรมการ/ผู้ชมเห็นอยู่แล้วเปลี่ยนไปมาโดยไม่จำเป็น ตอนนี้ push fixedPrefix ไว้
+// หน้าสุดตามลำดับเดิมเป๊ะก่อน (ไม่ยุ่งกับมันอีก) แล้วค่อยรัน greedy algorithm
+// เดิมทุกอย่างกับเฉพาะคู่ใหม่ที่ส่งเข้ามาต่อท้าย โดยนับ "พักมาแล้วกี่คู่" ต่อเนื่อง
+// จาก fixedPrefix ไม่ใช่เริ่มนับพักใหม่จากศูนย์ (lastPlayedAt ถูก seed จาก
+// fixedPrefix ไว้ก่อนเข้า loop)
+function scheduleAvoidingBackToBack<T extends { teamA: TeamEntry; teamB: TeamEntry }>(
+  matches: T[],
+  fixedPrefix: T[] = []
+): T[] {
   const remaining = [...matches];
-  const schedule: T[] = [];
+  const schedule: T[] = [...fixedPrefix];
   const lastPlayedAt: Record<string, number> = {}; // university -> index ล่าสุดที่ลงเล่นใน schedule นี้
+
+  // seed lastPlayedAt จากคิวเดิมที่ตรึงไว้ ก่อนเริ่มจัดคิวคู่ใหม่ต่อท้าย
+  fixedPrefix.forEach((m, idx) => {
+    lastPlayedAt[m.teamA.university] = idx;
+    lastPlayedAt[m.teamB.university] = idx;
+  });
 
   const scoreOf = (m: T): number => {
     const teams = [m.teamA.university, m.teamB.university];
@@ -256,7 +274,9 @@ export default function AdminPage() {
   const { logout } = useIsAdmin();
 
   // ตารางแข่งขัน "ปัจจุบัน" ตามที่ server รายงานล่าสุด — ใช้พรีวิวว่าถ้าสร้าง
-  // ตารางใหม่ตอนนี้ จะมีคู่เดิมคู่ไหนหายไปบ้าง ก่อนกดปุ่มจริง
+  // ตารางใหม่ตอนนี้ จะมีคู่เดิมคู่ไหนหายไปบ้าง ก่อนกดปุ่มจริง และใช้เป็น "คิวที่
+  // ตรึงไว้แล้ว" ใน buildAllMatches ด้านล่างด้วย เพื่อไม่ให้คู่ที่แข่งไปแล้ว/กำลัง
+  // จะแข่งขยับตำแหน่งเวลา import Excel เพิ่มทีมที่ตกหล่นแล้วสร้างตารางซ้ำ
   // อัปเดตจากทั้ง "data-updated" (ทั้งชุด ตอน connect/import/clear) และ
   // "match-updated"/"matches-updated" (เฉพาะคู่ที่เปลี่ยน เช่น มีคนกดคะแนนอยู่
   // ระหว่างที่ admin เปิดหน้านี้ค้างไว้) เพื่อให้พรีวิวไม่ค้างข้อมูลเก่า
@@ -589,20 +609,35 @@ export default function AdminPage() {
   // เปลี่ยนไปมาเวลาลำดับแถวใน Excel เปลี่ยน ซึ่งจะทำให้คู่เดิม (พร้อมผลที่บันทึก
   // ไว้แล้ว) ดูเหมือนหายไปทั้งที่จริงๆ เป็นทีมชุดเดิม
   //
-  // หลังสร้างคู่ทั้งหมดของแต่ละ combo (id คำนวณคงที่เหมือนเดิมทุกประการ) จะจัด
-  // ลำดับการลงเล่นใหม่ผ่าน scheduleAvoidingBackToBack เพื่อให้แต่ละทีมได้พัก
-  // ระหว่างคู่มากที่สุดเท่าที่เป็นไปได้ (และตอนนี้สุ่มคู่เริ่มต้น/คู่ที่คะแนนเท่ากัน
-  // ด้วย — ดูคอมเมนต์ในฟังก์ชันนั้น) — ไม่กระทบ id เลย จึง preview "คู่เดิมจะ
-  // หายไป" ยังทำงานถูกต้องเหมือนเดิมทุกกรณี
+  // *** สำคัญ: กันตารางที่แข่งไปแล้วเปลี่ยนเวลาสร้างซ้ำ ***
+  // ก่อนหน้านี้ทุกครั้งที่กดสร้างตาราง ฟังก์ชันนี้จะ schedule คู่ทั้งหมดของแต่ละ
+  // สนามใหม่จากศูนย์เสมอ (แม้ id คู่จะคงที่เหมือนเดิม) ทำให้ "order" (ลำดับคิวที่
+  // หน้า Matches/Live ใช้เรียง) ถูกคำนวณใหม่หมดทุกครั้ง — พอ import Excel เพิ่ม
+  // ทีมที่ตกหล่นเข้ามาแล้วกดสร้างตารางซ้ำ คู่ที่แข่งไปแล้ว/กำลังจะแข่งจะถูกจัดลำดับ
+  // ใหม่ปนกับคู่ใหม่ทั้งกระดาน ทำให้ตารางดูเหมือน "เปลี่ยนไป" ทั้งที่คะแนนยังอยู่
   //
-  // "order" ถูกติดไปกับแต่ละแมตช์ตรงๆ (ลำดับคิวภายในสนามนี้ 0,1,2,...) เพื่อให้
-  // ทุกหน้าที่ต้องคำนวณ "คู่ไหนต้องเล่นก่อน/รอคิว" (Matches, Live) sort ตามค่านี้
-  // ได้เสมอ แทนที่จะพึ่งลำดับ array ที่ได้รับผ่าน socket ซึ่งอาจถูกต่อท้ายผิดลำดับ
-  // ตอน merge match-updated/matches-updated เข้ามาทีหลัง (เช่นกรรมการกดคะแนน
-  // ระหว่างที่หน้าอื่นเปิดค้างไว้) — มี field นี้ติดตัวแมตช์แล้ว ไม่ว่าจะ merge
-  // ยังไงก็เรียงกลับมาถูกต้องเสมอ
+  // ตอนนี้แยกคู่ของแต่ละสนามเป็น 2 กลุ่มก่อน schedule:
+  //   1) คู่ที่มีอยู่แล้วใน currentMatches (จาก server) — เก็บ "ลำดับเดิมเป๊ะ"
+  //      ตาม field `order` ที่เคยส่งไปแล้ว ไม่ให้ schedule แตะต้องอีก
+  //   2) คู่ที่เหลือ (ทีมใหม่ที่เพิ่ง import เพิ่ม หรือรุ่น/สายที่เพิ่งมีข้อมูล
+  //      ครั้งแรก) — ส่งเข้า scheduleAvoidingBackToBack ให้จัดคิวต่อท้ายกลุ่มแรก
+  //      ด้วยกติกาพักเท่าเดิมทุกประการ (ดูคอมเมนต์ใน fixedPrefix ของฟังก์ชันนั้น)
+  //
+  // ผลคือ: คู่ที่มีอยู่แล้วจะไม่ขยับตำแหน่งอีกต่อไปไม่ว่าจะ import ซ้ำกี่รอบ ส่วนคู่
+  // ใหม่จะถูกต่อท้ายคิวของสนามเดิมเท่านั้น (ไม่ optimal เท่าจัดใหม่ทั้งกระดาน แต่
+  // แลกกับการไม่รบกวนตารางที่แข่งไปแล้ว ซึ่งสำคัญกว่าในสถานการณ์นี้)
   const buildAllMatches = useCallback(() => {
     const allMatches: any[] = [];
+
+    // จัดกลุ่มคู่แข่งขัน "ปัจจุบัน" (จาก server, currentMatches) ตาม combo key
+    // แล้วเรียงตาม order เดิม — นี่คือ "คิวที่ตรึงไว้แล้ว" ของแต่ละสนาม
+    const existingByCombo: Record<string, any[]> = {};
+    currentMatches.forEach((m: any) => {
+      const key = `${m.category}__${m.group}`;
+      (existingByCombo[key] ||= []).push(m);
+    });
+    Object.values(existingByCombo).forEach(arr => arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+
     courtCombos.forEach(combo => {
       const teams = entries
         .filter(e => e.category === combo.category && e.group === combo.group)
@@ -611,11 +646,14 @@ export default function AdminPage() {
       const catIndex = categories.indexOf(combo.category);
       const catSlug = CATEGORY_SLUG_MAP[combo.category] || `cat${catIndex >= 0 ? catIndex : 0}`;
 
-      const comboMatches: any[] = [];
+      // สร้างคู่ทั้งหมดที่ "ควรมี" ตามรายชื่อปัจจุบัน (id คำนวณคงที่เหมือนเดิมทุก
+      // ประการ ไม่เปลี่ยนแม้ทีมใหม่จะถูกเพิ่มเข้ามา เพราะอิง university ไม่ใช่ index)
+      const pairMap = new Map<string, any>();
       for (let i = 0; i < teams.length; i++) {
         for (let j = i + 1; j < teams.length; j++) {
-          comboMatches.push({
-            id: `M_${catSlug}_${combo.group}_${teams[i].university}_${teams[j].university}`,
+          const id = `M_${catSlug}_${combo.group}_${teams[i].university}_${teams[j].university}`;
+          pairMap.set(id, {
+            id,
             category: combo.category,
             group: combo.group,
             court: combo.court.toString(),
@@ -627,19 +665,28 @@ export default function AdminPage() {
         }
       }
 
-      // จัดลำดับคู่ภายในสนามนี้ใหม่ ให้แต่ละทีมได้พักระหว่างคู่มากที่สุดเท่าที่ทำได้
-      // (การสุ่มเมื่อคะแนนเท่ากันอยู่ในฟังก์ชันนี้แล้ว ไม่ต้อง shuffle comboMatches
-      // ก่อนส่งเข้าไปเอง)
-      const scheduledCombo = scheduleAvoidingBackToBack(comboMatches);
+      // แยกคู่ "เดิม" (มีอยู่แล้วใน currentMatches ของสนามนี้) ออกมาก่อน ตามลำดับ
+      // เดิมเป๊ะ — คู่กลุ่มนี้คือส่วนที่ต้อง "ไม่ขยับ" เวลาสร้างตารางซ้ำ
+      const existingForCombo = existingByCombo[`${combo.category}__${combo.group}`] || [];
+      const keptMatches: any[] = [];
+      existingForCombo.forEach(existing => {
+        const fresh = pairMap.get(existing.id);
+        if (!fresh) return; // คู่นี้ไม่มีอยู่แล้ว (เช่นทีมถูกลบออกจาก roster) — ปล่อยให้ dropWarning แจ้งเตือนตามปกติ
+        keptMatches.push(fresh);
+        pairMap.delete(existing.id); // เอาออกจาก pool คู่ใหม่ ไม่ให้ถูกจัดคิวซ้ำ
+      });
+
+      // คู่ที่เหลือใน pairMap คือคู่ "ใหม่ล้วน" — จัดคิวต่อท้าย keptMatches เท่านั้น
+      const newMatches = Array.from(pairMap.values());
+      const scheduledCombo = scheduleAvoidingBackToBack(newMatches, keptMatches);
+
       // ติด "order" (ลำดับคิวภายในสนามนี้) ไปกับแมตช์แต่ละคู่ตรงๆ เพื่อให้หน้าอื่นๆ
-      // sort คิวตามลำดับที่พักสลับกันแล้วนี้ได้เสมอ ไม่ต้องพึ่งลำดับ array ที่ได้รับ
-      // ผ่าน socket (ซึ่งอาจถูกต่อท้ายผิดลำดับตอน merge match-updated/matches-updated
-      // เข้ามา)
+      // sort คิวตามลำดับนี้ได้เสมอ ไม่ต้องพึ่งลำดับ array ที่ได้รับผ่าน socket
       scheduledCombo.forEach((m, idx) => { m.order = idx; });
       allMatches.push(...scheduledCombo);
     });
     return allMatches;
-  }, [courtCombos, entries, categories]);
+  }, [courtCombos, entries, categories, currentMatches]);
 
   // พรีวิว: ถ้าตารางที่กำลังจะสร้างใหม่ทำให้คู่ที่มีอยู่แล้วบน server บางคู่
   // หายไป (เพราะ id ไม่ตรงกับชุดใหม่อีกต่อไป) ให้เตือนไว้ล่วงหน้าก่อนกดปุ่มจริง
