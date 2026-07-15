@@ -355,16 +355,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 3,
+        "s2a": 21,
+        "s2b": 5
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 5,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 51
     },
     {
       "id": "M_general_A_KKU_KU",
@@ -416,16 +416,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 1,
+        "s1b": 21,
+        "s2a": 21,
+        "s2b": 3
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 6,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 51
     },
     {
       "id": "M_general_A_CMU_CU",
@@ -477,16 +477,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 8,
+        "s1b": 21,
+        "s2a": 10,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 7,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 63
     },
     {
       "id": "M_general_A_CMU_PSU",
@@ -10374,7 +10374,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CMU_CU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "CMU",
         "category": "กิตติมศักดิ์",
@@ -10435,7 +10435,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_KKU_KU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "KKU",
         "category": "กิตติมศักดิ์",
@@ -10496,7 +10496,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CU_PSU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "CU",
         "category": "กิตติมศักดิ์",
@@ -10557,7 +10557,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CMU_KU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "CMU",
         "category": "กิตติมศักดิ์",
@@ -10618,7 +10618,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_KKU_PSU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "KKU",
         "category": "กิตติมศักดิ์",
@@ -10679,7 +10679,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CU_KU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "CU",
         "category": "กิตติมศักดิ์",
@@ -10740,7 +10740,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CMU_PSU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "CMU",
         "category": "กิตติมศักดิ์",
@@ -10801,7 +10801,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CU_KKU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "CU",
         "category": "กิตติมศักดิ์",
@@ -10862,7 +10862,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_KU_PSU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "KU",
         "category": "กิตติมศักดิ์",
@@ -10923,7 +10923,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CMU_KKU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "18",
+      "court": "20",
       "teamA": {
         "university": "CMU",
         "category": "กิตติมศักดิ์",
@@ -12977,8 +12977,10 @@
       "อาวุโสหญิง 70+",
       "กิตติมศักดิ์"
     ],
-    "courtMode": "auto",
-    "manualCourts": {}
+    "courtMode": "manual",
+    "manualCourts": {
+      "กิตติมศักดิ์__-": 18
+    }
   },
-  "lastUpdated": 1783958195138
+  "lastUpdated": 1784036605394
 }

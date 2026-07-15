@@ -477,16 +477,16 @@
         ]
       },
       "score": {
-        "s1a": 8,
-        "s1b": 21,
-        "s2a": 10,
-        "s2b": 21
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 7,
       "isBye": false,
       "byeWinner": null,
-      "version": 63
+      "version": 0
     },
     {
       "id": "M_general_A_CMU_PSU",
@@ -12977,10 +12977,8 @@
       "อาวุโสหญิง 70+",
       "กิตติมศักดิ์"
     ],
-    "courtMode": "manual",
-    "manualCourts": {
-      "กิตติมศักดิ์__-": 18
-    }
+    "courtMode": "auto",
+    "manualCourts": {}
   },
-  "lastUpdated": 1784036607698
+  "lastUpdated": 1784033588509
 }

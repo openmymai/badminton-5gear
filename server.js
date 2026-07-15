@@ -182,9 +182,9 @@ const SAVE_MAX_WAIT_MS = 3000; // ...but never let writes be delayed longer than
 let autoBackupTimer = null;
 let firstPendingBackupChangeAt = null;
 
-const AUTO_BACKUP_IDLE_MS = 5 * 60 * 1000;      // back up after 5 min of quiet
-const AUTO_BACKUP_MAX_WAIT_MS = 15 * 60 * 1000; // ...but at least every 15 min regardless
-const MAX_AUTO_BACKUPS = 30;                    // retention cap so this can't grow forever
+const AUTO_BACKUP_IDLE_MS = 30 * 1000;      // back up after 5 min of quiet
+const AUTO_BACKUP_MAX_WAIT_MS = 30 * 1000; // ...but at least every 15 min regardless
+const MAX_AUTO_BACKUPS = 100;                    // retention cap so this can't grow forever
 
 const scheduleAutoBackup = () => {
   const now = Date.now();
