@@ -60,7 +60,7 @@ export default function LiveBoardPage() {
   const socketRef = useRef<Socket | null>(null);
 
   // static = แสดงคิวทั้งหมดพร้อมกัน, dynamic = หมุนแสดงทีละคู่ต่อสนาม วนตามลำดับ
-  const [displayMode, setDisplayMode] = useState<DisplayMode>('static');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('dynamic');
   // ตัวนับรอบสำหรับ dynamic mode — เพิ่มค่าเรื่อยๆ ทุก DYNAMIC_ROTATE_MS แล้วแต่ละ
   // สนามใช้ tick % queued.length ของตัวเองในการเลือกว่าจะโชว์คิวลำดับไหน จึงวนครบ
   // รอบตามจำนวนคิวจริงของสนามนั้นๆ โดยไม่ต้องมี state แยกรายสนาม
@@ -199,7 +199,7 @@ export default function LiveBoardPage() {
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                คงที่
+                Static
               </button>
               <button
                 type="button"
@@ -210,7 +210,7 @@ export default function LiveBoardPage() {
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                หมุนเวียน
+                Dynamic
               </button>
             </div>
 
