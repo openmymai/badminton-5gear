@@ -93,10 +93,14 @@ export default function LiveScorePage() {
   const [selectedGroupKey, setSelectedGroupKey] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<MatchStatusFilter>('ALL');
 
-  // เก็บ timestamp ล่าสุดที่แต่ละแมตช์ถูกอัปเดต (จาก match-updated / matches-updated)
-  // ใช้เพื่อจัดเรียงให้แมตช์ที่กรรมการเพิ่งกดคะแนนล่าสุด "ลอย" ขึ้นบนสุดของกลุ่ม Live
-  // เหมือน feed ข่าว ส่วนแมตช์ที่ยังไม่เคยมี event เข้ามาเลยจะไม่มี key นี้ (fallback เรียงตามสนาม)
-  const [lastUpdatedMap, setLastUpdatedMap] = useState<Record<string, number>>({});
+  // เก็บ "ลำดับการเริ่มถูกอัปเดตครั้งแรก" ของแต่ละแมตช์ในเซสชันนี้ (ไม่ใช่เวลาล่าสุด)
+  // — แมตช์ที่กรรมการเริ่มกดคะแนนก่อนจะได้เลขลำดับน้อยกว่า และแมตช์ที่เริ่มกดทีหลังจะ
+  // ได้เลขมากกว่า เราจึงโชว์แมตช์ที่ "กำลังถูกกดคะแนนอยู่" ไว้บนสุดของกลุ่ม Live ได้
+  // โดยที่แต่ละแมตช์ที่ถูกจัดลำดับแล้วจะ "ล็อกตำแหน่ง" ไว้ตลอด ไม่ขยับขึ้นลงอีกทุกครั้ง
+  // ที่มีการกด +1/-1 ซ้ำ (ต่างจากเดิมที่ใช้เวลาล่าสุด ทำให้สองแมตช์ที่กรรมการสลับกดสลับ
+  // กันไปมาจะแซงกันไปมาตลอดเวลา ดูเหมือนกระโดดขึ้นลงไม่หยุด)
+  const [activationOrder, setActivationOrder] = useState<Record<string, number>>({});
+  const activationCounterRef = useRef(0);
 
   useEffect(() => {
     const s: Socket = io();
@@ -106,32 +110,44 @@ export default function LiveScorePage() {
     // "data-updated" ตอนนี้ยิงเฉพาะตอน: (1) เพิ่งเชื่อมต่อครั้งแรก และ
     // (2) มีการ import Excel / ล้างข้อมูลทั้งหมดจากหน้า Admin — ซึ่งเป็นกรณีที่
     // รูปร่างของตารางทั้งชุดเปลี่ยนจริงๆ จึงจำเป็นต้อง replace ทั้งหมด
-    // ไม่แตะ lastUpdatedMap ตรงนี้ เพราะเป็นการโหลดข้อมูลตั้งต้น ไม่ใช่การอัปเดตคะแนนจริง
+    // ล้าง activationOrder ทิ้งด้วย เพราะเป็นการเริ่มเซสชันใหม่ ไม่ใช่การอัปเดตคะแนนจริง
     s.on('data-updated', (data) => {
       if (data?.matches && Array.isArray(data.matches)) setMatches(data.matches);
+      setActivationOrder({});
+      activationCounterRef.current = 0;
     });
 
     // "match-updated" — คะแนน/สถานะของแมตช์เดียวเปลี่ยน (เกิดถี่ที่สุด เช่น
     // ทุกครั้งที่กดคะแนน +1/-1) อัปเดตเฉพาะแมตช์นั้นในตาราง ไม่ต้องรอ/แทนที่ทั้งชุด
-    // พร้อมบันทึกเวลาล่าสุดของแมตช์นี้ เพื่อใช้จัดเรียงลอยขึ้นบนสุด
+    // และถ้าแมตช์นี้ยังไม่เคยได้ลำดับ activation มาก่อน ให้กำหนดลำดับถัดไปให้ครั้งเดียว
+    // (ถ้าเคยได้ลำดับแล้ว จะไม่แก้ไขอีก แม้จะมีการกดคะแนนซ้ำอีกกี่ครั้งก็ตาม)
     s.on('match-updated', (updatedMatch: Match) => {
       if (!updatedMatch?.id) return;
       setMatches(prev => mergeMatchUpdates(prev, [updatedMatch]));
-      setLastUpdatedMap(prev => ({ ...prev, [updatedMatch.id]: Date.now() }));
+      setActivationOrder(prev => {
+        if (Object.prototype.hasOwnProperty.call(prev, updatedMatch.id)) return prev;
+        activationCounterRef.current += 1;
+        return { ...prev, [updatedMatch.id]: activationCounterRef.current };
+      });
     });
 
     // "matches-updated" — แก้สนามทั้งรุ่น/สาย หรือแก้ชื่อนักกีฬาที่กระทบหลายแมตช์
-    // พร้อมกัน อัปเดตเฉพาะแมตช์ที่อยู่ใน payload พร้อมบันทึกเวลาล่าสุดของทุกแมตช์ในชุดนี้
+    // พร้อมกัน อัปเดตเฉพาะแมตช์ที่อยู่ใน payload — เช่นเดียวกับด้านบน กำหนดลำดับ
+    // activation ให้เฉพาะแมตช์ที่ยังไม่เคยมีลำดับมาก่อนเท่านั้น
     s.on('matches-updated', (updatedMatches: Match[]) => {
       if (!Array.isArray(updatedMatches) || updatedMatches.length === 0) return;
       setMatches(prev => mergeMatchUpdates(prev, updatedMatches));
-      setLastUpdatedMap(prev => {
+      setActivationOrder(prev => {
         const next = { ...prev };
-        const now = Date.now();
+        let changed = false;
         updatedMatches.forEach(m => {
-          if (m?.id) next[m.id] = now;
+          if (m?.id && !Object.prototype.hasOwnProperty.call(next, m.id)) {
+            activationCounterRef.current += 1;
+            next[m.id] = activationCounterRef.current;
+            changed = true;
+          }
         });
-        return next;
+        return changed ? next : prev;
       });
     });
 
@@ -291,23 +307,25 @@ export default function LiveScorePage() {
     const byCourt = (a: Match, b: Match) =>
       a.court.localeCompare(b.court, undefined, { numeric: true });
 
-    // เรียงกลุ่ม Live ด้วยกันเอง: แมตช์ที่มี event อัปเดตล่าสุด (เวลามากกว่า) ลอยขึ้นบนสุดก่อน
-    // เหมือน feed ข่าว ส่วนแมตช์ที่ยังไม่เคยมี event เข้ามาเลย (ไม่มีใน lastUpdatedMap ค่า
-    // จะเป็น 0) จะตกไปอยู่ท้ายกลุ่ม Live และเรียงตามเลขสนามกันเองเป็น fallback
-    const byRecencyThenCourt = (a: Match, b: Match) => {
-      const at = lastUpdatedMap[a.id] ?? 0;
-      const bt = lastUpdatedMap[b.id] ?? 0;
-      if (at !== bt) return bt - at;
+    // เรียงกลุ่ม Live ด้วยกันเอง: แมตช์ที่ "เริ่ม" ถูกกดคะแนนก่อน (ลำดับ activation
+    // น้อยกว่า = เริ่มก่อน) จะโชว์เหนือแมตช์ที่เพิ่งเริ่มถูกกดทีหลัง — เรียงครั้งเดียว
+    // ตอนเริ่ม ไม่ใช่ทุกครั้งที่แต้มเปลี่ยน จึงไม่มีการแซงสลับตำแหน่งกันไปมาเวลากรรมการ
+    // สลับกดคะแนนคนละสนาม แมตช์ที่ยังไม่เคยถูกกดคะแนนเลย (ไม่มีใน activationOrder)
+    // จะตกไปอยู่ท้ายกลุ่ม Live และเรียงตามเลขสนามกันเองเป็น fallback
+    const byActivationThenCourt = (a: Match, b: Match) => {
+      const ao = activationOrder[a.id] ?? 0;
+      const bo = activationOrder[b.id] ?? 0;
+      if (ao !== bo) return bo - ao;
       return byCourt(a, b);
     };
 
     // แยก live/finished ออกจากกันก่อน เพื่อการันตีว่าแมตช์ live อยู่บนสุดของทั้งรายการเสมอ
     // ไม่ว่าจำนวนแมตช์จะเปลี่ยนแปลงแค่ไหน ส่วนกลุ่มที่จบแล้วยังคงเรียงตามสนามตามปกติ
-    const live = byStatus.filter(m => !m.isFinished).sort(byRecencyThenCourt);
+    const live = byStatus.filter(m => !m.isFinished).sort(byActivationThenCourt);
     const finished = byStatus.filter(m => m.isFinished).sort(byCourt);
 
     return [...live, ...finished];
-  }, [filteredMatches, statusFilter, lastUpdatedMap]);
+  }, [filteredMatches, statusFilter, activationOrder]);
 
   const selectedLabel = selectedOption?.label ?? null;
 

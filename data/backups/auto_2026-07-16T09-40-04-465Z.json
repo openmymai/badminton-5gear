@@ -4322,14 +4322,14 @@
       "score": {
         "s1a": 21,
         "s1b": 3,
-        "s2a": 21,
+        "s2a": 10,
         "s2b": 5
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 53
+      "version": 40
     },
     {
       "id": "M_a90_B_KKU_PSU",
@@ -7980,16 +7980,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
+        "s1a": 17,
         "s1b": 2,
-        "s2a": 21,
-        "s2b": 5
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 53
+      "version": 19
     },
     {
       "id": "M_a120_B_KU_PSU",
@@ -9202,14 +9202,14 @@
       "score": {
         "s1a": 21,
         "s1b": 16,
-        "s2a": 3,
-        "s2b": 21
+        "s2a": 5,
+        "s2b": 12
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 94
+      "version": 55
     },
     {
       "id": "M_cat_2sr2rx2t02rr2ro2t52tk2s72sx2tk2sn2tg2sb_-_CMU_KU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784194854520
+  "lastUpdated": 1784194803221
 }
