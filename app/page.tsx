@@ -275,6 +275,7 @@ export default function LeaderboardPage() {
                 alt="Loading" 
                 fill
                 className="object-contain"
+                sizes="(max-width: 640px) 48px, 56px"
               />
             </div>
             <p className="text-lg sm:text-2xl md:text-3xl font-black uppercase tracking-[4px] sm:tracking-[8px] text-center px-4 opacity-40">Waiting for Matches</p>

@@ -2490,16 +2490,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 6,
+        "s2a": 21,
+        "s2b": 10
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 61
     },
     {
       "id": "M_a80_A_CU_KKU",
@@ -2551,16 +2551,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 10,
+        "s2a": 21,
+        "s2b": 3
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 57
     },
     {
       "id": "M_a80_A_CMU_PSU",
@@ -2612,16 +2612,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 5,
+        "s2a": 21,
+        "s2b": 3
       },
       "isFinished": false,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 51
     },
     {
       "id": "M_a80_A_KKU_KU",
@@ -10374,7 +10374,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CMU_CU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "CMU",
         "category": "กิตติมศักดิ์",
@@ -10435,7 +10435,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_KKU_KU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "KKU",
         "category": "กิตติมศักดิ์",
@@ -10496,7 +10496,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CU_PSU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "CU",
         "category": "กิตติมศักดิ์",
@@ -10557,7 +10557,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CMU_KU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "CMU",
         "category": "กิตติมศักดิ์",
@@ -10618,7 +10618,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_KKU_PSU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "KKU",
         "category": "กิตติมศักดิ์",
@@ -10679,7 +10679,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CU_KU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "CU",
         "category": "กิตติมศักดิ์",
@@ -10740,7 +10740,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CMU_PSU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "CMU",
         "category": "กิตติมศักดิ์",
@@ -10801,7 +10801,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CU_KKU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "CU",
         "category": "กิตติมศักดิ์",
@@ -10862,7 +10862,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_KU_PSU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "KU",
         "category": "กิตติมศักดิ์",
@@ -10923,7 +10923,7 @@
       "id": "M_cat_2rl2t02s52s52t02sh2so2sx2rl2s42t02to_-_CMU_KKU",
       "category": "กิตติมศักดิ์",
       "group": "-",
-      "court": "20",
+      "court": "18",
       "teamA": {
         "university": "CMU",
         "category": "กิตติมศักดิ์",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784036605394
+  "lastUpdated": 1784171049260
 }

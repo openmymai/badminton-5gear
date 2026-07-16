@@ -2612,16 +2612,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 5,
-        "s2a": 21,
-        "s2b": 3
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 52
+      "version": 0
     },
     {
       "id": "M_a80_A_KKU_KU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784171051320
+  "lastUpdated": 1784170999217
 }
