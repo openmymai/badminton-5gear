@@ -166,24 +166,19 @@ export default function LeaderboardPage() {
   return (
     <main className="relative h-screen w-full bg-[#05070d] text-white flex flex-col overflow-y-auto md:overflow-hidden p-3 sm:p-4 md:p-6 gap-3 sm:gap-4">
       
-      {/* 5 GEAR Artwork (Background Watermark) */}
-      <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-0">
-        <div className="relative w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] md:w-[700px] md:h-[700px] opacity-[0.12] blur-[2px]">
-          <Image 
-            src="/5gearlogo.png" 
-            alt="5 Gear Background Artwork" 
-            fill
-            className="object-contain"
-            priority
-            sizes="(max-width: 640px) 300px, (max-width: 1024px) 500px, 700px"
-          />
-        </div>
-      </div>
-
-      {/* Header - Logo removed, wrapped in z-10 */}
+      {/* Header */}
       <header className="relative z-10 shrink-0 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-3 sm:gap-4">
-          {/* Logo was here - Removed as requested */}
+          <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-2xl overflow-hidden shrink-0 shadow-lg border border-white">
+            <Image
+              src="/5gearlogo.jpg"
+              alt="5 Gear Logo"
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 640px) 48px, 56px"
+            />
+          </div>
           <div className="leading-tight text-center md:text-left">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight italic uppercase">5 GEAR</h1>
             <p className="text-blue-300/80 tracking-[2px] sm:tracking-[4px] uppercase font-bold text-[9px] sm:text-[10px] mt-0.5">Badminton Tournament</p>
@@ -269,15 +264,6 @@ export default function LeaderboardPage() {
 
         {rankings.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center py-10">
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-4 sm:mb-6 animate-pulse opacity-40">
-              <Image 
-                src="/5gearlogo.png" 
-                alt="Loading" 
-                fill
-                className="object-contain"
-                sizes="(max-width: 640px) 48px, 56px"
-              />
-            </div>
             <p className="text-lg sm:text-2xl md:text-3xl font-black uppercase tracking-[4px] sm:tracking-[8px] text-center px-4 opacity-40">Waiting for Matches</p>
           </div>
         )}
