@@ -34,6 +34,7 @@ echo "--- Finished ---"
 # เปิด Services.msc (หาใน Start)
 # หาชื่อ OpenSSH SSH Server -> คลิกขวาเลือก Properties -> ปรับ Startup type เป็น Automatic และกด Start
 # ตั้งรหัสผ่านให้ User Windows: (ถ้ายังไม่มี) เพราะ SSH จำเป็นต้องใช้รหัสผ่าน หรือ SSH Key
+
 # ขั้นตอนที่ 2: ตั้งค่า SSH Key (ให้ Ubuntu เข้า Windows ได้โดยไม่ต้องใช้รหัส)
 # ที่เครื่อง Ubuntu (อยู่นอก Docker):
 # รันคำสั่ง: ssh-keygen -t rsa (Enter ไปเรื่อยๆ จนจบ)
@@ -42,3 +43,9 @@ echo "--- Finished ---"
 # ก๊อปปี้ข้อความทั้งหมดที่ปรากฏ
 # ไปที่เครื่อง Windows เข้าไปที่โฟลเดอร์ C:\Users\ชื่อของคุณ\.ssh\ (ถ้าไม่มีโฟลเดอร์ให้สร้างขึ้นมา)
 # สร้างไฟล์ชื่อ authorized_keys แล้ววางข้อความที่ก๊อปปี้มาลงไปในไฟล์นี้แล้วบันทึก
+
+# ขั้นตอนที่ 3: ตั้งค่าให้ส่งอัตโนมัติ (Crontab)
+# เพื่อให้ Ubuntu ส่งไฟล์ไปให้ Windows ตลอดเวลา (เช่น ทุก 15 นาที):
+# พิมพ์คำสั่ง crontab -e
+# เพิ่มบรรทัดนี้ลงไป (ปรับ path ให้ตรงกับที่อยู่ไฟล์จริง):
+# */15 * * * * /bin/bash /home/user/project/push-to-standby.sh >> /home/user/project/backup.log 2>&1
