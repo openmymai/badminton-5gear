@@ -3,7 +3,7 @@
 # --- ตั้งค่าตัวแปร ---
 WIN_USER="your_windows_username"
 WIN_IP="192.168.1.xxx"
-WIN_DEST_PATH="C:/Users/Name/Desktop/badminton-project/data"
+
 LOCAL_DATA_PATH="./data"
 
 echo "--- Starting Continuous Sync (Every 10s) ---"
@@ -28,6 +28,10 @@ done
 
 
 # รันสคริปต์นี้ทิ้งไว้ในโหมด Background
+
+# 0. Change folder name
+# WIN_DEST_PATH="C:/Users/Name/Desktop/badminton-project/data"
+
 # 1.ทำให้ไฟล์รันได้:
 # chmod +x sync-loop.sh
 
