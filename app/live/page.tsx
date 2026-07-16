@@ -66,6 +66,12 @@ export default function LiveBoardPage() {
   // รอบตามจำนวนคิวจริงของสนามนั้นๆ โดยไม่ต้องมี state แยกรายสนาม
   const [dynamicTick, setDynamicTick] = useState(0);
 
+  // เก็บ timestamp ล่าสุดที่แต่ละแมตช์ถูกอัปเดตคะแนน (จาก match-updated / matches-updated)
+  // เอาไว้ใช้เลือก "คู่ปัจจุบัน" ของแต่ละสนาม — ปกติจะเป็นคู่แรกตามคิว (order) แต่ถ้า
+  // กรรมการดันไปกดคะแนนคู่ที่อยู่หลังคิว (เช่นสลับคู่กันแข่งก่อนเพราะบางทีมยังไม่พร้อม)
+  // คู่นั้นควรถูกดึงขึ้นมาโชว์เป็นคู่ปัจจุบันแทน ไม่ใช่ค้างอยู่ในคิวด้านล่างเฉยๆ
+  const [lastUpdatedMap, setLastUpdatedMap] = useState<Record<string, number>>({});
+
   useEffect(() => {
     const s = io();
     socketRef.current = s;
@@ -73,20 +79,31 @@ export default function LiveBoardPage() {
     s.on('disconnect', () => setConnected(false));
 
     // ทั้งชุด — ตอนเชื่อมต่อครั้งแรก และตอน import Excel / ล้างข้อมูลทั้งหมด
+    // ไม่แตะ lastUpdatedMap ตรงนี้ เพราะเป็นการโหลดข้อมูลตั้งต้น ไม่ใช่การกดคะแนนจริง
     s.on('data-updated', (data) => {
       if (data?.matches && Array.isArray(data.matches)) setMatches(data.matches);
     });
 
-    // คะแนน/สถานะของแมตช์เดียวเปลี่ยน (เกิดถี่ที่สุด) — merge เฉพาะแมตช์นั้น
+    // คะแนน/สถานะของแมตช์เดียวเปลี่ยน (เกิดถี่ที่สุด) — merge เฉพาะแมตช์นั้น พร้อม
+    // บันทึกเวลาล่าสุดของแมตช์นี้ไว้ เพื่อใช้เลือกเป็นคู่ปัจจุบันของสนามนั้น
     s.on('match-updated', (updatedMatch: Match) => {
       if (!updatedMatch?.id) return;
       setMatches(prev => mergeMatchUpdates(prev, [updatedMatch]));
+      setLastUpdatedMap(prev => ({ ...prev, [updatedMatch.id]: Date.now() }));
     });
 
     // แก้สนามทั้งรุ่น/สาย หรือแก้ชื่อนักกีฬาที่กระทบหลายแมตช์พร้อมกัน
     s.on('matches-updated', (updatedMatches: Match[]) => {
       if (!Array.isArray(updatedMatches) || updatedMatches.length === 0) return;
       setMatches(prev => mergeMatchUpdates(prev, updatedMatches));
+      setLastUpdatedMap(prev => {
+        const next = { ...prev };
+        const now = Date.now();
+        updatedMatches.forEach(m => {
+          if (m?.id) next[m.id] = now;
+        });
+        return next;
+      });
     });
 
     return () => { s.disconnect(); };
@@ -129,17 +146,38 @@ export default function LiveBoardPage() {
       map.set(m.court, list);
     });
     return Array.from(map.entries())
-      .map(([court, ms]) => ({
-        court,
-        matches: [...ms].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      }))
+      .map(([court, ms]) => {
+        // ลำดับตามคิวปกติ (order ที่ Admin จัดไว้) — ใช้เป็นค่าเริ่มต้นและใช้เรียงคิว
+        // ที่เหลือด้านล่างการ์ด (ไม่รวมคู่ปัจจุบันที่เลือกได้จากด้านล่าง)
+        const orderedList = [...ms].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+        // หาแมตช์ที่เพิ่งถูกกดคะแนนล่าสุดในสนามนี้ (ถ้ามี) เพื่อดึงขึ้นมาเป็น "คู่ปัจจุบัน"
+        // แทนคู่แรกตามคิว — กรณีกรรมการสลับไปแข่งคู่อื่นก่อน (บางทีมยังไม่พร้อม ฯลฯ)
+        // แล้วเริ่มกดคะแนนคู่ที่อยู่หลังคิว คู่นั้นควรถูกดึงขึ้นมาโชว์แทนที่จะค้างในคิว
+        let mostRecentMatch: Match | null = null;
+        let mostRecentTime = 0;
+        orderedList.forEach(m => {
+          const t = lastUpdatedMap[m.id] ?? 0;
+          if (t > mostRecentTime) {
+            mostRecentTime = t;
+            mostRecentMatch = m;
+          }
+        });
+
+        const current = mostRecentMatch ?? orderedList[0];
+        // คิวที่เหลือยังคงเรียงตามลำดับคิวเดิม (ไม่ใช่ตามเวลาอัปเดต) เพื่อให้อ่านง่าย
+        // และคาดเดาได้ ไม่กระโดดสลับตำแหน่งกันไปมาทุกครั้งที่มีการกดคะแนน
+        const rest = orderedList.filter(m => m.id !== current.id);
+
+        return { court, matches: [current, ...rest] };
+      })
       .sort((a, b) => {
         const na = Number(a.court);
         const nb = Number(b.court);
         if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
         return a.court.localeCompare(b.court);
       });
-  }, [matches]);
+  }, [matches, lastUpdatedMap]);
 
   const totalLiveMatches = useMemo(() => matches.filter(m => !m.isFinished).length, [matches]);
 
