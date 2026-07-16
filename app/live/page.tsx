@@ -349,17 +349,22 @@ export default function LiveBoardPage() {
                               colorClass={setsB >= setsA ? 'text-red-400' : 'text-slate-600'}
                             />
                           </div>
-                          <div className="mt-1 flex items-center gap-1.5 text-[9px] font-bold tabular-nums text-slate-600">
-                            <span className="flex items-center gap-0.5">
-                              <FlashScore key={`${current.id}-s1a`} value={current.score.s1a} colorClass="text-slate-600" />
-                              <span>-</span>
-                              <FlashScore key={`${current.id}-s1b`} value={current.score.s1b} colorClass="text-slate-600" />
+                          {/* Per-set scores (s1a-s1b, s2a-s2b) — bumped up from the old
+                              text-[9px] to text-xl/2xl so spectators can actually read
+                              them from a distance. Kept slightly smaller than the 3xl
+                              set-tally above it so the visual hierarchy (sets won > points
+                              in current set) still reads at a glance. */}
+                          <div className="mt-1.5 flex items-center gap-2.5 text-xl sm:text-2xl font-black tabular-nums text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <FlashScore key={`${current.id}-s1a`} value={current.score.s1a} colorClass="text-slate-400" />
+                              <span className="text-slate-700">-</span>
+                              <FlashScore key={`${current.id}-s1b`} value={current.score.s1b} colorClass="text-slate-400" />
                             </span>
-                            <span className="w-px h-2.5 bg-white/10" />
-                            <span className="flex items-center gap-0.5">
-                              <FlashScore key={`${current.id}-s2a`} value={current.score.s2a} colorClass="text-slate-600" />
-                              <span>-</span>
-                              <FlashScore key={`${current.id}-s2b`} value={current.score.s2b} colorClass="text-slate-600" />
+                            <span className="w-px h-5 bg-white/10" />
+                            <span className="flex items-center gap-1">
+                              <FlashScore key={`${current.id}-s2a`} value={current.score.s2a} colorClass="text-slate-400" />
+                              <span className="text-slate-700">-</span>
+                              <FlashScore key={`${current.id}-s2b`} value={current.score.s2b} colorClass="text-slate-400" />
                             </span>
                           </div>
                         </div>
