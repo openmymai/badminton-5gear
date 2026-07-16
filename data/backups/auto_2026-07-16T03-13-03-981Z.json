@@ -2673,16 +2673,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 10,
-        "s2a": 14,
-        "s2b": 21
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
       "isFinished": false,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 67
+      "version": 0
     },
     {
       "id": "M_a80_A_CU_PSU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784171916154
+  "lastUpdated": 1784171572520
 }

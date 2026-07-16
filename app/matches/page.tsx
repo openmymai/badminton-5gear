@@ -463,7 +463,10 @@ export default function MatchesPage() {
                       <div className={`w-14 h-14 lg:w-20 lg:h-20 flex items-center justify-center rounded-2xl border-2 font-black text-3xl lg:text-5xl shrink-0 transition-all duration-500 ${
                         setsA > setsB ? 'bg-blue-600/20 border-blue-500/50 text-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.2)]' : 'bg-white/5 border-white/10 text-slate-700'
                       }`}>
-                        {setsA}
+                        <FlashScore
+                          value={setsA}
+                          colorClass={setsA > setsB ? 'text-blue-400' : 'text-slate-700'}
+                        />
                       </div>
                     </div>
 
@@ -489,7 +492,10 @@ export default function MatchesPage() {
                       <div className={`w-14 h-14 lg:w-20 lg:h-20 flex items-center justify-center rounded-2xl border-2 font-black text-3xl lg:text-5xl shrink-0 transition-all duration-500 ${
                         setsB > setsA ? 'bg-red-600/20 border-red-500/50 text-red-400 shadow-[0_0_25px_rgba(239,68,68,0.2)]' : 'bg-white/5 border-white/10 text-slate-700'
                       }`}>
-                        {setsB}
+                        <FlashScore
+                          value={setsB}
+                          colorClass={setsB > setsA ? 'text-red-400' : 'text-slate-700'}
+                        />
                       </div>
                     </div>
                   </div>
@@ -501,15 +507,19 @@ export default function MatchesPage() {
                     <div className="w-full flex items-center justify-around bg-white/5 rounded-2xl border border-white/10 p-3">
                       <div className="text-center">
                         <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Set 1</p>
-                        <p className={`text-base font-black tabular-nums ${m.score.s1a >= 21 || m.score.s1b >= 21 ? 'text-emerald-400' : 'text-slate-500'}`}>
-                          {m.score.s1a} - {m.score.s1b}
+                        <p className={`text-base font-black tabular-nums flex items-center justify-center gap-1 ${m.score.s1a >= 21 || m.score.s1b >= 21 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                          <FlashScore value={m.score.s1a} colorClass={m.score.s1a >= 21 || m.score.s1b >= 21 ? 'text-emerald-400' : 'text-slate-500'} />
+                          <span>-</span>
+                          <FlashScore value={m.score.s1b} colorClass={m.score.s1a >= 21 || m.score.s1b >= 21 ? 'text-emerald-400' : 'text-slate-500'} />
                         </p>
                       </div>
                       <div className="w-px h-8 bg-white/10" />
                       <div className="text-center">
                         <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Set 2</p>
-                        <p className={`text-base font-black tabular-nums ${m.score.s2a >= 21 || m.score.s2b >= 21 ? 'text-emerald-400' : 'text-slate-500'}`}>
-                          {m.score.s2a} - {m.score.s2b}
+                        <p className={`text-base font-black tabular-nums flex items-center justify-center gap-1 ${m.score.s2a >= 21 || m.score.s2b >= 21 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                          <FlashScore value={m.score.s2a} colorClass={m.score.s2a >= 21 || m.score.s2b >= 21 ? 'text-emerald-400' : 'text-slate-500'} />
+                          <span>-</span>
+                          <FlashScore value={m.score.s2b} colorClass={m.score.s2a >= 21 || m.score.s2b >= 21 ? 'text-emerald-400' : 'text-slate-500'} />
                         </p>
                       </div>
                     </div>
@@ -617,6 +627,51 @@ export default function MatchesPage() {
         /* ลบส่วน @import และการตั้งค่า body { font-family } ออกไปเลย */
       `}</style>
     </main>
+  );
+}
+
+// FlashScore: แสดงตัวเลขคะแนน เมื่อค่าเปลี่ยน (เทียบกับ prev value ผ่าน useRef) จะเล่น
+// แอนิเมชัน scale 1 -> 1.4 -> 1 พร้อมเปลี่ยนเป็นสีเขียว + glow shadow เป็นเวลา 0.5 วินาที
+// ก่อนกลับไปใช้สีปกติ (colorClass ที่ส่งเข้ามา) — เหมือนกับหน้า Live Score และ Live Board
+// หน้านี้การ์ดแต่ละใบ key ด้วย m.id อยู่แล้วและไม่มีการสลับ "แมตช์ปัจจุบัน" ของการ์ด
+// เดิมเหมือนหน้า Live Board จึงไม่ต้องใส่ key พิเศษเพิ่มตอนเรียกใช้
+function FlashScore({
+  value,
+  colorClass,
+  className = '',
+}: {
+  value: number;
+  colorClass: string;
+  className?: string;
+}) {
+  const prevValueRef = useRef(value);
+  const [isFlashing, setIsFlashing] = useState(false);
+
+  useEffect(() => {
+    if (prevValueRef.current !== value) {
+      setIsFlashing(true);
+      const timer = setTimeout(() => setIsFlashing(false), 500);
+      prevValueRef.current = value;
+      return () => clearTimeout(timer);
+    }
+    prevValueRef.current = value;
+  }, [value]);
+
+  return (
+    <motion.span
+      className={`inline-block tabular-nums ${className} ${
+        isFlashing ? 'text-emerald-400' : colorClass
+      }`}
+      animate={isFlashing ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut', times: [0, 0.4, 1] }}
+      style={
+        isFlashing
+          ? { textShadow: '0 0 10px rgba(16,185,129,0.9), 0 0 20px rgba(16,185,129,0.5)' }
+          : undefined
+      }
+    >
+      {value}
+    </motion.span>
   );
 }
 

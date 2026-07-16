@@ -299,14 +299,30 @@ export default function LiveBoardPage() {
 
                         <div className="shrink-0 bg-black/40 border border-white/10 rounded-2xl px-4 py-2 flex flex-col items-center">
                           <div className="flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
-                            <span className={setsA >= setsB ? 'text-blue-400' : 'text-slate-600'}>{setsA}</span>
+                            <FlashScore
+                              key={`${current.id}-setsA`}
+                              value={setsA}
+                              colorClass={setsA >= setsB ? 'text-blue-400' : 'text-slate-600'}
+                            />
                             <span className="text-slate-700 text-lg">–</span>
-                            <span className={setsB >= setsA ? 'text-red-400' : 'text-slate-600'}>{setsB}</span>
+                            <FlashScore
+                              key={`${current.id}-setsB`}
+                              value={setsB}
+                              colorClass={setsB >= setsA ? 'text-red-400' : 'text-slate-600'}
+                            />
                           </div>
                           <div className="mt-1 flex items-center gap-1.5 text-[9px] font-bold tabular-nums text-slate-600">
-                            <span>{current.score.s1a}-{current.score.s1b}</span>
+                            <span className="flex items-center gap-0.5">
+                              <FlashScore key={`${current.id}-s1a`} value={current.score.s1a} colorClass="text-slate-600" />
+                              <span>-</span>
+                              <FlashScore key={`${current.id}-s1b`} value={current.score.s1b} colorClass="text-slate-600" />
+                            </span>
                             <span className="w-px h-2.5 bg-white/10" />
-                            <span>{current.score.s2a}-{current.score.s2b}</span>
+                            <span className="flex items-center gap-0.5">
+                              <FlashScore key={`${current.id}-s2a`} value={current.score.s2a} colorClass="text-slate-600" />
+                              <span>-</span>
+                              <FlashScore key={`${current.id}-s2b`} value={current.score.s2b} colorClass="text-slate-600" />
+                            </span>
                           </div>
                         </div>
 
@@ -376,6 +392,52 @@ export default function LiveBoardPage() {
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style> */}
     </main>
+  );
+}
+
+// FlashScore: แสดงตัวเลขคะแนน เมื่อค่าเปลี่ยน (เทียบกับ prev value ผ่าน useRef)
+// จะเล่นแอนิเมชัน scale 1 -> 1.4 -> 1 พร้อมเปลี่ยนเป็นสีเขียว + glow shadow เป็นเวลา
+// 0.5 วินาที ก่อนกลับไปใช้สีปกติ (colorClass ที่ส่งเข้ามา) — เหมือนกับหน้า Live Score
+// ใช้ key={matchId + field} ตอนเรียกใช้ เพื่อให้พอ "คู่ปัจจุบัน" ของสนามเปลี่ยนไปเป็น
+// แมตช์ใหม่ (คู่เดิมจบแล้ว) component จะ remount สดใหม่ ไม่เอา ref ของแมตช์เก่ามาเทียบ
+// ผิดคู่จนเกิดการแฟลชหลอกๆ
+function FlashScore({
+  value,
+  colorClass,
+  className = '',
+}: {
+  value: number;
+  colorClass: string;
+  className?: string;
+}) {
+  const prevValueRef = useRef(value);
+  const [isFlashing, setIsFlashing] = useState(false);
+
+  useEffect(() => {
+    if (prevValueRef.current !== value) {
+      setIsFlashing(true);
+      const timer = setTimeout(() => setIsFlashing(false), 500);
+      prevValueRef.current = value;
+      return () => clearTimeout(timer);
+    }
+    prevValueRef.current = value;
+  }, [value]);
+
+  return (
+    <motion.span
+      className={`inline-block tabular-nums ${className} ${
+        isFlashing ? 'text-emerald-400' : colorClass
+      }`}
+      animate={isFlashing ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut', times: [0, 0.4, 1] }}
+      style={
+        isFlashing
+          ? { textShadow: '0 0 10px rgba(16,185,129,0.9), 0 0 20px rgba(16,185,129,0.5)' }
+          : undefined
+      }
+    >
+      {value}
+    </motion.span>
   );
 }
 
