@@ -102,6 +102,16 @@ export default function LiveScorePage() {
   const [activationOrder, setActivationOrder] = useState<Record<string, number>>({});
   const activationCounterRef = useRef(0);
 
+  // เก็บ "ลำดับการอัปเดตล่าสุด" ของแต่ละแมตช์ — ต่างจาก activationOrder ตรงที่
+  // ค่านี้จะขยับขึ้นทุกครั้งที่มีการอัปเดตคะแนน/สถานะ (ไม่ล็อกตำแหน่งเหมือน activationOrder)
+  // ใช้สำหรับ toggle "จบล่าสุดก่อน" ในตารางด้านล่าง เพราะแมตช์ที่เพิ่งจบล่าสุดจะเป็น
+  // แมตช์ที่เพิ่งมี match-updated เข้ามาล่าสุดนั่นเอง (จบเมื่อไหร่ก็คืออัปเดตครั้งสุดท้ายเมื่อนั้น)
+  const [lastUpdateOrder, setLastUpdateOrder] = useState<Record<string, number>>({});
+  const updateCounterRef = useRef(0);
+
+  // toggle เรียงคู่ที่จบแล้วในตารางด้านล่าง: false = เรียงตามสนาม (ปกติ), true = จบล่าสุดขึ้นก่อน
+  const [sortFinishedRecentFirst, setSortFinishedRecentFirst] = useState(false);
+
   useEffect(() => {
     const s: Socket = io();
     s.on('connect', () => setConnected(true));
@@ -115,6 +125,8 @@ export default function LiveScorePage() {
       if (data?.matches && Array.isArray(data.matches)) setMatches(data.matches);
       setActivationOrder({});
       activationCounterRef.current = 0;
+      setLastUpdateOrder({});
+      updateCounterRef.current = 0;
     });
 
     // "match-updated" — คะแนน/สถานะของแมตช์เดียวเปลี่ยน (เกิดถี่ที่สุด เช่น
@@ -129,6 +141,9 @@ export default function LiveScorePage() {
         activationCounterRef.current += 1;
         return { ...prev, [updatedMatch.id]: activationCounterRef.current };
       });
+      updateCounterRef.current += 1;
+      const seq = updateCounterRef.current;
+      setLastUpdateOrder(prev => ({ ...prev, [updatedMatch.id]: seq }));
     });
 
     // "matches-updated" — แก้สนามทั้งรุ่น/สาย หรือแก้ชื่อนักกีฬาที่กระทบหลายแมตช์
@@ -148,6 +163,16 @@ export default function LiveScorePage() {
           }
         });
         return changed ? next : prev;
+      });
+      setLastUpdateOrder(prev => {
+        const next = { ...prev };
+        updatedMatches.forEach(m => {
+          if (m?.id) {
+            updateCounterRef.current += 1;
+            next[m.id] = updateCounterRef.current;
+          }
+        });
+        return next;
       });
     });
 
@@ -297,6 +322,22 @@ export default function LiveScorePage() {
     return { live, finished, all: filteredMatches.length };
   }, [filteredMatches]);
 
+  // แมตช์ที่ "กำลังถูกกดคะแนนอยู่ตอนนี้" — คือแมตช์ live ที่มีการกดคะแนนอย่างน้อย
+  // 1 ครั้งในเซสชันนี้แล้ว (มีอยู่ใน activationOrder) แยกออกมาให้ admin เห็นภาพรวม
+  // ได้เร็วว่ากรรมการกำลังโฟกัสอยู่คู่ไหนบ้าง โดยไม่ต้องไล่หาในตารางรายละเอียดด้านล่าง
+  const activeScoringMatches = useMemo(() => {
+    const byCourt = (a: Match, b: Match) =>
+      a.court.localeCompare(b.court, undefined, { numeric: true });
+    return filteredMatches
+      .filter(m => !m.isFinished && Object.prototype.hasOwnProperty.call(activationOrder, m.id))
+      .sort((a, b) => {
+        const ao = activationOrder[a.id] ?? 0;
+        const bo = activationOrder[b.id] ?? 0;
+        if (ao !== bo) return bo - ao;
+        return byCourt(a, b);
+      });
+  }, [filteredMatches, activationOrder]);
+
   const matchList = useMemo(() => {
     const byStatus = filteredMatches.filter(m => {
       if (statusFilter === 'LIVE') return !m.isFinished;
@@ -307,25 +348,25 @@ export default function LiveScorePage() {
     const byCourt = (a: Match, b: Match) =>
       a.court.localeCompare(b.court, undefined, { numeric: true });
 
-    // เรียงกลุ่ม Live ด้วยกันเอง: แมตช์ที่ "เริ่ม" ถูกกดคะแนนก่อน (ลำดับ activation
-    // น้อยกว่า = เริ่มก่อน) จะโชว์เหนือแมตช์ที่เพิ่งเริ่มถูกกดทีหลัง — เรียงครั้งเดียว
-    // ตอนเริ่ม ไม่ใช่ทุกครั้งที่แต้มเปลี่ยน จึงไม่มีการแซงสลับตำแหน่งกันไปมาเวลากรรมการ
-    // สลับกดคะแนนคนละสนาม แมตช์ที่ยังไม่เคยถูกกดคะแนนเลย (ไม่มีใน activationOrder)
-    // จะตกไปอยู่ท้ายกลุ่ม Live และเรียงตามเลขสนามกันเองเป็น fallback
-    const byActivationThenCourt = (a: Match, b: Match) => {
-      const ao = activationOrder[a.id] ?? 0;
-      const bo = activationOrder[b.id] ?? 0;
+    // toggle "จบล่าสุดก่อน": เรียงคู่ที่จบแล้วด้วย lastUpdateOrder (ลำดับการอัปเดตล่าสุด)
+    // จากมากไปน้อย — คู่ที่เพิ่งมีการกดคะแนนครั้งสุดท้าย (ซึ่งก็คือตอนกดจบแมตช์) จะขึ้นก่อน
+    // ช่วยให้ admin ตรวจสอบ/แก้ไขคู่ที่เพิ่งจบล่าสุดได้ง่ายโดยไม่ต้องไล่หาทั้งตาราง
+    const byRecentFinishedThenCourt = (a: Match, b: Match) => {
+      const ao = lastUpdateOrder[a.id] ?? 0;
+      const bo = lastUpdateOrder[b.id] ?? 0;
       if (ao !== bo) return bo - ao;
       return byCourt(a, b);
     };
 
-    // แยก live/finished ออกจากกันก่อน เพื่อการันตีว่าแมตช์ live อยู่บนสุดของทั้งรายการเสมอ
-    // ไม่ว่าจำนวนแมตช์จะเปลี่ยนแปลงแค่ไหน ส่วนกลุ่มที่จบแล้วยังคงเรียงตามสนามตามปกติ
-    const live = byStatus.filter(m => !m.isFinished).sort(byActivationThenCourt);
-    const finished = byStatus.filter(m => m.isFinished).sort(byCourt);
+    // แมตช์ live เรียงตามสนามตามปกติ — คู่ที่กำลังถูกกดคะแนนอยู่ตอนนี้ถูกแยกไปโชว์ใน
+    // ตาราง "กำลังกดคะแนนอยู่ตอนนี้" ด้านบนของหน้าแทนแล้ว จึงไม่ต้องปักหมุดไว้บนสุดที่นี่อีก
+    const live = byStatus.filter(m => !m.isFinished).sort(byCourt);
+    const finished = byStatus
+      .filter(m => m.isFinished)
+      .sort(sortFinishedRecentFirst ? byRecentFinishedThenCourt : byCourt);
 
     return [...live, ...finished];
-  }, [filteredMatches, statusFilter, activationOrder]);
+  }, [filteredMatches, statusFilter, lastUpdateOrder, sortFinishedRecentFirst]);
 
   const selectedLabel = selectedOption?.label ?? null;
 
@@ -392,6 +433,102 @@ export default function LiveScorePage() {
               {g.label}
             </button>
           ))}
+        </div>
+
+        {/* แมตช์ที่กำลังถูกกดคะแนนอยู่ตอนนี้ — แยกออกมาจากตารางรายละเอียดด้านล่าง เพื่อให้
+            admin เห็นภาพรวมได้เร็วว่ากรรมการกำลังกดคะแนนคู่ไหนอยู่บ้าง ไม่ต้องไล่หาในตารางยาว */}
+        <div className="bg-white/[0.03] border border-amber-400/20 rounded-3xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-300">
+              กำลังกดคะแนนอยู่ตอนนี้{selectedLabel && <span className="text-emerald-400"> · {selectedLabel}</span>}
+            </h2>
+            <span className="ml-auto text-[10px] font-black text-amber-400 tabular-nums">
+              {activeScoringMatches.length} คู่
+            </span>
+          </div>
+
+          {activeScoringMatches.length === 0 ? (
+            <div className="py-8 flex flex-col items-center justify-center text-slate-700">
+              <p className="font-bold uppercase tracking-widest text-[10px] text-slate-600">
+                ยังไม่มีคู่ที่กรรมการกำลังกดคะแนนอยู่ในขณะนี้
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-white/5">
+              {activeScoringMatches.map(m => {
+                const eff = calculateEffectiveSets(m);
+                return (
+                  <div key={m.id}>
+                    <div className="hidden sm:flex px-5 py-3 items-center gap-4">
+                      <div className="w-20 shrink-0">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-600">สนาม {m.court}</p>
+                        <p className="text-[9px] font-bold text-slate-500 truncate">{m.category} · {m.group}</p>
+                      </div>
+
+                      <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
+                        <TeamNames team={m.teamA} align="right" color="text-blue-400" />
+
+                        <div className="shrink-0 flex items-center gap-1.5 tabular-nums">
+                          <ScorePair a={m.score.s1a} b={m.score.s1b} />
+                          <span className="w-px h-3 bg-white/10" />
+                          <ScorePair a={m.score.s2a} b={m.score.s2b} />
+                        </div>
+
+                        <TeamNames team={m.teamB} align="left" color="text-red-400" />
+                      </div>
+
+                      <div className="w-20 shrink-0 text-right">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-400/10 border border-amber-400/30 rounded-full text-[8px] font-black text-amber-400 uppercase tracking-widest">
+                          <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" /> Live
+                        </span>
+                        {eff && (
+                          <p className="text-[9px] font-black tabular-nums text-slate-500 mt-0.5">
+                            Sets {eff.setsA}-{eff.setsB}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="sm:hidden px-4 py-3 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-slate-600">สนาม {m.court}</p>
+                          <p className="text-[9px] font-bold text-slate-500 truncate">{m.category} · {m.group}</p>
+                        </div>
+                        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-400/10 border border-amber-400/30 rounded-full text-[8px] font-black text-amber-400 uppercase tracking-widest">
+                          <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" /> Live
+                        </span>
+                      </div>
+
+                      <MobileTeamRow
+                        team={m.teamA}
+                        color="text-blue-400"
+                        mySet1={m.score.s1a}
+                        oppSet1={m.score.s1b}
+                        mySet2={m.score.s2a}
+                        oppSet2={m.score.s2b}
+                      />
+                      <MobileTeamRow
+                        team={m.teamB}
+                        color="text-red-400"
+                        mySet1={m.score.s1b}
+                        oppSet1={m.score.s1a}
+                        mySet2={m.score.s2b}
+                        oppSet2={m.score.s2a}
+                      />
+
+                      {eff && (
+                        <p className="text-[9px] font-black tabular-nums text-slate-500 text-right pt-0.5">
+                          Sets {eff.setsA}-{eff.setsB}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Head-to-head standings table */}
@@ -543,6 +680,20 @@ export default function LiveScorePage() {
                 }`}
               >
                 จบแล้ว ({statusCounts.finished})
+              </button>
+
+              <span className="w-px h-4 bg-white/10 mx-0.5" />
+
+              <button
+                onClick={() => setSortFinishedRecentFirst(v => !v)}
+                title="เรียงคู่ที่จบแล้วโดยเอาคู่ที่จบล่าสุดขึ้นก่อน"
+                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wide transition-all ${
+                  sortFinishedRecentFirst
+                    ? 'bg-sky-400 text-black shadow-[0_0_15px_rgba(56,189,248,0.4)]'
+                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                }`}
+              >
+                จบล่าสุดขึ้นก่อน{sortFinishedRecentFirst ? ' ✓' : ''}
               </button>
             </div>
           </div>

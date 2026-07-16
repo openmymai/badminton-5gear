@@ -4381,16 +4381,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 5,
-        "s2a": 21,
-        "s2b": 4
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 53
+      "version": 0
     },
     {
       "id": "M_a90_B_CMU_KU",
@@ -8590,16 +8590,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
+        "s1a": 18,
         "s1b": 6,
-        "s2a": 21,
-        "s2b": 10
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 60
+      "version": 24
     },
     {
       "id": "M_a130_-_CU_KKU",
@@ -8651,16 +8651,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 9,
-        "s2a": 21,
-        "s2b": 8
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 62
+      "version": 0
     },
     {
       "id": "M_a130_-_KU_PSU",
@@ -8712,16 +8712,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 3,
-        "s2a": 21,
-        "s2b": 5
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 52
+      "version": 0
     },
     {
       "id": "M_a130_-_CMU_KKU",
@@ -8773,16 +8773,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 3,
-        "s2a": 21,
-        "s2b": 1
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
       "isFinished": false,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 50
+      "version": 0
     },
     {
       "id": "M_a130_-_CU_KU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784240839264
+  "lastUpdated": 1784218062162
 }
