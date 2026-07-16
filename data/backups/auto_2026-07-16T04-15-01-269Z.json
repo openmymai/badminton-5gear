@@ -782,16 +782,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 9,
-        "s2a": 21,
-        "s2b": 7
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 59
+      "version": 0
     },
     {
       "id": "M_general_B_CU_PSU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784175347395
+  "lastUpdated": 1784175282838
 }

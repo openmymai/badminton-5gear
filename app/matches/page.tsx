@@ -127,20 +127,29 @@ export default function MatchesPage() {
   const hasMountedCourtRef = useRef(false);
   const [flashCourts, setFlashCourts] = useState<Record<string, boolean>>({});
 
+  // เก็บ timestamp ล่าสุดที่แต่ละแมตช์ถูกอัปเดตคะแนน (จาก match-updated / matches-updated)
+  // เอาไว้ใช้เลือก "คู่ที่ต้องประกาศ" ของแต่ละสนาม — ปกติจะเป็นคู่แรกตามคิว (order) แต่
+  // ถ้ากรรมการสลับไปกดคะแนนคู่ที่อยู่หลังคิวก่อน (บางทีมยังไม่พร้อม ฯลฯ) คู่นั้นควรถูก
+  // ถือเป็นคู่ที่ต้องประกาศแทน เพื่อให้แผงประกาศด่วนกระพริบแจ้ง admin ถูกคู่
+  const [lastUpdatedMap, setLastUpdatedMap] = useState<Record<string, number>>({});
+
   useEffect(() => {
     setBaseUrl(window.location.origin);
     socketRef.current = io();
 
     // ทั้งชุด — ตอนเชื่อมต่อครั้งแรก และตอน import Excel / ล้างข้อมูลทั้งหมด
+    // ไม่แตะ lastUpdatedMap ตรงนี้ เพราะเป็นการโหลดข้อมูลตั้งต้น ไม่ใช่การกดคะแนนจริง
     socketRef.current.on('data-updated', (data: { matches: Match[] }) => {
       if (data?.matches) setMatches(data.matches);
     });
 
     // คะแนน/สถานะของแมตช์เดียวเปลี่ยน — เกิดถี่ที่สุด เพราะทุกครั้งที่กรรมการกด
     // คะแนนในหน้า Score จะยิง event นี้มาที่นี่ด้วย (แทนที่ data-updated เดิม)
+    // พร้อมบันทึกเวลาล่าสุดของแมตช์นี้ไว้ เพื่อใช้เลือกเป็นคู่ที่ต้องประกาศของสนามนั้น
     socketRef.current.on('match-updated', (updatedMatch: Match) => {
       if (!updatedMatch?.id) return;
       setMatches(prev => mergeMatchUpdates(prev, [updatedMatch]));
+      setLastUpdatedMap(prev => ({ ...prev, [updatedMatch.id]: Date.now() }));
     });
 
     // แก้สนามทั้งรุ่น/สาย หรือแก้ชื่อนักกีฬาที่กระทบหลายแมตช์พร้อมกัน (รวมถึงตอน
@@ -150,6 +159,14 @@ export default function MatchesPage() {
     socketRef.current.on('matches-updated', (updatedMatches: Match[]) => {
       if (!Array.isArray(updatedMatches) || updatedMatches.length === 0) return;
       setMatches(prev => mergeMatchUpdates(prev, updatedMatches));
+      setLastUpdatedMap(prev => {
+        const next = { ...prev };
+        const now = Date.now();
+        updatedMatches.forEach(m => {
+          if (m?.id) next[m.id] = now;
+        });
+        return next;
+      });
     });
 
     socketRef.current.on('action-error', (err: { message?: string }) => {
@@ -164,25 +181,41 @@ export default function MatchesPage() {
   const filteredMatches = filterCategory === 'All' ? matches : matches.filter(m => m.category === filterCategory);
 
   // คำนวณสถานะของแต่ละคู่ โดยยึดลำดับคิวจริงต่อคอร์ท (field `order` ที่ admin
-  // จัดพักทีมไว้) แทนลำดับ array เดิม — ดู groupMatchesByCourtOrdered ด้านบน
+  // จัดพักทีมไว้) เป็นฐาน แต่ "คู่ที่ต้องประกาศ" ของแต่ละสนามจะเลือกจากคู่ที่เพิ่งถูก
+  // กดคะแนนล่าสุด (ถ้ามี) ก่อนเสมอ — เพื่อรองรับกรณีกรรมการสลับไปแข่งคู่หลังคิวก่อน
+  // ถ้ายังไม่มีใครกดคะแนนคู่ไหนในสนามนั้นเลย จะ fallback กลับไปใช้คู่แรกตามคิวเหมือนเดิม
   const matchStatusMap = useMemo(() => {
     const map: Record<string, CourtMatchStatus> = {};
     const byCourt = groupMatchesByCourtOrdered(matches);
     Object.values(byCourt).forEach(list => {
-      let announced = false;
+      const nonFinished = list.filter(m => !m.isFinished);
+
+      let announceId: string | null = null;
+      if (nonFinished.length > 0) {
+        let mostRecentTime = 0;
+        let mostRecentMatch: Match | null = null;
+        nonFinished.forEach(m => {
+          const t = lastUpdatedMap[m.id] ?? 0;
+          if (t > mostRecentTime) {
+            mostRecentTime = t;
+            mostRecentMatch = m;
+          }
+        });
+        announceId = (mostRecentMatch ?? nonFinished[0]).id;
+      }
+
       list.forEach(m => {
         if (m.isFinished) {
           map[m.id] = 'finished';
-        } else if (!announced) {
+        } else if (m.id === announceId) {
           map[m.id] = 'announce';
-          announced = true;
         } else {
           map[m.id] = 'queued';
         }
       });
     });
     return map;
-  }, [matches]);
+  }, [matches, lastUpdatedMap]);
 
   // สรุปสถานะรายคอร์ท ใช้แสดงในแผงประกาศด่วนด้านบน — group เดียวกับ matchStatusMap
   // (เรียงตามคิวจริง) เพื่อให้ "คู่ถัดไปที่ต้องประกาศ" ตรงกับสถานะที่คำนวณไว้เป๊ะ

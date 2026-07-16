@@ -660,16 +660,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
+        "s1a": 21,
         "s1b": 0,
         "s2a": 0,
-        "s2b": 0
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 47
     },
     {
       "id": "M_general_B_KU_PSU",
@@ -721,16 +721,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 2,
+        "s2a": 2,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 48
     },
     {
       "id": "M_general_B_CMU_KKU",
@@ -782,16 +782,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 7
       },
       "isFinished": false,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 58
     },
     {
       "id": "M_general_B_CU_PSU",
@@ -2800,11 +2800,11 @@
         "s2a": 21,
         "s2b": 0
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 5,
       "isBye": false,
       "byeWinner": null,
-      "version": 42
+      "version": 43
     },
     {
       "id": "M_a80_A_KU_PSU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784174720660
+  "lastUpdated": 1784175345040
 }
