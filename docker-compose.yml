@@ -8,6 +8,10 @@ services:
     container_name: badminton_app
     ports:
       - '3000:3000'
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535    
     environment:
       - NODE_ENV=production
       - ADMIN_USERNAME=admin
