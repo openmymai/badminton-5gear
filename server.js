@@ -49,9 +49,9 @@ try {
 } catch (err) {
   console.error(
     `[Data] FATAL: cannot write to ${DATA_DIR} (${err.message}). ` +
-    `If this is Docker, check that the bind-mounted directory is writable by ` +
-    `the container's user (uid 1001 in this image) — e.g. run ` +
-    `"chmod 777 ./data" on the host, or "chown -R 1001:1001 ./data".`
+      `If this is Docker, check that the bind-mounted directory is writable by ` +
+      `the container's user (uid 1001 in this image) — e.g. run ` +
+      `"chmod 777 ./data" on the host, or "chown -R 1001:1001 ./data".`
   );
 }
 
@@ -64,13 +64,13 @@ const emptyRoster = () => ({
   entries: [],
   categories: [],
   courtMode: "auto",
-  manualCourts: {}
+  manualCourts: {},
 });
 
 const emptyData = () => ({
   matches: [],
   roster: emptyRoster(),
-  lastUpdated: Date.now()
+  lastUpdated: Date.now(),
 });
 
 // ---------- Validation helpers ----------
@@ -126,7 +126,8 @@ const isValidMatch = (m) => {
 const isValidRoster = (r) => {
   if (!isPlainObject(r)) return false;
   if (!Array.isArray(r.entries) || !r.entries.every(isValidTeam)) return false;
-  if (!Array.isArray(r.categories) || !r.categories.every((c) => typeof c === "string")) return false;
+  if (!Array.isArray(r.categories) || !r.categories.every((c) => typeof c === "string"))
+    return false;
   if (r.courtMode !== "auto" && r.courtMode !== "manual") return false;
   if (!isPlainObject(r.manualCourts)) return false;
   if (
@@ -182,9 +183,9 @@ const SAVE_MAX_WAIT_MS = 3000; // ...but never let writes be delayed longer than
 let autoBackupTimer = null;
 let firstPendingBackupChangeAt = null;
 
-const AUTO_BACKUP_IDLE_MS = 30 * 1000;      // back up after 5 min of quiet
+const AUTO_BACKUP_IDLE_MS = 30 * 1000; // back up after 5 min of quiet
 const AUTO_BACKUP_MAX_WAIT_MS = 30 * 1000; // ...but at least every 15 min regardless
-const MAX_AUTO_BACKUPS = 100;                    // retention cap so this can't grow forever
+const MAX_AUTO_BACKUPS = 100; // retention cap so this can't grow forever
 
 const scheduleAutoBackup = () => {
   const now = Date.now();
@@ -210,8 +211,16 @@ async function performAutoBackup() {
       await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
     }
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const finalPath = path.join(BACKUP_DIR, `auto_${timestamp}.json`);
+    const tmpPath = path.join(BACKUP_DIR, `.auto_${timestamp}.json.tmp`);
     const snapshot = JSON.stringify(cachedData, null, 2); // sync snapshot of current memory state
-    await fs.promises.writeFile(path.join(BACKUP_DIR, `auto_${timestamp}.json`), snapshot);
+    // Atomic write (tmp file → rename), same pattern as flushToDisk() for
+    // data.json — writing straight to the final filename can get caught
+    // mid-write by a process kill/container restart, leaving a truncated
+    // auto_*.json that still shows up in the backup list (readdir doesn't
+    // validate content) but fails JSON.parse — and therefore restore — later.
+    await fs.promises.writeFile(tmpPath, snapshot);
+    await fs.promises.rename(tmpPath, finalPath);
     console.log(`[Backup] Auto backup saved: auto_${timestamp}.json`);
     await pruneOldAutoBackups();
   } catch (err) {
@@ -353,7 +362,10 @@ async function flushToDisk() {
     await fs.promises.writeFile(TMP_FILE, snapshot);
     await fs.promises.rename(TMP_FILE, DATA_FILE);
   } catch (err) {
-    console.error("[Data] Async flush to disk failed (cache is still intact, will retry on next change):", err.message);
+    console.error(
+      "[Data] Async flush to disk failed (cache is still intact, will retry on next change):",
+      err.message
+    );
   } finally {
     isFlushing = false;
     if (flushAgainAfter) {
@@ -400,8 +412,11 @@ function performAutoBackupSync() {
       fs.mkdirSync(BACKUP_DIR, { recursive: true });
     }
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const finalPath = path.join(BACKUP_DIR, `auto_${timestamp}.json`);
+    const tmpPath = path.join(BACKUP_DIR, `.auto_${timestamp}.json.tmp`);
     const snapshot = JSON.stringify(cachedData, null, 2);
-    fs.writeFileSync(path.join(BACKUP_DIR, `auto_${timestamp}.json`), snapshot);
+    fs.writeFileSync(tmpPath, snapshot);
+    fs.renameSync(tmpPath, finalPath);
     console.log(`[Backup] Final sync auto backup saved before shutdown: auto_${timestamp}.json`);
 
     // Prune synchronously too, same retention rule as the async path.
@@ -415,7 +430,11 @@ function performAutoBackupSync() {
       withTimes.sort((a, b) => b.mtime - a.mtime); // newest first
       const toDelete = withTimes.slice(MAX_AUTO_BACKUPS);
       toDelete.forEach((f) => {
-        try { fs.unlinkSync(path.join(BACKUP_DIR, f.file)); } catch (_) { /* best effort */ }
+        try {
+          fs.unlinkSync(path.join(BACKUP_DIR, f.file));
+        } catch (_) {
+          /* best effort */
+        }
       });
       if (toDelete.length > 0) {
         console.log(`[Backup] Pruned ${toDelete.length} old auto backup(s) during shutdown`);
@@ -473,423 +492,437 @@ const mergeMatches = (existingMatches, incomingMatches) => {
 // Load the cache once, synchronously, before we start accepting connections.
 loadDataFromDisk();
 
-app.prepare().then(() => {
-  const httpServer = createServer(async (req, res) => {
-    try {
-      const parsedUrl = parse(req.url, true);
-      await handle(req, res, parsedUrl);
-    } catch (err) {
-      console.error("[HTTP] Unhandled request error:", err);
-      res.statusCode = 500;
-      res.end("internal server error");
-    }
-  });
-
-  const io = new Server(httpServer, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
-  });
-
-  io.on("connection", (socket) => {
-    console.log(`[Socket] Connected: ${socket.id}`);
-
-    try {
-      const data = readData();
-      // Full snapshot is only needed once, right after a client connects —
-      // every subsequent change is pushed incrementally via
-      // "match-updated" / "matches-updated" (see handlers below), so a
-      // client that's been open for a while never has to re-receive the
-      // whole match list just because one score changed somewhere.
-      socket.emit("data-updated", data);
-      // Send the roster separately too so the admin page (which only cares
-      // about roster, not match results) can listen to a lighter event.
-      socket.emit("roster-updated", data.roster);
-    } catch (err) {
-      console.error("[Socket] Error sending initial data:", err);
-    }
-
-    // อัปเดตเฉพาะแมตช์เดียว (คะแนน, สนาม, สถานะ, รายชื่อทีม, แท็ก walkover/bye)
-    socket.on("update-score", (payload) => {
+app
+  .prepare()
+  .then(() => {
+    const httpServer = createServer(async (req, res) => {
       try {
-        if (!isPlainObject(payload) || typeof payload.matchId !== "string") {
-          socket.emit("action-error", { message: "ข้อมูลที่ส่งมาไม่ถูกต้อง (update-score)" });
-          return;
-        }
-        const { matchId, score, isFinished, court, teamA, teamB, isBye, byeWinner, version } = payload;
-
-        if (score !== undefined && !isValidScore(score)) {
-          socket.emit("action-error", { message: "รูปแบบคะแนนไม่ถูกต้อง" });
-          return;
-        }
-        if (teamA !== undefined && !isValidTeam(teamA)) {
-          socket.emit("action-error", { message: "ข้อมูลทีม A ไม่ถูกต้อง" });
-          return;
-        }
-        if (teamB !== undefined && !isValidTeam(teamB)) {
-          socket.emit("action-error", { message: "ข้อมูลทีม B ไม่ถูกต้อง" });
-          return;
-        }
-        if (isBye !== undefined && typeof isBye !== "boolean") {
-          socket.emit("action-error", { message: "รูปแบบสถานะ Walkover/Bye ไม่ถูกต้อง" });
-          return;
-        }
-        if (byeWinner !== undefined && !isValidByeWinner(byeWinner)) {
-          socket.emit("action-error", { message: "รูปแบบผู้ชนะ Walkover/Bye ไม่ถูกต้อง" });
-          return;
-        }
-        if (version !== undefined && typeof version !== "number") {
-          socket.emit("action-error", { message: "รูปแบบ version ไม่ถูกต้อง" });
-          return;
-        }
-
-        const data = readData();
-        const index = data.matches.findIndex((m) => m.id === matchId);
-
-        if (index === -1) {
-          socket.emit("action-error", { message: `ไม่พบแมตช์ ${matchId}` });
-          return;
-        }
-
-        const current = data.matches[index];
-
-        // --- Sequence number / version control ---
-        // The client bumps its own local counter by 1 on every tap and sends
-        // that as a hint. The SERVER is the actual source of truth: it always
-        // advances at least 1 past whatever it currently has stored, but will
-        // jump ahead to the client's number if that's higher (e.g. several
-        // taps queued up client-side and only the latest one reached us after
-        // the debounce). This guarantees the version is strictly increasing
-        // even with two phones scoring the same match at once, so no client
-        // is ever fooled into overwriting a newer score with an older one.
-        const currentVersion = current.version ?? 0;
-        const clientVersion = typeof version === "number" ? version : 0;
-        const nextVersion = Math.max(currentVersion + 1, clientVersion);
-
-        if (score !== undefined) current.score = score;
-        if (isFinished !== undefined) current.isFinished = Boolean(isFinished);
-        if (court !== undefined) current.court = String(court);
-        if (teamA !== undefined) current.teamA = teamA;
-        if (teamB !== undefined) current.teamB = teamB;
-        if (isBye !== undefined) current.isBye = isBye;
-        if (byeWinner !== undefined) current.byeWinner = byeWinner;
-        current.version = nextVersion;
-
-        data.lastUpdated = Date.now();
-        if (saveData(data)) {
-          // Broadcast ONLY this single match, not the whole dataset — this is
-          // the highest-frequency event in the app (every +1/-1 tap), so
-          // keeping the payload to one match instead of the full match list
-          // is what actually makes the live views feel instant as the
-          // tournament grows. Sent to everyone EXCEPT the sender, since the
-          // sender already applied this change optimistically the instant
-          // they tapped — echoing the same update back only risks visibly
-          // "snapping" the score if a slightly-stale packet from an earlier
-          // save happens to arrive after this one.
-          socket.broadcast.emit("match-updated", current);
-
-          // The sender still needs to know their update actually landed and,
-          // more importantly, what version the SERVER assigned to it — which
-          // may be higher than their own guess if another device also
-          // scored this match in between. This keeps the sender's local
-          // sequence counter exactly aligned with the server's.
-          socket.emit("score-ack", {
-            matchId,
-            version: nextVersion,
-            score: current.score,
-            isFinished: current.isFinished,
-          });
-        } else {
-          socket.emit("action-error", { message: "บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่" });
-        }
+        const parsedUrl = parse(req.url, true);
+        await handle(req, res, parsedUrl);
       } catch (err) {
-        console.error("[Socket] update-score error:", err);
-        socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะบันทึกคะแนน" });
+        console.error("[HTTP] Unhandled request error:", err);
+        res.statusCode = 500;
+        res.end("internal server error");
       }
     });
 
-    // รับตารางแข่งขันที่สร้างใหม่ทั้งชุดจากหน้า Admin แล้ว merge เข้ากับของเดิม
-    // (แมตช์ที่มีอยู่แล้วจะคงคะแนน/ผลเดิม รวมถึงแท็ก walkover/bye และ version ไว้
-    // ไม่ถูกรีเซ็ต)
-    //
-    // หมายเหตุ: การ import เปลี่ยนรูปร่างของตารางทั้งชุด (มีแมตช์ใหม่เพิ่ม/แมตช์
-    // เดิมหาย) จึงยัง broadcast แบบ "data-updated" (ทั้งชุด) ตามเดิม ต่างจาก
-    // update-score/update-group-court/update-player-name ที่แก้แค่บางแมตช์และ
-    // เปลี่ยนไปส่งเฉพาะส่วนที่อัปเดตแล้ว
-    //
-    // รองรับ payload สองรูปแบบ เพื่อความเข้ากันได้ย้อนหลัง:
-    //   1. รูปแบบเดิม — array ของแมตช์ล้วนๆ (รวมถึง [] สำหรับปุ่ม "ล้างข้อมูล
-    //      ทั้งหมด") จะถือว่า "ยืนยันแล้ว" ทันทีเหมือนพฤติกรรมเดิมทุกประการ
-    //      ไม่มีการเตือนใดๆ เพิ่มขึ้นมา
-    //   2. รูปแบบใหม่ — { matches, confirmDrop } ใช้ตอนสร้างตารางจากหน้า Admin
-    //      ปัจจุบัน หาก merge แล้วพบว่ามีคู่เดิม (droppedMatches) ที่จะหายไป
-    //      และ confirmDrop ยังไม่ true จะยังไม่บันทึกข้อมูล แต่ยิง event
-    //      "import-would-drop-matches" กลับไปแทน ให้ฝั่ง client ยืนยันก่อน
-    //      แล้วส่งซ้ำพร้อม confirmDrop: true
-    socket.on("import-excel", (payload) => {
+    const io = new Server(httpServer, {
+      cors: { origin: "*", methods: ["GET", "POST"] },
+    });
+
+    io.on("connection", (socket) => {
+      console.log(`[Socket] Connected: ${socket.id}`);
+
       try {
-        let newMatches;
-        let confirmDrop;
+        const data = readData();
+        // Full snapshot is only needed once, right after a client connects —
+        // every subsequent change is pushed incrementally via
+        // "match-updated" / "matches-updated" (see handlers below), so a
+        // client that's been open for a while never has to re-receive the
+        // whole match list just because one score changed somewhere.
+        socket.emit("data-updated", data);
+        // Send the roster separately too so the admin page (which only cares
+        // about roster, not match results) can listen to a lighter event.
+        socket.emit("roster-updated", data.roster);
+      } catch (err) {
+        console.error("[Socket] Error sending initial data:", err);
+      }
 
-        if (Array.isArray(payload)) {
-          // รูปแบบเดิม — ถือว่ายืนยันแล้วเสมอ เพื่อไม่ให้พฤติกรรมเดิม (รวมถึง
-          // ปุ่ม "ล้างข้อมูลทั้งหมด" ที่ยิง [] ตรงๆ) เปลี่ยนไป
-          newMatches = payload;
-          confirmDrop = true;
-        } else if (isPlainObject(payload) && Array.isArray(payload.matches)) {
-          newMatches = payload.matches;
-          confirmDrop = Boolean(payload.confirmDrop);
-        } else {
-          socket.emit("action-error", { message: "รูปแบบข้อมูลตารางแข่งขันไม่ถูกต้อง" });
-          return;
-        }
-
-        // อนุญาตให้ส่ง [] เพื่อล้างข้อมูลทั้งหมดโดยตั้งใจ (ปุ่ม "ล้างข้อมูลทั้งหมด")
-        // หมายเหตุ: การล้างนี้ล้างเฉพาะตารางแข่ง (matches) เท่านั้น ส่วน roster
-        // จะถูกล้างแยกผ่าน event "update-roster" ที่หน้า Admin ส่งมาคู่กัน
-        if (newMatches.length === 0) {
-          const current = readData();
-          const cleared = { ...current, matches: [], lastUpdated: Date.now() };
-          if (saveData(cleared)) {
-            io.emit("data-updated", cleared);
-            console.log("[Sync] Match schedule cleared by admin");
-          } else {
-            socket.emit("action-error", { message: "ล้างข้อมูลไม่สำเร็จ กรุณาลองใหม่" });
+      // อัปเดตเฉพาะแมตช์เดียว (คะแนน, สนาม, สถานะ, รายชื่อทีม, แท็ก walkover/bye)
+      socket.on("update-score", (payload) => {
+        try {
+          if (!isPlainObject(payload) || typeof payload.matchId !== "string") {
+            socket.emit("action-error", { message: "ข้อมูลที่ส่งมาไม่ถูกต้อง (update-score)" });
+            return;
           }
-          return;
+          const { matchId, score, isFinished, court, teamA, teamB, isBye, byeWinner, version } =
+            payload;
+
+          if (score !== undefined && !isValidScore(score)) {
+            socket.emit("action-error", { message: "รูปแบบคะแนนไม่ถูกต้อง" });
+            return;
+          }
+          if (teamA !== undefined && !isValidTeam(teamA)) {
+            socket.emit("action-error", { message: "ข้อมูลทีม A ไม่ถูกต้อง" });
+            return;
+          }
+          if (teamB !== undefined && !isValidTeam(teamB)) {
+            socket.emit("action-error", { message: "ข้อมูลทีม B ไม่ถูกต้อง" });
+            return;
+          }
+          if (isBye !== undefined && typeof isBye !== "boolean") {
+            socket.emit("action-error", { message: "รูปแบบสถานะ Walkover/Bye ไม่ถูกต้อง" });
+            return;
+          }
+          if (byeWinner !== undefined && !isValidByeWinner(byeWinner)) {
+            socket.emit("action-error", { message: "รูปแบบผู้ชนะ Walkover/Bye ไม่ถูกต้อง" });
+            return;
+          }
+          if (version !== undefined && typeof version !== "number") {
+            socket.emit("action-error", { message: "รูปแบบ version ไม่ถูกต้อง" });
+            return;
+          }
+
+          const data = readData();
+          const index = data.matches.findIndex((m) => m.id === matchId);
+
+          if (index === -1) {
+            socket.emit("action-error", { message: `ไม่พบแมตช์ ${matchId}` });
+            return;
+          }
+
+          const current = data.matches[index];
+
+          // --- Sequence number / version control ---
+          // The client bumps its own local counter by 1 on every tap and sends
+          // that as a hint. The SERVER is the actual source of truth: it always
+          // advances at least 1 past whatever it currently has stored, but will
+          // jump ahead to the client's number if that's higher (e.g. several
+          // taps queued up client-side and only the latest one reached us after
+          // the debounce). This guarantees the version is strictly increasing
+          // even with two phones scoring the same match at once, so no client
+          // is ever fooled into overwriting a newer score with an older one.
+          const currentVersion = current.version ?? 0;
+          const clientVersion = typeof version === "number" ? version : 0;
+          const nextVersion = Math.max(currentVersion + 1, clientVersion);
+
+          if (score !== undefined) current.score = score;
+          if (isFinished !== undefined) current.isFinished = Boolean(isFinished);
+          if (court !== undefined) current.court = String(court);
+          if (teamA !== undefined) current.teamA = teamA;
+          if (teamB !== undefined) current.teamB = teamB;
+          if (isBye !== undefined) current.isBye = isBye;
+          if (byeWinner !== undefined) current.byeWinner = byeWinner;
+          current.version = nextVersion;
+
+          data.lastUpdated = Date.now();
+          if (saveData(data)) {
+            // Broadcast ONLY this single match, not the whole dataset — this is
+            // the highest-frequency event in the app (every +1/-1 tap), so
+            // keeping the payload to one match instead of the full match list
+            // is what actually makes the live views feel instant as the
+            // tournament grows. Sent to everyone EXCEPT the sender, since the
+            // sender already applied this change optimistically the instant
+            // they tapped — echoing the same update back only risks visibly
+            // "snapping" the score if a slightly-stale packet from an earlier
+            // save happens to arrive after this one.
+            socket.broadcast.emit("match-updated", current);
+
+            // The sender still needs to know their update actually landed and,
+            // more importantly, what version the SERVER assigned to it — which
+            // may be higher than their own guess if another device also
+            // scored this match in between. This keeps the sender's local
+            // sequence counter exactly aligned with the server's.
+            socket.emit("score-ack", {
+              matchId,
+              version: nextVersion,
+              score: current.score,
+              isFinished: current.isFinished,
+            });
+          } else {
+            socket.emit("action-error", { message: "บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่" });
+          }
+        } catch (err) {
+          console.error("[Socket] update-score error:", err);
+          socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะบันทึกคะแนน" });
         }
+      });
 
-        const invalidIndex = newMatches.findIndex((m) => !isValidMatch(m));
-        if (invalidIndex !== -1) {
-          socket.emit("action-error", {
-            message: `พบข้อมูลแมตช์ไม่ถูกต้องที่ตำแหน่ง ${invalidIndex + 1} กรุณาตรวจสอบข้อมูลนำเข้า`
-          });
-          return;
-        }
+      // รับตารางแข่งขันที่สร้างใหม่ทั้งชุดจากหน้า Admin แล้ว merge เข้ากับของเดิม
+      // (แมตช์ที่มีอยู่แล้วจะคงคะแนน/ผลเดิม รวมถึงแท็ก walkover/bye และ version ไว้
+      // ไม่ถูกรีเซ็ต)
+      //
+      // หมายเหตุ: การ import เปลี่ยนรูปร่างของตารางทั้งชุด (มีแมตช์ใหม่เพิ่ม/แมตช์
+      // เดิมหาย) จึงยัง broadcast แบบ "data-updated" (ทั้งชุด) ตามเดิม ต่างจาก
+      // update-score/update-group-court/update-player-name ที่แก้แค่บางแมตช์และ
+      // เปลี่ยนไปส่งเฉพาะส่วนที่อัปเดตแล้ว
+      //
+      // รองรับ payload สองรูปแบบ เพื่อความเข้ากันได้ย้อนหลัง:
+      //   1. รูปแบบเดิม — array ของแมตช์ล้วนๆ (รวมถึง [] สำหรับปุ่ม "ล้างข้อมูล
+      //      ทั้งหมด") จะถือว่า "ยืนยันแล้ว" ทันทีเหมือนพฤติกรรมเดิมทุกประการ
+      //      ไม่มีการเตือนใดๆ เพิ่มขึ้นมา
+      //   2. รูปแบบใหม่ — { matches, confirmDrop } ใช้ตอนสร้างตารางจากหน้า Admin
+      //      ปัจจุบัน หาก merge แล้วพบว่ามีคู่เดิม (droppedMatches) ที่จะหายไป
+      //      และ confirmDrop ยังไม่ true จะยังไม่บันทึกข้อมูล แต่ยิง event
+      //      "import-would-drop-matches" กลับไปแทน ให้ฝั่ง client ยืนยันก่อน
+      //      แล้วส่งซ้ำพร้อม confirmDrop: true
+      socket.on("import-excel", (payload) => {
+        try {
+          let newMatches;
+          let confirmDrop;
 
-        const existing = readData();
-        const { merged, preserved, added, droppedMatches } = mergeMatches(existing.matches, newMatches);
+          if (Array.isArray(payload)) {
+            // รูปแบบเดิม — ถือว่ายืนยันแล้วเสมอ เพื่อไม่ให้พฤติกรรมเดิม (รวมถึง
+            // ปุ่ม "ล้างข้อมูลทั้งหมด" ที่ยิง [] ตรงๆ) เปลี่ยนไป
+            newMatches = payload;
+            confirmDrop = true;
+          } else if (isPlainObject(payload) && Array.isArray(payload.matches)) {
+            newMatches = payload.matches;
+            confirmDrop = Boolean(payload.confirmDrop);
+          } else {
+            socket.emit("action-error", { message: "รูปแบบข้อมูลตารางแข่งขันไม่ถูกต้อง" });
+            return;
+          }
 
-        if (droppedMatches.length > 0 && !confirmDrop) {
-          // ยังไม่บันทึก — ส่งรายละเอียดคู่ที่จะหายไปกลับไปให้ผู้ส่งคนนี้เท่านั้น
-          // (ไม่ broadcast) เพื่อให้ยืนยันก่อน
-          socket.emit("import-would-drop-matches", {
-            droppedCount: droppedMatches.length,
-            droppedMatches: droppedMatches.map((m) => ({
-              id: m.id,
-              category: m.category,
-              group: m.group,
-              teamA: m.teamA?.university,
-              teamB: m.teamB?.university,
-              isFinished: m.isFinished,
-            })),
-          });
-          return;
-        }
+          // อนุญาตให้ส่ง [] เพื่อล้างข้อมูลทั้งหมดโดยตั้งใจ (ปุ่ม "ล้างข้อมูลทั้งหมด")
+          // หมายเหตุ: การล้างนี้ล้างเฉพาะตารางแข่ง (matches) เท่านั้น ส่วน roster
+          // จะถูกล้างแยกผ่าน event "update-roster" ที่หน้า Admin ส่งมาคู่กัน
+          if (newMatches.length === 0) {
+            const current = readData();
+            const cleared = { ...current, matches: [], lastUpdated: Date.now() };
+            if (saveData(cleared)) {
+              io.emit("data-updated", cleared);
+              console.log("[Sync] Match schedule cleared by admin");
+            } else {
+              socket.emit("action-error", { message: "ล้างข้อมูลไม่สำเร็จ กรุณาลองใหม่" });
+            }
+            return;
+          }
 
-        const newData = { ...existing, matches: merged, lastUpdated: Date.now() };
+          const invalidIndex = newMatches.findIndex((m) => !isValidMatch(m));
+          if (invalidIndex !== -1) {
+            socket.emit("action-error", {
+              message: `พบข้อมูลแมตช์ไม่ถูกต้องที่ตำแหน่ง ${invalidIndex + 1} กรุณาตรวจสอบข้อมูลนำเข้า`,
+            });
+            return;
+          }
 
-        if (saveData(newData)) {
-          io.emit("data-updated", newData);
-          console.log(
-            `[Sync] Schedule regenerated: ${merged.length} matches (${preserved} preserved with existing results, ${added} new` +
-            `${droppedMatches.length ? `, ${droppedMatches.length} dropped` : ""})`
+          const existing = readData();
+          const { merged, preserved, added, droppedMatches } = mergeMatches(
+            existing.matches,
+            newMatches
           );
-        } else {
-          socket.emit("action-error", { message: "บันทึกตารางแข่งขันไม่สำเร็จ กรุณาลองใหม่" });
-        }
-      } catch (err) {
-        console.error("[Socket] import-excel error:", err);
-        socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะสร้างตารางแข่งขัน" });
-      }
-    });
 
-    // รับสถานะห้องทำงานของ Admin ทั้งหมด (ทีม/นักกีฬาที่นำเข้า, ลำดับรุ่น,
-    // โหมด/ค่าสนามที่กำหนดเอง) แล้วบันทึกลง data.json ให้เป็น single source
-    // of truth — refresh หน้าเว็บ หรือเปิดจากเครื่อง Admin เครื่องอื่น จะเห็น
-    // ข้อมูลชุดเดียวกันเสมอ
-    socket.on("update-roster", (roster) => {
-      try {
-        if (!isValidRoster(roster)) {
-          socket.emit("action-error", { message: "ข้อมูลรายชื่อนักกีฬาไม่ถูกต้อง" });
-          return;
-        }
+          if (droppedMatches.length > 0 && !confirmDrop) {
+            // ยังไม่บันทึก — ส่งรายละเอียดคู่ที่จะหายไปกลับไปให้ผู้ส่งคนนี้เท่านั้น
+            // (ไม่ broadcast) เพื่อให้ยืนยันก่อน
+            socket.emit("import-would-drop-matches", {
+              droppedCount: droppedMatches.length,
+              droppedMatches: droppedMatches.map((m) => ({
+                id: m.id,
+                category: m.category,
+                group: m.group,
+                teamA: m.teamA?.university,
+                teamB: m.teamB?.university,
+                isFinished: m.isFinished,
+              })),
+            });
+            return;
+          }
 
-        const data = readData();
-        data.roster = roster;
-        data.lastUpdated = Date.now();
+          const newData = { ...existing, matches: merged, lastUpdated: Date.now() };
 
-        if (saveData(data)) {
-          io.emit("roster-updated", roster); // กระจายให้ทุกหน้า Admin ที่เปิดอยู่
-        } else {
-          socket.emit("action-error", { message: "บันทึกรายชื่อนักกีฬาไม่สำเร็จ กรุณาลองใหม่" });
+          if (saveData(newData)) {
+            io.emit("data-updated", newData);
+            console.log(
+              `[Sync] Schedule regenerated: ${merged.length} matches (${preserved} preserved with existing results, ${added} new` +
+                `${droppedMatches.length ? `, ${droppedMatches.length} dropped` : ""})`
+            );
+          } else {
+            socket.emit("action-error", { message: "บันทึกตารางแข่งขันไม่สำเร็จ กรุณาลองใหม่" });
+          }
+        } catch (err) {
+          console.error("[Socket] import-excel error:", err);
+          socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะสร้างตารางแข่งขัน" });
         }
-      } catch (err) {
-        console.error("[Socket] update-roster error:", err);
-        socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะบันทึกรายชื่อนักกีฬา" });
-      }
-    });
+      });
 
-    // แก้ชื่อนักกีฬาคนเดียว แต่ให้มีผลกับ "ทุกที่" ที่ทีมนี้ปรากฏอยู่ในคราวเดียว:
-    // ทุกแมตช์ของทีมนี้ (university+category+group) และ roster entry ต้นทาง
-    // (เดิมหน้า Matches ใช้วิธี re-emit ตารางแข่งทั้งชุดผ่าน "import-excel" ซึ่ง
-    // ทำงานได้แต่ไม่อัปเดต roster ทำให้ถ้า Admin สร้างตารางใหม่ทับ ชื่อที่แก้ไว้จะหาย)
-    socket.on("update-player-name", (payload) => {
-      try {
-        if (!isPlainObject(payload)) {
-          socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (update-player-name)" });
-          return;
-        }
-        const { university, category, group, playerId, newName } = payload;
-        if (
-          typeof university !== "string" ||
-          typeof category !== "string" ||
-          typeof group !== "string" ||
-          typeof playerId !== "string" ||
-          typeof newName !== "string"
-        ) {
-          socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (update-player-name)" });
-          return;
-        }
-        const trimmed = newName.trim();
-        if (!trimmed) {
-          socket.emit("action-error", { message: "ชื่อนักกีฬาต้องไม่ว่างเปล่า" });
-          return;
-        }
+      // รับสถานะห้องทำงานของ Admin ทั้งหมด (ทีม/นักกีฬาที่นำเข้า, ลำดับรุ่น,
+      // โหมด/ค่าสนามที่กำหนดเอง) แล้วบันทึกลง data.json ให้เป็น single source
+      // of truth — refresh หน้าเว็บ หรือเปิดจากเครื่อง Admin เครื่องอื่น จะเห็น
+      // ข้อมูลชุดเดียวกันเสมอ
+      socket.on("update-roster", (roster) => {
+        try {
+          if (!isValidRoster(roster)) {
+            socket.emit("action-error", { message: "ข้อมูลรายชื่อนักกีฬาไม่ถูกต้อง" });
+            return;
+          }
 
-        const data = readData();
-        let touched = false;
-        // เก็บเฉพาะแมตช์ที่ถูกแก้ไขจริง เพื่อ broadcast แบบเจาะจงแทนตารางทั้งชุด
-        const affectedMatches = [];
+          const data = readData();
+          data.roster = roster;
+          data.lastUpdated = Date.now();
 
-        data.matches.forEach((m) => {
-          if (m.category !== category || m.group !== group) return;
-          let matchTouched = false;
-          ["teamA", "teamB"].forEach((key) => {
-            const team = m[key];
-            if (team && team.university === university) {
-              team.players.forEach((p) => {
-                if (p.id === playerId) { p.name = trimmed; touched = true; matchTouched = true; }
+          if (saveData(data)) {
+            io.emit("roster-updated", roster); // กระจายให้ทุกหน้า Admin ที่เปิดอยู่
+          } else {
+            socket.emit("action-error", { message: "บันทึกรายชื่อนักกีฬาไม่สำเร็จ กรุณาลองใหม่" });
+          }
+        } catch (err) {
+          console.error("[Socket] update-roster error:", err);
+          socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะบันทึกรายชื่อนักกีฬา" });
+        }
+      });
+
+      // แก้ชื่อนักกีฬาคนเดียว แต่ให้มีผลกับ "ทุกที่" ที่ทีมนี้ปรากฏอยู่ในคราวเดียว:
+      // ทุกแมตช์ของทีมนี้ (university+category+group) และ roster entry ต้นทาง
+      // (เดิมหน้า Matches ใช้วิธี re-emit ตารางแข่งทั้งชุดผ่าน "import-excel" ซึ่ง
+      // ทำงานได้แต่ไม่อัปเดต roster ทำให้ถ้า Admin สร้างตารางใหม่ทับ ชื่อที่แก้ไว้จะหาย)
+      socket.on("update-player-name", (payload) => {
+        try {
+          if (!isPlainObject(payload)) {
+            socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (update-player-name)" });
+            return;
+          }
+          const { university, category, group, playerId, newName } = payload;
+          if (
+            typeof university !== "string" ||
+            typeof category !== "string" ||
+            typeof group !== "string" ||
+            typeof playerId !== "string" ||
+            typeof newName !== "string"
+          ) {
+            socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (update-player-name)" });
+            return;
+          }
+          const trimmed = newName.trim();
+          if (!trimmed) {
+            socket.emit("action-error", { message: "ชื่อนักกีฬาต้องไม่ว่างเปล่า" });
+            return;
+          }
+
+          const data = readData();
+          let touched = false;
+          // เก็บเฉพาะแมตช์ที่ถูกแก้ไขจริง เพื่อ broadcast แบบเจาะจงแทนตารางทั้งชุด
+          const affectedMatches = [];
+
+          data.matches.forEach((m) => {
+            if (m.category !== category || m.group !== group) return;
+            let matchTouched = false;
+            ["teamA", "teamB"].forEach((key) => {
+              const team = m[key];
+              if (team && team.university === university) {
+                team.players.forEach((p) => {
+                  if (p.id === playerId) {
+                    p.name = trimmed;
+                    touched = true;
+                    matchTouched = true;
+                  }
+                });
+              }
+            });
+            if (matchTouched) affectedMatches.push(m);
+          });
+
+          data.roster.entries.forEach((e) => {
+            if (e.university === university && e.category === category && e.group === group) {
+              e.players.forEach((p) => {
+                if (p.id === playerId) {
+                  p.name = trimmed;
+                  touched = true;
+                }
               });
             }
           });
-          if (matchTouched) affectedMatches.push(m);
-        });
 
-        data.roster.entries.forEach((e) => {
-          if (e.university === university && e.category === category && e.group === group) {
-            e.players.forEach((p) => {
-              if (p.id === playerId) { p.name = trimmed; touched = true; }
-            });
+          if (!touched) {
+            socket.emit("action-error", { message: "ไม่พบนักกีฬาที่ต้องการแก้ไขชื่อ" });
+            return;
           }
-        });
 
-        if (!touched) {
-          socket.emit("action-error", { message: "ไม่พบนักกีฬาที่ต้องการแก้ไขชื่อ" });
-          return;
+          data.lastUpdated = Date.now();
+          if (saveData(data)) {
+            // ส่งเฉพาะแมตช์ที่ชื่อถูกแก้ไข (อาจมีหลายแมตช์ถ้าทีมนี้ลงแข่งหลายคู่ใน
+            // รุ่น/สายเดียวกัน) แทนที่จะส่งตารางทั้งหมด
+            if (affectedMatches.length > 0) {
+              io.emit("matches-updated", affectedMatches);
+            }
+            io.emit("roster-updated", data.roster);
+          } else {
+            socket.emit("action-error", { message: "บันทึกชื่อนักกีฬาไม่สำเร็จ กรุณาลองใหม่" });
+          }
+        } catch (err) {
+          console.error("[Socket] update-player-name error:", err);
+          socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะแก้ไขชื่อนักกีฬา" });
         }
+      });
 
-        data.lastUpdated = Date.now();
-        if (saveData(data)) {
-          // ส่งเฉพาะแมตช์ที่ชื่อถูกแก้ไข (อาจมีหลายแมตช์ถ้าทีมนี้ลงแข่งหลายคู่ใน
-          // รุ่น/สายเดียวกัน) แทนที่จะส่งตารางทั้งหมด
-          if (affectedMatches.length > 0) {
+      // แก้สนามของ "ทั้งรุ่น/สาย" พร้อมกันในคราวเดียว — เพราะทุกแมตช์ในรุ่น/สาย
+      // เดียวกันควรลงสนามเดียวกันเสมอ (ตามที่หน้า Admin กำหนดไว้ตอนสร้างตาราง)
+      // แก้ทีละแมตช์จากหน้า Matches แบบเดิมทำให้แมตช์อื่นในกลุ่มเดียวกันสนามไม่ตรงกัน
+      socket.on("update-group-court", (payload) => {
+        try {
+          if (!isPlainObject(payload)) {
+            socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (update-group-court)" });
+            return;
+          }
+          const { category, group, court } = payload;
+          if (
+            typeof category !== "string" ||
+            typeof group !== "string" ||
+            (typeof court !== "string" && typeof court !== "number")
+          ) {
+            socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (update-group-court)" });
+            return;
+          }
+          const courtStr = String(court).trim();
+          if (!courtStr) {
+            socket.emit("action-error", { message: "กรุณาระบุหมายเลขสนาม" });
+            return;
+          }
+
+          const data = readData();
+          // เก็บเฉพาะแมตช์ที่ถูกแก้ไขจริง เพื่อ broadcast แบบเจาะจงแทนตารางทั้งชุด
+          const affectedMatches = [];
+          data.matches.forEach((m) => {
+            if (m.category === category && m.group === group) {
+              m.court = courtStr;
+              affectedMatches.push(m);
+            }
+          });
+
+          if (affectedMatches.length === 0) {
+            socket.emit("action-error", { message: "ไม่พบคู่แข่งขันในรุ่น/สายนี้" });
+            return;
+          }
+
+          data.lastUpdated = Date.now();
+          if (saveData(data)) {
+            // ส่งเฉพาะแมตช์ในรุ่น/สายที่แก้สนาม แทนที่จะส่งตารางทั้งหมด
             io.emit("matches-updated", affectedMatches);
+          } else {
+            socket.emit("action-error", { message: "บันทึกสนามไม่สำเร็จ กรุณาลองใหม่" });
           }
-          io.emit("roster-updated", data.roster);
-        } else {
-          socket.emit("action-error", { message: "บันทึกชื่อนักกีฬาไม่สำเร็จ กรุณาลองใหม่" });
+        } catch (err) {
+          console.error("[Socket] update-group-court error:", err);
+          socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะบันทึกสนาม" });
         }
-      } catch (err) {
-        console.error("[Socket] update-player-name error:", err);
-        socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะแก้ไขชื่อนักกีฬา" });
-      }
+      });
+
+      socket.on("get-match-details", (matchId) => {
+        try {
+          if (typeof matchId !== "string") return;
+          const data = readData();
+          const match = data.matches.find((m) => m.id === matchId);
+          if (match) socket.emit("match-data", match);
+        } catch (err) {
+          console.error("[Socket] get-match-details error:", err);
+        }
+      });
+
+      socket.on("disconnect", () => console.log(`[Socket] Disconnected: ${socket.id}`));
+
+      socket.on("error", (err) => {
+        console.error(`[Socket] Socket-level error (${socket.id}):`, err);
+      });
     });
 
-    // แก้สนามของ "ทั้งรุ่น/สาย" พร้อมกันในคราวเดียว — เพราะทุกแมตช์ในรุ่น/สาย
-    // เดียวกันควรลงสนามเดียวกันเสมอ (ตามที่หน้า Admin กำหนดไว้ตอนสร้างตาราง)
-    // แก้ทีละแมตช์จากหน้า Matches แบบเดิมทำให้แมตช์อื่นในกลุ่มเดียวกันสนามไม่ตรงกัน
-    socket.on("update-group-court", (payload) => {
-      try {
-        if (!isPlainObject(payload)) {
-          socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (update-group-court)" });
-          return;
-        }
-        const { category, group, court } = payload;
-        if (
-          typeof category !== "string" ||
-          typeof group !== "string" ||
-          (typeof court !== "string" && typeof court !== "number")
-        ) {
-          socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (update-group-court)" });
-          return;
-        }
-        const courtStr = String(court).trim();
-        if (!courtStr) {
-          socket.emit("action-error", { message: "กรุณาระบุหมายเลขสนาม" });
-          return;
-        }
-
-        const data = readData();
-        // เก็บเฉพาะแมตช์ที่ถูกแก้ไขจริง เพื่อ broadcast แบบเจาะจงแทนตารางทั้งชุด
-        const affectedMatches = [];
-        data.matches.forEach((m) => {
-          if (m.category === category && m.group === group) {
-            m.court = courtStr;
-            affectedMatches.push(m);
-          }
-        });
-
-        if (affectedMatches.length === 0) {
-          socket.emit("action-error", { message: "ไม่พบคู่แข่งขันในรุ่น/สายนี้" });
-          return;
-        }
-
-        data.lastUpdated = Date.now();
-        if (saveData(data)) {
-          // ส่งเฉพาะแมตช์ในรุ่น/สายที่แก้สนาม แทนที่จะส่งตารางทั้งหมด
-          io.emit("matches-updated", affectedMatches);
-        } else {
-          socket.emit("action-error", { message: "บันทึกสนามไม่สำเร็จ กรุณาลองใหม่" });
-        }
-      } catch (err) {
-        console.error("[Socket] update-group-court error:", err);
-        socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะบันทึกสนาม" });
-      }
+    io.on("connect_error", (err) => {
+      console.error("[Socket.IO] connect_error:", err);
     });
 
-    socket.on("get-match-details", (matchId) => {
-      try {
-        if (typeof matchId !== "string") return;
-        const data = readData();
-        const match = data.matches.find((m) => m.id === matchId);
-        if (match) socket.emit("match-data", match);
-      } catch (err) {
-        console.error("[Socket] get-match-details error:", err);
-      }
+    httpServer.listen(port, hostname, (err) => {
+      if (err) throw err;
+      console.log(`> Server ready on http://${hostname}:${port}`);
     });
 
-    socket.on("disconnect", () => console.log(`[Socket] Disconnected: ${socket.id}`));
-
-    socket.on("error", (err) => {
-      console.error(`[Socket] Socket-level error (${socket.id}):`, err);
+    httpServer.on("error", (err) => {
+      console.error("[HTTP] Server error:", err);
     });
+  })
+  .catch((err) => {
+    console.error("[Next] Failed to prepare app:", err);
+    process.exit(1);
   });
-
-  io.on("connect_error", (err) => {
-    console.error("[Socket.IO] connect_error:", err);
-  });
-
-  httpServer.listen(port, hostname, (err) => {
-    if (err) throw err;
-    console.log(`> Server ready on http://${hostname}:${port}`);
-  });
-
-  httpServer.on("error", (err) => {
-    console.error("[HTTP] Server error:", err);
-  });
-}).catch((err) => {
-  console.error("[Next] Failed to prepare app:", err);
-  process.exit(1);
-});
 
 // กันเซิร์ฟเวอร์ล้มทั้งตัวจาก error ที่หลุดรอดออกมา — log ไว้แล้วอยู่รอดต่อ
 process.on("uncaughtException", (err) => {
