@@ -4381,16 +4381,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 5,
-        "s2a": 19,
-        "s2b": 4
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
       "isFinished": false,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 50
+      "version": 0
     },
     {
       "id": "M_a90_B_CMU_KU",
@@ -6150,16 +6150,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 5,
+        "s2a": 5,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 54
     },
     {
       "id": "M_a110_A_CMU_KU",
@@ -6211,16 +6211,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 3
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 56
     },
     {
       "id": "M_a110_A_KKU_PSU",
@@ -6272,16 +6272,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 13
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 66
     },
     {
       "id": "M_a110_A_CU_KU",
@@ -8712,16 +8712,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 3,
-        "s2a": 21,
-        "s2b": 5
+        "s1a": 10,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 52
+      "version": 10
     },
     {
       "id": "M_a130_-_CMU_KKU",
@@ -8773,16 +8773,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 3,
-        "s2a": 21,
-        "s2b": 1
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
       "isFinished": false,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 50
+      "version": 0
     },
     {
       "id": "M_a130_-_CU_KU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784240835052
+  "lastUpdated": 1785421085124
 }

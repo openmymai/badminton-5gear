@@ -4930,16 +4930,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 19,
+        "s1b": 21,
+        "s2a": 4,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 67
     },
     {
       "id": "M_a100_A_KU_PSU",
@@ -4991,16 +4991,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 7,
+        "s1b": 21,
+        "s2a": 6,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 56
     },
     {
       "id": "M_a100_A_CMU_KKU",
@@ -6150,16 +6150,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 5,
+        "s2a": 5,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 54
     },
     {
       "id": "M_a110_A_CMU_KU",
@@ -6211,16 +6211,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 3
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 56
     },
     {
       "id": "M_a110_A_KKU_PSU",
@@ -6272,16 +6272,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 13
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 66
     },
     {
       "id": "M_a110_A_CU_KU",
@@ -6760,16 +6760,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 2,
+        "s2a": 21,
+        "s2b": 5
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 51
     },
     {
       "id": "M_a110_B_CU_KKU",
@@ -6821,16 +6821,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 5,
+        "s1b": 21,
+        "s2a": 11,
+        "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 59
     },
     {
       "id": "M_a110_B_CMU_PSU",
@@ -6882,16 +6882,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 5,
+        "s2a": 21,
+        "s2b": 5
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 54
     },
     {
       "id": "M_a110_B_CU_KU",
@@ -8590,16 +8590,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 6,
+        "s2a": 21,
+        "s2b": 10
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 60
     },
     {
       "id": "M_a130_-_CU_KKU",
@@ -8651,16 +8651,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 9,
+        "s2a": 21,
+        "s2b": 8
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 62
     },
     {
       "id": "M_a130_-_KU_PSU",
@@ -8712,7 +8712,7 @@
         ]
       },
       "score": {
-        "s1a": 0,
+        "s1a": 10,
         "s1b": 0,
         "s2a": 0,
         "s2b": 0
@@ -8721,7 +8721,7 @@
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 10
     },
     {
       "id": "M_a130_-_CMU_KKU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1784216425235
+  "lastUpdated": 1785421280534
 }

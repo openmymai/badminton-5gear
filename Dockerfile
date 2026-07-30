@@ -46,9 +46,6 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
@@ -61,9 +58,9 @@ COPY --from=builder /app/server.js ./server.js
 # read/write against it. Bind-mounting a directory doesn't have that failure mode.
 RUN mkdir -p data uploads
 
-RUN chown -R nextjs:nodejs /app
+RUN chown -R node:node /app
 
-USER nextjs
+USER node
 
 EXPOSE 3000
 
