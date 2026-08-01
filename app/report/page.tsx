@@ -1146,9 +1146,16 @@ function CategoryHeatmap({
         .attr("stroke", colorScale(d.uni))
         .attr("stroke-opacity", d.val > 0 ? 0.4 : 0.08);
 
+      // เลือกสีตัวเลขแบบไดนามิกตามความสว่างของพื้นหลัง cell (relative luminance)
+      // เพราะพื้นไล่จากเกือบดำ (ค่าน้อย) ไปจนถึงสีสดของแต่ละสถาบัน (ค่าเยอะ)
+      // สีตัวหนังสือตายตัวสีเดียวจะอ่านยากในบางช่วง จึงต้องคำนวณ contrast ให้เหมาะทุกช่อง
+      const cellColor = d3.rgb(fill);
+      const luminance = (0.299 * cellColor.r + 0.587 * cellColor.g + 0.114 * cellColor.b) / 255;
+      const textFill = luminance > 0.55 ? "#111827" : "#f8fafc";
+
       cellG
         .select<SVGTextElement>("text")
-        .attr("fill", "#05070d")
+        .style("fill", textFill)
         .text(d.val > 0 ? d.val : "");
     });
   }, [categories, universities, matrix, colorScale]);
