@@ -76,6 +76,10 @@ interface FlowNodeExtra {
   id: string;
   name: string;
   kind: "uni" | "cat";
+  // ลำดับที่ต้องการให้แสดงในคอลัมน์ของตัวเอง — สถาบันเรียงตามตัวอักษร (เดิม)
+  // ส่วนรุ่น-สายเรียงตาม CATEGORY_ORDER/heatmapRows (ทั่วไป, 70, 80, ... แยก A/B)
+  // แทนการเรียงตามตัวอักษรของชื่อ ซึ่งจะสลับ 100/110/... ผิดที่
+  order: number;
 }
 interface FlowLinkExtra {
   value: number;
@@ -399,10 +403,12 @@ export default function ReportPage() {
     const nodes: FlowNodeInput[] = [
       ...universities
         .filter((u) => usedUnis.has(u))
-        .map((u) => ({ id: `uni:${u}`, name: u, kind: "uni" as const })),
+        .map((u, i) => ({ id: `uni:${u}`, name: u, kind: "uni" as const, order: i })),
+      // heatmapRows เรียงตาม CATEGORY_ORDER อยู่แล้ว (ทั่วไป A/B, 70 A/B, 80, ...)
+      // filter แล้วยังคงลำดับเดิม จึงใช้ index ตรง ๆ เป็น order ได้เลย
       ...heatmapRows
         .filter((r) => usedCats.has(r))
-        .map((r) => ({ id: `cat:${r}`, name: r, kind: "cat" as const })),
+        .map((r, i) => ({ id: `cat:${r}`, name: r, kind: "cat" as const, order: i })),
     ];
 
     return { nodes, links };
@@ -821,7 +827,7 @@ function SankeyFlowChart({
       .nodeId((d) => d.id)
       .nodeWidth(12)
       .nodePadding(14)
-      .nodeSort((a, b) => a.name.localeCompare(b.name, "th"))
+      .nodeSort((a, b) => a.order - b.order)
       .extent([
         [margin.left, margin.top],
         [width - margin.right, height - margin.bottom],
@@ -903,12 +909,27 @@ function SankeyFlowChart({
             .attr("dy", "0.35em")
             .attr("x", (d) => (d.kind === "uni" ? -10 : (d.x1 ?? 0) - (d.x0 ?? 0) + 10))
             .attr("text-anchor", (d) => (d.kind === "uni" ? "end" : "start"))
-            .attr("fill", "#cbd5e1")
             .attr("font-size", 10.5)
             .attr("font-weight", 800)
-            .style("text-transform", "uppercase")
             .style("letter-spacing", "0.03em")
-            .text((d) => d.name);
+            .each(function (d) {
+              // ชื่อ + แต้มรวมที่ไหลผ่านโหนดนี้ — โชว์เฉพาะฝั่งสถาบัน ส่วนฝั่งรุ่น
+              // แสดงแค่ชื่อรุ่นเฉย ๆ ให้ดูโล่งกว่า
+              const t = d3.select(this);
+              t.append("tspan")
+                .attr("class", "name")
+                .attr("fill", "#cbd5e1")
+                .style("text-transform", "uppercase")
+                .text(d.name);
+              if (d.kind === "uni") {
+                t.append("tspan")
+                  .attr("class", "pts")
+                  .attr("dx", 5)
+                  .attr("font-weight", 900)
+                  .attr("fill", colorScale(d.name))
+                  .text(`(${Math.round(d.value ?? 0)})`);
+              }
+            });
 
           eg.call((enter) =>
             enter.transition().duration(dur).ease(d3.easeCubicOut).style("opacity", 1)
@@ -946,8 +967,24 @@ function SankeyFlowChart({
         .duration(dur)
         .ease(d3.easeCubicOut)
         .attr("y", h / 2)
-        .attr("x", d.kind === "uni" ? -10 : w + 10)
-        .text(d.name);
+        .attr("x", d.kind === "uni" ? -10 : w + 10);
+
+      sel.select<SVGTSpanElement>("text.label tspan.name").text(d.name);
+
+      if (d.kind === "uni") {
+        sel
+          .select<SVGTSpanElement>("text.label tspan.pts")
+          .transition()
+          .duration(dur)
+          .attr("fill", colorScale(d.name))
+          .textTween(function () {
+            const node = this as SVGTSpanElement;
+            const prev = Number(String(node.textContent).replace(/[()]/g, "")) || 0;
+            const target = Math.round(d.value ?? 0);
+            const interpolateValue = d3.interpolateRound(prev, target);
+            return (t: number) => `(${interpolateValue(t)})`;
+          });
+      }
     });
 
     initializedRef.current = true;
@@ -1111,7 +1148,7 @@ function CategoryHeatmap({
 
       cellG
         .select<SVGTextElement>("text")
-        .attr("fill", t > 0.45 ? "#05070d" : "#f1f5f9")
+        .attr("fill", "#05070d")
         .text(d.val > 0 ? d.val : "");
     });
   }, [categories, universities, matrix, colorScale]);
