@@ -843,16 +843,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 14,
-        "s2a": 21,
-        "s2b": 16
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
       "isFinished": false,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 72
+      "version": 0
     },
     {
       "id": "M_general_B_CMU_KU",
@@ -7736,16 +7736,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 20,
-        "s2a": 19,
-        "s2b": 21
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 6,
       "isBye": false,
       "byeWinner": null,
-      "version": 82
+      "version": 0
     },
     {
       "id": "M_a120_A_CU_KU",
@@ -9444,16 +9444,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 9,
-        "s2a": 21,
-        "s2b": 11
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 4,
       "isBye": false,
       "byeWinner": null,
-      "version": 74
+      "version": 0
     },
     {
       "id": "M_cat_2sr2rx2t02rr2ro2t52tk2s72sx2tk2sn2tg2sb_-_CMU_CU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1785577306517
+  "lastUpdated": 1785575195995
 }
