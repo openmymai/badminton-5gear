@@ -705,7 +705,10 @@ function SetsDiffChart({
     const sorted = [...data].sort((a, b) => b.setsWon - b.setsLost - (a.setsWon - a.setsLost));
     const width = 640;
     const height = Math.max(160, sorted.length * 52);
-    const margin = { top: 8, right: 16, bottom: 8, left: 96 };
+    // margin ซ้าย-ขวาเผื่อพื้นที่ให้ label ตัวเลข (เช่น "+12 (18-6)") ไม่ให้โดนตัดขอบ
+    // เมื่อสถาบันไหนมีผลต่างเซตเยอะจนแท่งเกือบชนขอบ SVG
+    const labelGutter = 78;
+    const margin = { top: 8, right: labelGutter, bottom: 8, left: Math.max(96, labelGutter) };
     svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
 
     const diffs = sorted.map((d) => d.setsWon - d.setsLost);
@@ -730,9 +733,10 @@ function SetsDiffChart({
       .attr("y2", height - margin.bottom)
       .attr("stroke", "rgba(255,255,255,0.15)");
 
-    g.selectAll("text.label")
+    g.selectAll("text.rowlabel")
       .data(sorted)
       .join("text")
+      .attr("class", "rowlabel")
       .attr("x", margin.left - 12)
       .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
       .attr("dy", "0.35em")
@@ -765,18 +769,36 @@ function SetsDiffChart({
       })
       .attr("width", (d) => Math.abs(x(d.setsWon - d.setsLost) - zeroX));
 
+    // ถ้าพื้นที่ระหว่างปลายแท่งกับขอบกราฟไม่พอสำหรับ label (< ~60px) ให้สลับไปวาง
+    // label ไว้ "ในแท่ง" แทน (ชิดปลายแท่งด้านใน, สีอ่อนตัดกับพื้นสี) กันไม่ให้แหว่ง/หลุดขอบ
+    const estLabelWidth = 60;
     g.selectAll("text.value")
       .data(sorted)
       .join("text")
       .attr("x", (d) => {
         const diff = d.setsWon - d.setsLost;
-        const bx = x(diff);
-        return diff >= 0 ? bx + 8 : bx - 8;
+        const barEndX = x(diff);
+        const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
+        const fitsOutside = spaceOutside >= estLabelWidth;
+        if (fitsOutside) return diff >= 0 ? barEndX + 8 : barEndX - 8;
+        return diff >= 0 ? barEndX - 8 : barEndX + 8;
       })
       .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
       .attr("dy", "0.35em")
-      .attr("text-anchor", (d) => (d.setsWon - d.setsLost >= 0 ? "start" : "end"))
-      .attr("fill", "#e2e8f0")
+      .attr("text-anchor", (d) => {
+        const diff = d.setsWon - d.setsLost;
+        const barEndX = x(diff);
+        const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
+        const fitsOutside = spaceOutside >= estLabelWidth;
+        if (fitsOutside) return diff >= 0 ? "start" : "end";
+        return diff >= 0 ? "end" : "start";
+      })
+      .attr("fill", (d) => {
+        const diff = d.setsWon - d.setsLost;
+        const barEndX = x(diff);
+        const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
+        return spaceOutside >= estLabelWidth ? "#e2e8f0" : "#05070d";
+      })
       .attr("font-size", 11.5)
       .attr("font-weight", 800)
       .style("opacity", 0)
