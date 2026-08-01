@@ -69,6 +69,22 @@ interface CategoryProgress {
   finished: number;
 }
 
+/* ---------------------------------------------------------------------
+   Sankey — สถาบัน (uni) -> รุ่น-สาย (cat), ความหนาของเส้น = คะแนนที่ได้
+--------------------------------------------------------------------- */
+interface FlowNodeExtra {
+  id: string;
+  name: string;
+  kind: "uni" | "cat";
+}
+interface FlowLinkExtra {
+  value: number;
+}
+type FlowNodeInput = FlowNodeExtra;
+type FlowLinkInput = { source: string; target: string } & FlowLinkExtra;
+type FlowNode = SankeyNodeMinimal<FlowNodeExtra, FlowLinkExtra> & FlowNodeExtra;
+type FlowLink = SankeyLinkMinimal<FlowNodeExtra, FlowLinkExtra> & FlowLinkExtra;
+
 const NON_SCORING_CATEGORIES = ["กิตติมศักดิ์"];
 
 const CATEGORY_ORDER = [
@@ -363,6 +379,35 @@ export default function ReportPage() {
     return (u: string) => UNIVERSITY_COLOR_MAP[u.trim().toUpperCase()] ?? fallback(u);
   }, [universities]);
 
+  // เตรียมข้อมูลสำหรับ Sankey: สถาบัน (ซ้าย) -> รุ่น-สาย (ขวา) โดยความหนาของ
+  // เส้นคือคะแนนที่สถาบันนั้นทำได้ในรุ่นนั้น ๆ (ใช้ตัวเลขชุดเดียวกับ heatmap)
+  const sankeyData = useMemo<{ nodes: FlowNodeInput[]; links: FlowLinkInput[] }>(() => {
+    const links: FlowLinkInput[] = [];
+    const usedUnis = new Set<string>();
+    const usedCats = new Set<string>();
+
+    universities.forEach((u) => {
+      heatmapRows.forEach((row) => {
+        const value = categoryPointsMatrix[u]?.[row] ?? 0;
+        if (value <= 0) return;
+        links.push({ source: `uni:${u}`, target: `cat:${row}`, value });
+        usedUnis.add(u);
+        usedCats.add(row);
+      });
+    });
+
+    const nodes: FlowNodeInput[] = [
+      ...universities
+        .filter((u) => usedUnis.has(u))
+        .map((u) => ({ id: `uni:${u}`, name: u, kind: "uni" as const })),
+      ...heatmapRows
+        .filter((r) => usedCats.has(r))
+        .map((r) => ({ id: `cat:${r}`, name: r, kind: "cat" as const })),
+    ];
+
+    return { nodes, links };
+  }, [universities, heatmapRows, categoryPointsMatrix]);
+
   return (
     <main className="min-h-screen bg-[#05070d] p-6 font-sans text-white">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -473,6 +518,16 @@ export default function ReportPage() {
               subtitle="คะแนนสะสมจากระบบแจกแต้ม 5-4-3-2-1 ของทุกรุ่น-สาย"
             >
               <RankingBarChart data={uniStandings} colorScale={colorScale} />
+            </ChartCard>
+
+            {/* Sankey — เส้นทางคะแนนจากสถาบันไปยังแต่ละรุ่น */}
+            <ChartCard
+              title="เส้นทางคะแนนสู่แต่ละรุ่น"
+              subtitle="คะแนนที่แต่ละสถาบันทำได้ ไหลไปยังรุ่น-สายที่ทำคะแนนนั้น (แยกสาย A/B ถ้ามี)"
+            >
+              <div className="overflow-x-auto">
+                <SankeyFlowChart data={sankeyData} colorScale={colorScale} />
+              </div>
             </ChartCard>
 
             {/* Category x university heatmap */}
@@ -733,6 +788,172 @@ function RankingBarChart({
   }, [data, colorScale]);
 
   return <svg ref={ref} className="w-full" />;
+}
+
+/* ---------------------------------------------------------------------
+   D3 — Sankey: สถาบัน (ซ้าย) -> รุ่น-สาย (ขวา), ความหนาเส้น = คะแนนที่ได้
+--------------------------------------------------------------------- */
+function SankeyFlowChart({
+  data,
+  colorScale,
+}: {
+  data: { nodes: FlowNodeInput[]; links: FlowLinkInput[] };
+  colorScale: (university: string) => string;
+}) {
+  const ref = useRef<SVGSVGElement>(null);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!ref.current || data.nodes.length === 0 || data.links.length === 0) return;
+    const svg = d3.select(ref.current);
+
+    const width = 760;
+    const uniCount = data.nodes.filter((n) => n.kind === "uni").length;
+    const catCount = data.nodes.filter((n) => n.kind === "cat").length;
+    const rowCount = Math.max(uniCount, catCount, 1);
+    const height = Math.max(220, rowCount * 34);
+    const margin = { top: 10, right: 130, bottom: 10, left: 96 };
+    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
+
+    // d3-sankey เขียนทับ x0/x1/y0/y1 ลงใน object ตรง ๆ — ต้อง clone ข้อมูลใหม่
+    // ทุกครั้งที่ render ไม่งั้น layout เก่าจากรอบก่อนจะตกค้างข้ามการอัปเดต
+    const sankeyGen = sankey<FlowNodeExtra, FlowLinkExtra>()
+      .nodeId((d) => d.id)
+      .nodeWidth(12)
+      .nodePadding(14)
+      .nodeSort((a, b) => a.name.localeCompare(b.name, "th"))
+      .extent([
+        [margin.left, margin.top],
+        [width - margin.right, height - margin.bottom],
+      ]);
+
+    const graph = sankeyGen({
+      nodes: data.nodes.map((n) => ({ ...n })),
+      links: data.links.map((l) => ({ ...l })),
+    });
+
+    const linkPath = sankeyLinkHorizontal<FlowNodeExtra, FlowLinkExtra>();
+    const linkColor = (d: FlowLink) => colorScale((d.source as FlowNode).name);
+
+    // Reuse the same <g> across renders (เหมือนกราฟอื่น ๆ ในหน้านี้) เพื่อให้ D3
+    // จับคู่ element เดิมด้วย key แล้ว transition ค่าต่าง ๆ แบบ smooth แทนที่จะ
+    // ลบ-สร้างใหม่ทุกครั้งที่ข้อมูลอัปเดต
+    let g = svg.select<SVGGElement>("g.root");
+    if (g.empty()) g = svg.append("g").attr("class", "root");
+
+    const isFirstRender = !initializedRef.current;
+    const dur = isFirstRender ? 700 : 500;
+
+    g.selectAll<SVGPathElement, FlowLink>("path.link")
+      .data(graph.links, (d: any) => `${d.source.id}->${d.target.id}`)
+      .join(
+        (enter) =>
+          enter
+            .append("path")
+            .attr("class", "link")
+            .attr("fill", "none")
+            .attr("stroke", (d) => linkColor(d))
+            .attr("stroke-width", (d) => Math.max(1, d.width ?? 0))
+            .attr("d", (d) => linkPath(d))
+            .style("mix-blend-mode", "screen")
+            .attr("stroke-opacity", 0)
+            .call((enter) =>
+              enter.transition().duration(dur).ease(d3.easeCubicOut).attr("stroke-opacity", 0.32)
+            ),
+        (update) =>
+          update.attr("stroke-opacity", 0.32).call((update) =>
+            update
+              .transition()
+              .duration(dur)
+              .ease(d3.easeCubicOut)
+              .attr("stroke", (d) => linkColor(d))
+              .attr("stroke-width", (d) => Math.max(1, d.width ?? 0))
+              .attr("d", (d) => linkPath(d))
+          ),
+        (exit) => exit.transition().duration(300).attr("stroke-opacity", 0).remove()
+      )
+      .on("mouseenter", function () {
+        d3.select(this).transition().duration(150).attr("stroke-opacity", 0.65);
+      })
+      .on("mouseleave", function () {
+        d3.select(this).transition().duration(150).attr("stroke-opacity", 0.32);
+      });
+
+    const nodeGroups = g
+      .selectAll<SVGGElement, FlowNode>("g.node")
+      .data(graph.nodes, (d: any) => d.id)
+      .join(
+        (enter) => {
+          const eg = enter
+            .append("g")
+            .attr("class", "node")
+            .attr("transform", (d) => `translate(${d.x0},${d.y0})`)
+            .style("opacity", 0);
+
+          eg.append("rect")
+            .attr("class", "box")
+            .attr("width", (d) => Math.max(1, (d.x1 ?? 0) - (d.x0 ?? 0)))
+            .attr("height", (d) => Math.max(1, (d.y1 ?? 0) - (d.y0 ?? 0)))
+            .attr("rx", 3)
+            .attr("fill", (d) => (d.kind === "uni" ? colorScale(d.name) : "#64748b"));
+
+          eg.append("text")
+            .attr("class", "label")
+            .attr("y", (d) => ((d.y1 ?? 0) - (d.y0 ?? 0)) / 2)
+            .attr("dy", "0.35em")
+            .attr("x", (d) => (d.kind === "uni" ? -10 : (d.x1 ?? 0) - (d.x0 ?? 0) + 10))
+            .attr("text-anchor", (d) => (d.kind === "uni" ? "end" : "start"))
+            .attr("fill", "#cbd5e1")
+            .attr("font-size", 10.5)
+            .attr("font-weight", 800)
+            .style("text-transform", "uppercase")
+            .style("letter-spacing", "0.03em")
+            .text((d) => d.name);
+
+          eg.call((enter) =>
+            enter.transition().duration(dur).ease(d3.easeCubicOut).style("opacity", 1)
+          );
+          return eg;
+        },
+        (update) =>
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(dur)
+              .ease(d3.easeCubicOut)
+              .attr("transform", (d) => `translate(${d.x0},${d.y0})`)
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
+      );
+
+    nodeGroups.each(function (d) {
+      const sel = d3.select(this);
+      const h = Math.max(1, (d.y1 ?? 0) - (d.y0 ?? 0));
+      const w = Math.max(1, (d.x1 ?? 0) - (d.x0 ?? 0));
+
+      sel
+        .select<SVGRectElement>("rect.box")
+        .transition()
+        .duration(dur)
+        .ease(d3.easeCubicOut)
+        .attr("width", w)
+        .attr("height", h)
+        .attr("fill", d.kind === "uni" ? colorScale(d.name) : "#64748b");
+
+      sel
+        .select<SVGTextElement>("text.label")
+        .transition()
+        .duration(dur)
+        .ease(d3.easeCubicOut)
+        .attr("y", h / 2)
+        .attr("x", d.kind === "uni" ? -10 : w + 10)
+        .text(d.name);
+    });
+
+    initializedRef.current = true;
+  }, [data, colorScale]);
+
+  return <svg ref={ref} className="w-full" style={{ minWidth: 640 }} />;
 }
 
 /* ---------------------------------------------------------------------
