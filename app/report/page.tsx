@@ -5,6 +5,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import * as d3 from "d3";
+// ต้องติดตั้งเพิ่ม: npm install d3-sankey  (และถ้าใช้ TS เข้มงวด: npm install -D @types/d3-sankey)
+import { sankey, sankeyLinkHorizontal } from "d3-sankey";
 import { GiShuttlecock, GiTrophyCup } from "react-icons/gi";
 import Link from "next/link";
 import Image from "next/image";
@@ -467,13 +469,13 @@ export default function ReportPage() {
               <RankingBarChart data={uniStandings} colorScale={colorScale} />
             </ChartCard>
 
-            {/* Category x university heatmap */}
+            {/* Category x university sankey */}
             <ChartCard
               title="คะแนนแยกตามรุ่น x สถาบัน"
-              subtitle="ยิ่งสีเข้ม ยิ่งได้คะแนนมากในรุ่นนั้น (แยกสาย A/B ถ้ามี)"
+              subtitle="ความหนาของเส้น = คะแนนที่ได้ในรุ่นนั้น (แยกสาย A/B ถ้ามี) — เอาเมาส์ชี้เส้นเพื่อดูตัวเลข"
             >
               <div className="overflow-x-auto">
-                <CategoryHeatmap
+                <CategorySankey
                   categories={heatmapRows}
                   universities={universities}
                   matrix={categoryPointsMatrix}
@@ -563,7 +565,6 @@ function RankingBarChart({
   useEffect(() => {
     if (!ref.current || data.length === 0) return;
     const svg = d3.select(ref.current);
-    svg.selectAll("*").remove();
 
     const width = 760;
     const height = Math.max(160, data.length * 56);
@@ -582,74 +583,153 @@ function RankingBarChart({
       .range([margin.top, height - margin.bottom])
       .padding(0.35);
 
-    const g = svg.append("g");
+    // ใช้ persistent <g> เดียว + keyed join แทนการล้างและวาด SVG ใหม่ทั้งหมด
+    // ทุกครั้ง เพื่อให้ element เดิม transition จากค่าปัจจุบัน ไม่กระพริบ/รีเซ็ตจาก 0
+    let g = svg.select<SVGGElement>("g.chart-root");
+    if (g.empty()) g = svg.append("g").attr("class", "chart-root");
 
-    g.selectAll("rect.track")
-      .data(data)
-      .join("rect")
-      .attr("class", "track")
-      .attr("x", margin.left)
-      .attr("y", (d) => y(d.university)!)
-      .attr("width", width - margin.left - margin.right)
-      .attr("height", y.bandwidth())
-      .attr("rx", 10)
-      .attr("fill", "rgba(255,255,255,0.03)");
+    const key = (d: UniStanding) => d.university;
+    const T = () => d3.transition().duration(700).ease(d3.easeCubicOut) as any;
 
-    g.selectAll("rect.bar")
-      .data(data)
-      .join("rect")
-      .attr("class", "bar")
-      .attr("x", margin.left)
-      .attr("y", (d) => y(d.university)!)
-      .attr("height", y.bandwidth())
-      .attr("rx", 10)
-      .attr("fill", (d) => colorScale(d.university))
-      .attr("width", 0)
-      .transition()
-      .duration(700)
-      .ease(d3.easeCubicOut)
-      .attr("width", (d) => Math.max(3, x(d.totalPoints) - margin.left));
+    g.selectAll<SVGRectElement, UniStanding>("rect.track")
+      .data(data, key as any)
+      .join(
+        (enter) =>
+          enter
+            .append("rect")
+            .attr("class", "track")
+            .attr("x", margin.left)
+            .attr("y", (d) => y(d.university)!)
+            .attr("width", width - margin.left - margin.right)
+            .attr("height", y.bandwidth())
+            .attr("rx", 10)
+            .attr("fill", "rgba(255,255,255,0.03)"),
+        (update) =>
+          update.call((u) =>
+            u
+              .transition(T())
+              .attr("y", (d) => y(d.university)!)
+              .attr("width", width - margin.left - margin.right)
+              .attr("height", y.bandwidth())
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
+      );
 
-    g.selectAll("text.label")
-      .data(data)
-      .join("text")
-      .attr("class", "label")
-      .attr("x", margin.left - 12)
-      .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "end")
-      .attr("fill", "#cbd5e1")
-      .attr("font-size", 12.5)
-      .attr("font-weight", 900)
-      .style("text-transform", "uppercase")
-      .style("letter-spacing", "0.04em")
-      .text((d) => d.university);
+    g.selectAll<SVGRectElement, UniStanding>("rect.bar")
+      .data(data, key as any)
+      .join(
+        (enter) =>
+          enter
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", margin.left)
+            .attr("y", (d) => y(d.university)!)
+            .attr("height", y.bandwidth())
+            .attr("rx", 10)
+            .attr("fill", (d) => colorScale(d.university))
+            .attr("width", 0)
+            .call((enter) =>
+              enter
+                .transition(T())
+                .attr("width", (d) => Math.max(3, x(d.totalPoints) - margin.left))
+            ),
+        (update) =>
+          update.call((u) =>
+            u
+              .transition(T())
+              .attr("y", (d) => y(d.university)!)
+              .attr("height", y.bandwidth())
+              .attr("fill", (d) => colorScale(d.university))
+              .attr("width", (d) => Math.max(3, x(d.totalPoints) - margin.left))
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
+      );
 
-    g.selectAll("text.value")
-      .data(data)
-      .join("text")
-      .attr("class", "value")
-      .attr("x", (d) => x(d.totalPoints) + 10)
-      .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
-      .attr("dy", "0.35em")
-      .attr("fill", (d) => colorScale(d.university))
-      .attr("font-size", 13)
-      .attr("font-weight", 900)
-      .style("opacity", 0)
-      .text((d) => d.totalPoints)
-      .transition()
-      .delay(450)
-      .duration(300)
-      .style("opacity", 1);
+    g.selectAll<SVGTextElement, UniStanding>("text.label")
+      .data(data, key as any)
+      .join(
+        (enter) =>
+          enter
+            .append("text")
+            .attr("class", "label")
+            .attr("x", margin.left - 12)
+            .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "end")
+            .attr("fill", "#cbd5e1")
+            .attr("font-size", 12.5)
+            .attr("font-weight", 900)
+            .style("text-transform", "uppercase")
+            .style("letter-spacing", "0.04em")
+            .style("opacity", 0)
+            .text((d) => d.university)
+            .call((enter) => enter.transition().duration(400).style("opacity", 1)),
+        (update) =>
+          update
+            .call((u) => u.transition(T()).attr("y", (d) => y(d.university)! + y.bandwidth() / 2))
+            .text((d) => d.university),
+        (exit) => exit.remove()
+      );
+
+    g.selectAll<SVGTextElement, UniStanding>("text.value")
+      .data(data, key as any)
+      .join(
+        (enter) =>
+          enter
+            .append("text")
+            .attr("class", "value")
+            .attr("x", (d) => x(d.totalPoints) + 10)
+            .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+            .attr("dy", "0.35em")
+            .attr("fill", (d) => colorScale(d.university))
+            .attr("font-size", 13)
+            .attr("font-weight", 900)
+            .style("opacity", 0)
+            .text((d) => d.totalPoints)
+            .call((enter) => enter.transition().delay(450).duration(300).style("opacity", 1)),
+        (update) =>
+          update
+            .call((u) =>
+              u
+                .transition(T())
+                .attr("x", (d) => x(d.totalPoints) + 10)
+                .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+                .attr("fill", (d) => colorScale(d.university))
+            )
+            .text((d) => d.totalPoints),
+        (exit) => exit.remove()
+      );
   }, [data, colorScale]);
 
   return <svg ref={ref} className="w-full" />;
 }
 
 /* ---------------------------------------------------------------------
-   D3 — Category x University heatmap matrix
+   D3 — Category x University sankey (รุ่น ➜ สถาบัน ตามคะแนนที่ได้)
 --------------------------------------------------------------------- */
-function CategoryHeatmap({
+// หมายเหตุ: d3-sankey มี generic ของ node/link ที่อ้างอิงกันเอง (circular) การพยายาม
+// ประกาศ type ให้ตรง 100% กับ SankeyNodeMinimal/SankeyLinkMinimal ทำให้ TS งงเปล่าๆ
+// จึงประกาศ shape ของเราเองแบบตรงไปตรงมา แล้วปล่อยให้ sankey() คำนวณ x0/x1/y0/y1 ให้
+type SankeyNodeDatum = {
+  id: string;
+  label: string;
+  kind: "category" | "university";
+  x0?: number;
+  x1?: number;
+  y0?: number;
+  y1?: number;
+};
+type SankeyLinkDatum = {
+  source: number;
+  target: number;
+  value: number;
+  category: string;
+  university: string;
+  points: number;
+  width?: number;
+};
+
+function CategorySankey({
   categories,
   universities,
   matrix,
@@ -665,81 +745,163 @@ function CategoryHeatmap({
   useEffect(() => {
     if (!ref.current || categories.length === 0 || universities.length === 0) return;
     const svg = d3.select(ref.current);
-    svg.selectAll("*").remove();
 
-    const cellW = 92;
-    const cellH = 42;
-    const margin = { top: 34, right: 8, bottom: 8, left: 132 };
-    const width = margin.left + margin.right + cellW * universities.length;
-    const height = margin.top + margin.bottom + cellH * categories.length;
-    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", width);
+    const width = 860;
+    const rowUnit = 34;
+    const margin = { top: 8, right: 118, bottom: 8, left: 150 };
+    const height = Math.max(
+      340,
+      Math.max(categories.length, universities.length) * rowUnit + margin.top + margin.bottom
+    );
+    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
 
-    const maxByCategory: Record<string, number> = {};
-    categories.forEach((c) => {
-      maxByCategory[c] = Math.max(1, ...universities.map((u) => matrix[u]?.[c] ?? 0));
-    });
+    // สร้าง node: รุ่น (ซ้าย) + สถาบัน (ขวา), link: รุ่น -> สถาบัน น้ำหนัก = คะแนนที่ได้
+    const nodesInput: SankeyNodeDatum[] = [
+      ...categories.map((c) => ({ id: `c::${c}`, label: c, kind: "category" as const })),
+      ...universities.map((u) => ({ id: `u::${u}`, label: u, kind: "university" as const })),
+    ];
+    const nodeIndexOf = new Map(nodesInput.map((n, i) => [n.id, i]));
 
-    const g = svg.append("g");
-
-    g.selectAll("text.colhead")
-      .data(universities)
-      .join("text")
-      .attr("x", (_d, i) => margin.left + i * cellW + cellW / 2)
-      .attr("y", margin.top - 14)
-      .attr("text-anchor", "middle")
-      .attr("font-size", 10.5)
-      .attr("font-weight", 900)
-      .attr("fill", (d) => colorScale(d))
-      .style("text-transform", "uppercase")
-      .text((d) => d);
-
-    g.selectAll("text.rowhead")
-      .data(categories)
-      .join("text")
-      .attr("x", margin.left - 12)
-      .attr("y", (_d, i) => margin.top + i * cellH + cellH / 2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "end")
-      .attr("font-size", 11)
-      .attr("font-weight", 700)
-      .attr("fill", "#94a3b8")
-      .text((d) => d);
-
-    categories.forEach((cat, ci) => {
-      universities.forEach((uni, ui) => {
-        const val = matrix[uni]?.[cat] ?? 0;
-        const t = val > 0 ? val / maxByCategory[cat] : 0;
-        const fill = d3.interpolateRgb("#11141c", colorScale(uni))(t);
-        const cellG = g
-          .append("g")
-          .attr("transform", `translate(${margin.left + ui * cellW},${margin.top + ci * cellH})`);
-
-        cellG
-          .append("rect")
-          .attr("width", cellW - 8)
-          .attr("height", cellH - 8)
-          .attr("rx", 8)
-          .attr("fill", val > 0 ? fill : "rgba(255,255,255,0.02)")
-          .attr("stroke", colorScale(uni))
-          .attr("stroke-opacity", val > 0 ? 0.4 : 0.08);
-
-        if (val > 0) {
-          cellG
-            .append("text")
-            .attr("x", (cellW - 8) / 2)
-            .attr("y", (cellH - 8) / 2)
-            .attr("dy", "0.35em")
-            .attr("text-anchor", "middle")
-            .attr("font-size", 13)
-            .attr("font-weight", 900)
-            .attr("fill", t > 0.45 ? "#05070d" : "#f1f5f9")
-            .text(val);
+    const linksInput: SankeyLinkDatum[] = [];
+    categories.forEach((cat) => {
+      universities.forEach((uni) => {
+        const points = matrix[uni]?.[cat] ?? 0;
+        if (points > 0) {
+          linksInput.push({
+            source: nodeIndexOf.get(`c::${cat}`)!,
+            target: nodeIndexOf.get(`u::${uni}`)!,
+            value: points,
+            category: cat,
+            university: uni,
+            points,
+          } as unknown as SankeyLinkDatum);
         }
       });
     });
+
+    let g = svg.select<SVGGElement>("g.sankey-root");
+    if (g.empty()) g = svg.append("g").attr("class", "sankey-root");
+
+    if (linksInput.length === 0) {
+      g.selectAll("*").remove();
+      return;
+    }
+
+    const sankeyGen: any = sankey()
+      .nodeWidth(14)
+      .nodePadding(14)
+      .extent([
+        [margin.left, margin.top],
+        [width - margin.right, height - margin.bottom],
+      ]);
+
+    const graph = sankeyGen({
+      nodes: nodesInput.map((d) => ({ ...d })),
+      links: linksInput.map((d) => ({ ...d })),
+    }) as { nodes: SankeyNodeDatum[]; links: SankeyLinkDatum[] };
+
+    const linkPath: any = sankeyLinkHorizontal();
+    const linkKey = (d: SankeyLinkDatum) => `${d.category}__${d.university}`;
+    const T = () => d3.transition().duration(600).ease(d3.easeCubicOut) as any;
+
+    // เส้น flow — interpolate path string ด้วย attrTween กันการ "กระโดด" เวลาคะแนนเปลี่ยน
+    g.selectAll<SVGPathElement, SankeyLinkDatum>("path.link")
+      .data(graph.links, linkKey as any)
+      .join(
+        (enter) =>
+          enter
+            .append("path")
+            .attr("class", "link")
+            .attr("fill", "none")
+            .attr("stroke", (d) => colorScale(d.university))
+            .attr("stroke-width", (d) => Math.max(1, d.width ?? 1))
+            .attr("d", (d) => linkPath(d) as string)
+            .attr("stroke-opacity", 0)
+            .call((enter) => enter.append("title"))
+            .call((enter) => enter.transition().duration(500).attr("stroke-opacity", 0.35)),
+        (update) =>
+          update.call((u) =>
+            u
+              .transition(T())
+              .attr("stroke", (d) => colorScale(d.university))
+              .attr("stroke-width", (d) => Math.max(1, d.width ?? 1))
+              .attr("stroke-opacity", 0.35)
+              .attrTween("d", function (d) {
+                const prev = d3.select(this).attr("d");
+                const next = linkPath(d) as string;
+                return d3.interpolateString(prev, next);
+              })
+          ),
+        (exit) => exit.transition().duration(250).attr("stroke-opacity", 0).remove()
+      )
+      .each(function (d) {
+        // อัปเดตข้อความ tooltip ทุกครั้ง (ทั้ง enter และ update) เพราะ <title> ไม่มี transition
+        d3.select(this).select("title").text(`${d.category} → ${d.university}: ${d.points} คะแนน`);
+      });
+
+    // กล่อง node
+    g.selectAll<SVGRectElement, SankeyNodeDatum>("rect.node")
+      .data(graph.nodes, (d: any) => d.id)
+      .join(
+        (enter) =>
+          enter
+            .append("rect")
+            .attr("class", "node")
+            .attr("x", (d) => d.x0!)
+            .attr("y", (d) => d.y0!)
+            .attr("width", (d) => d.x1! - d.x0!)
+            .attr("height", (d) => Math.max(1, d.y1! - d.y0!))
+            .attr("rx", 3)
+            .attr("fill", (d) => (d.kind === "university" ? colorScale(d.label) : "#475569"))
+            .style("opacity", 0)
+            .call((enter) => enter.transition().duration(400).style("opacity", 1)),
+        (update) =>
+          update.call((u) =>
+            u
+              .transition(T())
+              .attr("x", (d) => d.x0!)
+              .attr("y", (d) => d.y0!)
+              .attr("width", (d) => d.x1! - d.x0!)
+              .attr("height", (d) => Math.max(1, d.y1! - d.y0!))
+              .attr("fill", (d) => (d.kind === "university" ? colorScale(d.label) : "#475569"))
+          ),
+        (exit) => exit.transition().duration(250).style("opacity", 0).remove()
+      );
+
+    // label ของ node — รุ่นชิดซ้ายของกล่อง, สถาบันชิดขวาของกล่อง (สีตามสถาบัน)
+    g.selectAll<SVGTextElement, SankeyNodeDatum>("text.node-label")
+      .data(graph.nodes, (d: any) => d.id)
+      .join(
+        (enter) =>
+          enter
+            .append("text")
+            .attr("class", "node-label")
+            .attr("x", (d) => (d.kind === "category" ? d.x0! - 10 : d.x1! + 10))
+            .attr("y", (d) => (d.y0! + d.y1!) / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", (d) => (d.kind === "category" ? "end" : "start"))
+            .attr("font-size", 11)
+            .attr("font-weight", (d) => (d.kind === "category" ? 700 : 900))
+            .attr("fill", (d) => (d.kind === "category" ? "#94a3b8" : colorScale(d.label)))
+            .style("text-transform", (d) => (d.kind === "university" ? "uppercase" : "none"))
+            .style("opacity", 0)
+            .text((d) => d.label)
+            .call((enter) => enter.transition().duration(400).style("opacity", 1)),
+        (update) =>
+          update
+            .call((u) =>
+              u
+                .transition(T())
+                .attr("x", (d) => (d.kind === "category" ? d.x0! - 10 : d.x1! + 10))
+                .attr("y", (d) => (d.y0! + d.y1!) / 2)
+                .attr("fill", (d) => (d.kind === "category" ? "#94a3b8" : colorScale(d.label)))
+            )
+            .text((d) => d.label),
+        (exit) => exit.remove()
+      );
   }, [categories, universities, matrix, colorScale]);
 
-  return <svg ref={ref} />;
+  return <svg ref={ref} className="w-full" />;
 }
 
 /* ---------------------------------------------------------------------
@@ -757,7 +919,6 @@ function SetsDiffChart({
   useEffect(() => {
     if (!ref.current || data.length === 0) return;
     const svg = d3.select(ref.current);
-    svg.selectAll("*").remove();
 
     const sorted = [...data].sort((a, b) => b.setsWon - b.setsLost - (a.setsWon - a.setsLost));
     const width = 640;
@@ -781,92 +942,142 @@ function SetsDiffChart({
       .padding(0.35);
     const zeroX = x(0);
 
-    const g = svg.append("g");
+    // persistent <g> เดียว + keyed join กันกระพริบ/รีเซ็ตค่าจาก 0 ทุกครั้งที่อัปเดต
+    let g = svg.select<SVGGElement>("g.chart-root");
+    if (g.empty()) g = svg.append("g").attr("class", "chart-root");
 
-    g.append("line")
+    g.selectAll<SVGLineElement, null>("line.zero")
+      .data([null])
+      .join("line")
+      .attr("class", "zero")
+      .attr("stroke", "rgba(255,255,255,0.15)")
+      .transition()
+      .duration(400)
       .attr("x1", zeroX)
       .attr("x2", zeroX)
       .attr("y1", margin.top)
-      .attr("y2", height - margin.bottom)
-      .attr("stroke", "rgba(255,255,255,0.15)");
+      .attr("y2", height - margin.bottom);
 
-    g.selectAll("text.rowlabel")
-      .data(sorted)
-      .join("text")
-      .attr("class", "rowlabel")
-      .attr("x", margin.left - 12)
-      .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "end")
-      .attr("fill", "#cbd5e1")
-      .attr("font-size", 11.5)
-      .attr("font-weight", 900)
-      .style("text-transform", "uppercase")
-      .text((d) => d.university);
+    const key = (d: UniStanding) => d.university;
+    const T = () => d3.transition().duration(700).ease(d3.easeCubicOut) as any;
 
-    const bars = g
-      .selectAll("rect.bar")
-      .data(sorted)
-      .join("rect")
-      .attr("class", "bar")
-      .attr("y", (d) => y(d.university)!)
-      .attr("height", y.bandwidth())
-      .attr("rx", 8)
-      .attr("fill", (d) => colorScale(d.university))
-      .attr("x", zeroX)
-      .attr("width", 0);
+    const estLabelWidth = 60;
+    const barX = (d: UniStanding) => {
+      const diff = d.setsWon - d.setsLost;
+      return diff >= 0 ? zeroX : x(diff);
+    };
+    const barWidth = (d: UniStanding) => Math.abs(x(d.setsWon - d.setsLost) - zeroX);
+    const valueX = (d: UniStanding) => {
+      const diff = d.setsWon - d.setsLost;
+      const barEndX = x(diff);
+      const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
+      const fitsOutside = spaceOutside >= estLabelWidth;
+      if (fitsOutside) return diff >= 0 ? barEndX + 8 : barEndX - 8;
+      return diff >= 0 ? barEndX - 8 : barEndX + 8;
+    };
+    const valueAnchor = (d: UniStanding) => {
+      const diff = d.setsWon - d.setsLost;
+      const barEndX = x(diff);
+      const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
+      const fitsOutside = spaceOutside >= estLabelWidth;
+      if (fitsOutside) return diff >= 0 ? "start" : "end";
+      return diff >= 0 ? "end" : "start";
+    };
+    const valueFill = (d: UniStanding) => {
+      const diff = d.setsWon - d.setsLost;
+      const barEndX = x(diff);
+      const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
+      return spaceOutside >= estLabelWidth ? "#e2e8f0" : "#05070d";
+    };
+    const valueText = (d: UniStanding) => {
+      const diff = d.setsWon - d.setsLost;
+      return `${diff > 0 ? "+" : ""}${diff} (${d.setsWon}-${d.setsLost})`;
+    };
 
-    bars
-      .transition()
-      .duration(700)
-      .ease(d3.easeCubicOut)
-      .attr("x", (d) => {
-        const diff = d.setsWon - d.setsLost;
-        return diff >= 0 ? zeroX : x(diff);
-      })
-      .attr("width", (d) => Math.abs(x(d.setsWon - d.setsLost) - zeroX));
+    g.selectAll<SVGTextElement, UniStanding>("text.rowlabel")
+      .data(sorted, key as any)
+      .join(
+        (enter) =>
+          enter
+            .append("text")
+            .attr("class", "rowlabel")
+            .attr("x", margin.left - 12)
+            .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "end")
+            .attr("fill", "#cbd5e1")
+            .attr("font-size", 11.5)
+            .attr("font-weight", 900)
+            .style("text-transform", "uppercase")
+            .style("opacity", 0)
+            .text((d) => d.university)
+            .call((enter) => enter.transition().duration(400).style("opacity", 1)),
+        (update) =>
+          update.call((u) =>
+            u.transition(T()).attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+          ),
+        (exit) => exit.remove()
+      );
+
+    g.selectAll<SVGRectElement, UniStanding>("rect.bar")
+      .data(sorted, key as any)
+      .join(
+        (enter) =>
+          enter
+            .append("rect")
+            .attr("class", "bar")
+            .attr("y", (d) => y(d.university)!)
+            .attr("height", y.bandwidth())
+            .attr("rx", 8)
+            .attr("fill", (d) => colorScale(d.university))
+            .attr("x", zeroX)
+            .attr("width", 0)
+            .call((enter) => enter.transition(T()).attr("x", barX).attr("width", barWidth)),
+        (update) =>
+          update.call((u) =>
+            u
+              .transition(T())
+              .attr("y", (d) => y(d.university)!)
+              .attr("height", y.bandwidth())
+              .attr("fill", (d) => colorScale(d.university))
+              .attr("x", barX)
+              .attr("width", barWidth)
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
+      );
 
     // ถ้าพื้นที่ระหว่างปลายแท่งกับขอบกราฟไม่พอสำหรับ label (< ~60px) ให้สลับไปวาง
     // label ไว้ "ในแท่ง" แทน (ชิดปลายแท่งด้านใน, สีอ่อนตัดกับพื้นสี) กันไม่ให้แหว่ง/หลุดขอบ
-    const estLabelWidth = 60;
-    g.selectAll("text.value")
-      .data(sorted)
-      .join("text")
-      .attr("x", (d) => {
-        const diff = d.setsWon - d.setsLost;
-        const barEndX = x(diff);
-        const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
-        const fitsOutside = spaceOutside >= estLabelWidth;
-        if (fitsOutside) return diff >= 0 ? barEndX + 8 : barEndX - 8;
-        return diff >= 0 ? barEndX - 8 : barEndX + 8;
-      })
-      .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", (d) => {
-        const diff = d.setsWon - d.setsLost;
-        const barEndX = x(diff);
-        const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
-        const fitsOutside = spaceOutside >= estLabelWidth;
-        if (fitsOutside) return diff >= 0 ? "start" : "end";
-        return diff >= 0 ? "end" : "start";
-      })
-      .attr("fill", (d) => {
-        const diff = d.setsWon - d.setsLost;
-        const barEndX = x(diff);
-        const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
-        return spaceOutside >= estLabelWidth ? "#e2e8f0" : "#05070d";
-      })
-      .attr("font-size", 11.5)
-      .attr("font-weight", 800)
-      .style("opacity", 0)
-      .text((d) => {
-        const diff = d.setsWon - d.setsLost;
-        return `${diff > 0 ? "+" : ""}${diff} (${d.setsWon}-${d.setsLost})`;
-      })
-      .transition()
-      .delay(450)
-      .duration(300)
-      .style("opacity", 1);
+    g.selectAll<SVGTextElement, UniStanding>("text.value")
+      .data(sorted, key as any)
+      .join(
+        (enter) =>
+          enter
+            .append("text")
+            .attr("class", "value")
+            .attr("x", valueX)
+            .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", valueAnchor)
+            .attr("fill", valueFill)
+            .attr("font-size", 11.5)
+            .attr("font-weight", 800)
+            .style("opacity", 0)
+            .text(valueText)
+            .call((enter) => enter.transition().delay(450).duration(300).style("opacity", 1)),
+        (update) =>
+          update
+            .call((u) =>
+              u
+                .transition(T())
+                .attr("x", valueX)
+                .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+                .attr("text-anchor", valueAnchor)
+                .attr("fill", valueFill)
+            )
+            .text(valueText),
+        (exit) => exit.remove()
+      );
   }, [data, colorScale]);
 
   return <svg ref={ref} className="w-full" />;
@@ -881,7 +1092,6 @@ function ProgressDonuts({ data }: { data: CategoryProgress[] }) {
   useEffect(() => {
     if (!ref.current || data.length === 0) return;
     const svg = d3.select(ref.current);
-    svg.selectAll("*").remove();
 
     const cols = Math.min(data.length, 6) || 1;
     const cell = 140;
@@ -891,69 +1101,113 @@ function ProgressDonuts({ data }: { data: CategoryProgress[] }) {
     svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
 
     const radius = 44;
+    const arcBgPath = d3.arc()({
+      innerRadius: radius - 9,
+      outerRadius: radius,
+      startAngle: 0,
+      endAngle: 2 * Math.PI,
+    } as d3.DefaultArcObject) as string;
+    const arcGen = d3
+      .arc()
+      .innerRadius(radius - 9)
+      .outerRadius(radius)
+      .startAngle(0);
 
-    data.forEach((d, i) => {
+    // ตำแหน่งอิงตาม index ใน data จริง (ไม่ใช้ index ของ selection ที่ join มา เพราะลำดับ
+    // enter/update อาจไม่ตรงกับลำดับข้อมูล) กันตำแหน่งเพี้ยนเวลาสลับ enter/update
+    const indexByCategory = new Map(data.map((d, i) => [d.category, i]));
+    const transformFor = (d: CategoryProgress) => {
+      const i = indexByCategory.get(d.category) ?? 0;
       const cx = (i % cols) * cell + cell / 2;
       const cy = Math.floor(i / cols) * cell + cell / 2 - 6;
-      const g = svg.append("g").attr("transform", `translate(${cx},${cy})`);
+      return `translate(${cx},${cy})`;
+    };
+
+    // สำคัญ: ทั้ง transform และ opacity ของ g.donut-cell ต้องอยู่ใน transition เดียวกัน
+    // ต่อ element (ไม่แยกเรียก .transition() ซ้ำบน selection ที่คาบเกี่ยวกัน) เพราะ D3
+    // จะ interrupt transition แบบไม่มีชื่อที่ยิงซ้อนกันบน node เดียวกัน ทำให้ opacity
+    // ค้างที่ 0 (มองไม่เห็นทั้งวงกลมและ label) — นี่คือสาเหตุที่กราฟนี้หายไปก่อนหน้านี้
+    const cellG = svg
+      .selectAll<SVGGElement, CategoryProgress>("g.donut-cell")
+      .data(data, (d) => d.category)
+      .join(
+        (enter) => {
+          const eg = enter
+            .append("g")
+            .attr("class", "donut-cell")
+            .attr("transform", transformFor)
+            .style("opacity", 0);
+
+          eg.append("path")
+            .attr("class", "bg")
+            .attr("d", arcBgPath)
+            .attr("fill", "rgba(255,255,255,0.06)");
+          eg.append("path").attr("class", "progress");
+          eg.append("text").attr("class", "pct").attr("text-anchor", "middle").attr("dy", "-0.1em");
+          eg.append("text")
+            .attr("class", "count")
+            .attr("text-anchor", "middle")
+            .attr("dy", "1.35em");
+          eg.append("text")
+            .attr("class", "cat-label")
+            .attr("text-anchor", "middle")
+            .attr("y", radius + 22)
+            .attr("font-size", 10)
+            .attr("font-weight", 900)
+            .attr("fill", "#94a3b8")
+            .style("text-transform", "uppercase");
+
+          eg.transition().duration(300).style("opacity", 1);
+          return eg;
+        },
+        (update) =>
+          update.call((u) =>
+            u
+              .transition()
+              .duration(500)
+              .ease(d3.easeCubicOut)
+              .style("opacity", 1)
+              .attr("transform", transformFor)
+          ),
+        (exit) => exit.transition().duration(250).style("opacity", 0).remove()
+      );
+
+    cellG.each(function (d) {
       const pct = d.total > 0 ? d.finished / d.total : 0;
+      const targetAngle = 2 * Math.PI * pct;
+      const node = d3.select(this);
 
-      const arcBg = d3.arc()({
-        innerRadius: radius - 9,
-        outerRadius: radius,
-        startAngle: 0,
-        endAngle: 2 * Math.PI,
-      } as d3.DefaultArcObject);
-      g.append("path")
-        .attr("d", arcBg as string)
-        .attr("fill", "rgba(255,255,255,0.06)");
-
-      const arcGen = d3
-        .arc()
-        .innerRadius(radius - 9)
-        .outerRadius(radius)
-        .startAngle(0);
-      const path = g
-        .append("path")
-        .datum({ endAngle: 0 })
-        .attr("fill", pct >= 1 ? "#10b981" : "#38bdf8");
-
-      path
+      // path.progress เป็นคนละ DOM node กับ g.donut-cell ด้านบน จึง transition ต่อได้
+      // อิสระโดยไม่ไป interrupt transition ของ g แม่
+      node
+        .select<SVGPathElement>("path.progress")
+        .attr("fill", pct >= 1 ? "#10b981" : "#38bdf8")
         .transition()
-        .duration(800)
+        .duration(700)
         .ease(d3.easeCubicOut)
-        .attrTween("d", function (dAnim: any) {
-          const interpolateAngle = d3.interpolate(dAnim.endAngle, 2 * Math.PI * pct);
-          return function (t: number) {
-            dAnim.endAngle = interpolateAngle(t);
-            return arcGen(dAnim) as string;
+        .attrTween("d", function (this: SVGPathElement & { _currentAngle?: number }) {
+          const interpolateAngle = d3.interpolate(this._currentAngle ?? 0, targetAngle);
+          return (t: number) => {
+            this._currentAngle = interpolateAngle(t);
+            return arcGen({ endAngle: interpolateAngle(t) } as d3.DefaultArcObject) as string;
           };
         });
 
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("dy", "-0.1em")
+      node
+        .select("text.pct")
         .attr("font-size", 17)
         .attr("font-weight", 900)
         .attr("fill", "#f1f5f9")
         .text(`${Math.round(pct * 100)}%`);
 
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("dy", "1.35em")
+      node
+        .select("text.count")
         .attr("font-size", 9)
         .attr("font-weight", 700)
         .attr("fill", "#64748b")
         .text(`${d.finished}/${d.total}`);
 
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("y", radius + 22)
-        .attr("font-size", 10)
-        .attr("font-weight", 900)
-        .attr("fill", "#94a3b8")
-        .style("text-transform", "uppercase")
-        .text(d.category);
+      node.select("text.cat-label").text(d.category);
     });
   }, [data]);
 

@@ -7006,14 +7006,14 @@
       "score": {
         "s1a": 21,
         "s1b": 2,
-        "s2a": 21,
-        "s2b": 4
+        "s2a": 7,
+        "s2b": 3
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 4,
       "isBye": false,
       "byeWinner": null,
-      "version": 55
+      "version": 34
     },
     {
       "id": "M_a110_B_KU_PSU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1785575770621
+  "lastUpdated": 1785575741582
 }

@@ -6948,11 +6948,11 @@
         "s2a": 3,
         "s2b": 21
       },
-      "isFinished": false,
+      "isFinished": true,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 49
+      "version": 50
     },
     {
       "id": "M_a110_B_CMU_KKU",
@@ -7004,16 +7004,16 @@
         ]
       },
       "score": {
-        "s1a": 0,
-        "s1b": 0,
-        "s2a": 0,
-        "s2b": 0
+        "s1a": 21,
+        "s1b": 2,
+        "s2a": 21,
+        "s2b": 4
       },
       "isFinished": false,
       "order": 4,
       "isBye": false,
       "byeWinner": null,
-      "version": 0
+      "version": 54
     },
     {
       "id": "M_a110_B_KU_PSU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1785421309039
+  "lastUpdated": 1785575753903
 }
