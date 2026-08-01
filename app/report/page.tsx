@@ -1,0 +1,882 @@
+// app/report/page.tsx
+
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
+import * as d3 from "d3";
+import { GiShuttlecock, GiTrophyCup } from "react-icons/gi";
+import Link from "next/link";
+import Image from "next/image";
+import { getMatchWinner, isNoResult } from "../../lib/scoring";
+
+/* ---------------------------------------------------------------------
+   Types — คัดลอกมาจาก app/live-score/page.tsx เพื่อให้หน้านี้ทำงานได้แบบ
+   standalone ถ้าต้องการใช้ร่วมกันในหลายหน้า แนะนำย้ายไป lib/types.ts
+--------------------------------------------------------------------- */
+interface Player {
+  id: string;
+  name: string;
+  role: "starter" | "substitute";
+}
+interface Team {
+  university: string;
+  category: string;
+  group: string;
+  players: Player[];
+}
+interface Score {
+  s1a: number;
+  s1b: number;
+  s2a: number;
+  s2b: number;
+}
+interface Match {
+  id: string;
+  category: string;
+  group: string;
+  court: string;
+  teamA: Team;
+  teamB: Team;
+  score: Score;
+  isFinished: boolean;
+  isBye?: boolean;
+  byeWinner?: "a" | "b" | null;
+}
+
+interface UniStanding {
+  university: string;
+  totalPoints: number;
+  matchPoints: number;
+  setsWon: number;
+  setsLost: number;
+  pointsWon: number;
+  pointsConceded: number;
+  matchesPlayed: number;
+}
+
+interface CategoryProgress {
+  category: string;
+  total: number;
+  finished: number;
+}
+
+const NON_SCORING_CATEGORIES = ["กิตติมศักดิ์"];
+
+const CATEGORY_ORDER = [
+  "กิตติมศักดิ์",
+  "ทั่วไป",
+  "70",
+  "80",
+  "90",
+  "100",
+  "110",
+  "120",
+  "130",
+  "หญิงคู่ทั่วไป",
+  "อาวุโสหญิง 70+",
+];
+const categoryOrderIndex = (category: string) => {
+  const idx = CATEGORY_ORDER.indexOf(category);
+  return idx === -1 ? CATEGORY_ORDER.length : idx;
+};
+
+const UNIVERSITY_PALETTE = [
+  "#34d399",
+  "#38bdf8",
+  "#fbbf24",
+  "#fb7185",
+  "#a78bfa",
+  "#f472b6",
+  "#2dd4bf",
+];
+
+const mergeMatchUpdates = (prev: Match[], updates: Match[]): Match[] => {
+  if (updates.length === 0) return prev;
+  const map = new Map(prev.map((m) => [m.id, m]));
+  updates.forEach((m) => {
+    if (m && m.id) map.set(m.id, m);
+  });
+  return Array.from(map.values());
+};
+
+export default function ReportPage() {
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    const s: Socket = io();
+    s.on("connect", () => setConnected(true));
+    s.on("disconnect", () => setConnected(false));
+    s.on("data-updated", (data) => {
+      if (data?.matches && Array.isArray(data.matches)) setMatches(data.matches);
+    });
+    s.on("match-updated", (updatedMatch: Match) => {
+      if (!updatedMatch?.id) return;
+      setMatches((prev) => mergeMatchUpdates(prev, [updatedMatch]));
+    });
+    s.on("matches-updated", (updatedMatches: Match[]) => {
+      if (!Array.isArray(updatedMatches) || updatedMatches.length === 0) return;
+      setMatches((prev) => mergeMatchUpdates(prev, updatedMatches));
+    });
+    return () => {
+      s.disconnect();
+    };
+  }, []);
+
+  /* -------------------------------------------------------------------
+     Aggregation — คำนวณ ranking รวมทุกรุ่น-สาย, matrix คะแนนต่อรุ่น x
+     สถาบัน, และผลต่าง set ต่อสถาบัน โดยใช้กติกาแจกแต้ม 5-4-3-2-1 แบบ
+     เดียวกับหน้า Live Score (ดู standings useMemo ในไฟล์นั้น)
+  ------------------------------------------------------------------- */
+  const {
+    universities,
+    categories,
+    categoryPointsMatrix,
+    uniStandings,
+    categoryProgress,
+    totalMatches,
+    totalFinished,
+  } = useMemo(() => {
+    const categoriesSet = new Set<string>();
+    const universitiesSet = new Set<string>();
+    matches.forEach((m) => {
+      categoriesSet.add(m.category);
+      universitiesSet.add(m.teamA.university);
+      universitiesSet.add(m.teamB.university);
+    });
+    const categories = Array.from(categoriesSet).sort(
+      (a, b) => categoryOrderIndex(a) - categoryOrderIndex(b) || a.localeCompare(b, "th")
+    );
+    const universities = Array.from(universitiesSet).sort((a, b) => a.localeCompare(b, "th"));
+
+    const uniMap: Record<string, UniStanding> = {};
+    const ensureUni = (u: string): UniStanding => {
+      if (!uniMap[u]) {
+        uniMap[u] = {
+          university: u,
+          totalPoints: 0,
+          matchPoints: 0,
+          setsWon: 0,
+          setsLost: 0,
+          pointsWon: 0,
+          pointsConceded: 0,
+          matchesPlayed: 0,
+        };
+      }
+      return uniMap[u];
+    };
+    universities.forEach(ensureUni);
+
+    const matrix: Record<string, Record<string, number>> = {};
+    universities.forEach((u) => {
+      matrix[u] = {};
+      categories.forEach((c) => {
+        matrix[u][c] = 0;
+      });
+    });
+
+    const groupKeys = Array.from(new Set(matches.map((m) => `${m.category}__${m.group}`)));
+
+    groupKeys.forEach((key) => {
+      const sepIdx = key.indexOf("__");
+      const category = key.slice(0, sepIdx);
+      const group = key.slice(sepIdx + 2);
+      const finishedInGroup = matches.filter(
+        (m) => m.category === category && m.group === group && m.isFinished
+      );
+      if (finishedInGroup.length === 0) return;
+
+      const isNonScoring = NON_SCORING_CATEGORIES.includes(category);
+      const internal: Record<string, { mPts: number; pWon: number; pConceded: number }> = {};
+      const ensureInternal = (u: string) => {
+        if (!internal[u]) internal[u] = { mPts: 0, pWon: 0, pConceded: 0 };
+        return internal[u];
+      };
+
+      finishedInGroup.forEach((m) => {
+        const uniA = m.teamA.university;
+        const uniB = m.teamB.university;
+        ensureInternal(uniA);
+        ensureInternal(uniB);
+        const a = ensureUni(uniA);
+        const b = ensureUni(uniB);
+        a.matchesPlayed += 1;
+        b.matchesPlayed += 1;
+
+        if (isNoResult(m)) return;
+
+        const s1a = Number(m.score.s1a) || 0;
+        const s1b = Number(m.score.s1b) || 0;
+        const s2a = Number(m.score.s2a) || 0;
+        const s2b = Number(m.score.s2b) || 0;
+        const winner = getMatchWinner(m);
+
+        internal[uniA].pWon += s1a + s2a;
+        internal[uniA].pConceded += s1b + s2b;
+        internal[uniB].pWon += s1b + s2b;
+        internal[uniB].pConceded += s1a + s2a;
+        if (winner === "a") internal[uniA].mPts += 2;
+        else if (winner === "b") internal[uniB].mPts += 2;
+        else {
+          internal[uniA].mPts += 1;
+          internal[uniB].mPts += 1;
+        }
+
+        a.pointsWon += s1a + s2a;
+        a.pointsConceded += s1b + s2b;
+        b.pointsWon += s1b + s2b;
+        b.pointsConceded += s1a + s2a;
+        a.matchPoints += winner === "a" ? 2 : winner === "b" ? 0 : 1;
+        b.matchPoints += winner === "b" ? 2 : winner === "a" ? 0 : 1;
+
+        if (s1a > s1b) {
+          a.setsWon += 1;
+          b.setsLost += 1;
+        } else if (s1b > s1a) {
+          b.setsWon += 1;
+          a.setsLost += 1;
+        }
+        if (s2a > s2b) {
+          a.setsWon += 1;
+          b.setsLost += 1;
+        } else if (s2b > s2a) {
+          b.setsWon += 1;
+          a.setsLost += 1;
+        }
+      });
+
+      if (!isNonScoring) {
+        const sortedInternal = Object.entries(internal).sort(([, x], [, y]) => {
+          if (y.mPts !== x.mPts) return y.mPts - x.mPts;
+          if (y.pWon !== x.pWon) return y.pWon - x.pWon;
+          return x.pConceded - y.pConceded;
+        });
+        sortedInternal.forEach(([uni], idx) => {
+          const pts = Math.max(1, 5 - idx);
+          uniMap[uni].totalPoints += pts;
+          matrix[uni][category] = (matrix[uni][category] || 0) + pts;
+        });
+      }
+    });
+
+    const uniStandings = Object.values(uniMap).sort(
+      (a, b) =>
+        b.totalPoints - a.totalPoints ||
+        b.matchPoints - a.matchPoints ||
+        b.pointsWon - a.pointsWon ||
+        a.pointsConceded - b.pointsConceded
+    );
+
+    const progressMap: Record<string, { total: number; finished: number }> = {};
+    matches.forEach((m) => {
+      if (!progressMap[m.category]) progressMap[m.category] = { total: 0, finished: 0 };
+      progressMap[m.category].total += 1;
+      if (m.isFinished) progressMap[m.category].finished += 1;
+    });
+    const categoryProgress: CategoryProgress[] = categories.map((c) => ({
+      category: c,
+      total: progressMap[c]?.total ?? 0,
+      finished: progressMap[c]?.finished ?? 0,
+    }));
+
+    return {
+      universities,
+      categories,
+      categoryPointsMatrix: matrix,
+      uniStandings,
+      categoryProgress,
+      totalMatches: matches.length,
+      totalFinished: matches.filter((m) => m.isFinished).length,
+    };
+  }, [matches]);
+
+  const colorScale = useMemo(
+    () => d3.scaleOrdinal<string, string>().domain(universities).range(UNIVERSITY_PALETTE),
+    [universities]
+  );
+
+  return (
+    <main className="min-h-screen bg-[#05070d] p-6 font-sans text-white">
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* Header */}
+        <header className="flex flex-col items-start justify-between gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl backdrop-blur-xl lg:flex-row lg:items-center">
+          <div className="flex items-center gap-4">
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-white bg-white shadow-lg sm:h-14 sm:w-14">
+              <Image
+                src="/5gearlogo.jpg"
+                alt="5 Gear Logo"
+                fill
+                className="object-cover"
+                priority
+                sizes="(max-width: 640px) 48px, 56px"
+              />
+            </div>
+            <div>
+              <h1 className="text-2xl leading-none font-black tracking-tight uppercase">Report</h1>
+              <p className="mt-1.5 text-[10px] font-bold tracking-[3px] text-emerald-400/80 uppercase">
+                รายงานสรุปผลการแข่งขันรวมทุกรุ่น-สาย
+              </p>
+            </div>
+            <span
+              className={`ml-1 h-2 w-2 rounded-full ${connected ? "bg-emerald-500 shadow-[0_0_6px_#10b981]" : "bg-red-500 shadow-[0_0_6px_#ef4444]"}`}
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold tracking-wider text-slate-300 uppercase transition-all hover:bg-white/10"
+            >
+              Leaderboard
+            </Link>
+            <Link
+              href="/live-score"
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold tracking-wider text-slate-300 uppercase transition-all hover:bg-white/10"
+            >
+              Live Score
+            </Link>
+            <Link
+              href="/live"
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold tracking-wider text-slate-300 uppercase transition-all hover:bg-white/10"
+            >
+              Live Board
+            </Link>
+          </div>
+        </header>
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard
+            label="คู่ทั้งหมด"
+            value={totalMatches}
+            icon={<GiShuttlecock size={18} />}
+            accent="text-slate-300"
+          />
+          <StatCard
+            label="แข่งจบแล้ว"
+            value={totalFinished}
+            icon={<GiShuttlecock size={18} />}
+            accent="text-emerald-400"
+          />
+          <StatCard
+            label="กำลังแข่ง"
+            value={totalMatches - totalFinished}
+            icon={<GiShuttlecock size={18} />}
+            accent="text-amber-400"
+          />
+          <StatCard
+            label="สถาบันที่เข้าร่วม"
+            value={universities.length}
+            icon={<GiTrophyCup size={18} />}
+            accent="text-sky-400"
+          />
+        </div>
+
+        {/* University color legend */}
+        {universities.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <span className="mr-1 text-[10px] font-black tracking-widest text-slate-500 uppercase">
+              สถาบัน
+            </span>
+            {universities.map((u) => (
+              <span
+                key={u}
+                className="flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-black tracking-wide text-slate-300 uppercase"
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colorScale(u) }} />
+                {u}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {matches.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/[0.03] py-16 text-slate-600">
+            <GiShuttlecock size={28} className="mb-3 opacity-40" />
+            <p className="text-[11px] font-bold tracking-widest uppercase">
+              ยังไม่มีข้อมูลการแข่งขัน
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Overall ranking */}
+            <ChartCard
+              title="อันดับรวมทุกรุ่น-สาย"
+              subtitle="คะแนนสะสมจากระบบแจกแต้ม 5-4-3-2-1 ของทุกรุ่น-สาย"
+            >
+              <RankingBarChart data={uniStandings} colorScale={colorScale} />
+            </ChartCard>
+
+            {/* Category x university heatmap */}
+            <ChartCard
+              title="คะแนนแยกตามรุ่น x สถาบัน"
+              subtitle="ยิ่งสีเข้ม ยิ่งได้คะแนนมากในรุ่นนั้น"
+            >
+              <div className="overflow-x-auto">
+                <CategoryHeatmap
+                  categories={categories}
+                  universities={universities}
+                  matrix={categoryPointsMatrix}
+                  colorScale={colorScale}
+                />
+              </div>
+            </ChartCard>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* Sets differential */}
+              <ChartCard title="ผลต่างเซตชนะ-แพ้" subtitle="ต่อสถาบัน รวมทุกรุ่น-สาย">
+                <SetsDiffChart data={uniStandings} colorScale={colorScale} />
+              </ChartCard>
+
+              {/* Match progress by category */}
+              <ChartCard
+                title="ความคืบหน้าการแข่งขัน"
+                subtitle="สัดส่วนคู่ที่แข่งจบแล้วในแต่ละรุ่น"
+              >
+                <ProgressDonuts data={categoryProgress} />
+              </ChartCard>
+            </div>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Layout helpers
+--------------------------------------------------------------------- */
+function StatCard({
+  label,
+  value,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  accent: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className={`shrink-0 ${accent}`}>{icon}</div>
+      <div className="min-w-0">
+        <p className="text-2xl leading-none font-black tabular-nums">{value}</p>
+        <p className="mt-1 text-[9px] font-bold tracking-widest text-slate-500 uppercase">
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ChartCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+      <div className="border-b border-white/5 px-5 py-4">
+        <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-[10px] font-bold text-slate-600">{subtitle}</p>}
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   D3 — Overall ranking, horizontal bar chart
+--------------------------------------------------------------------- */
+function RankingBarChart({
+  data,
+  colorScale,
+}: {
+  data: UniStanding[];
+  colorScale: d3.ScaleOrdinal<string, string>;
+}) {
+  const ref = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!ref.current || data.length === 0) return;
+    const svg = d3.select(ref.current);
+    svg.selectAll("*").remove();
+
+    const width = 760;
+    const height = Math.max(160, data.length * 56);
+    const margin = { top: 8, right: 60, bottom: 8, left: 116 };
+    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
+
+    const maxPoints = Math.max(1, d3.max(data, (d) => d.totalPoints) ?? 1);
+    const x = d3
+      .scaleLinear()
+      .domain([0, maxPoints])
+      .nice()
+      .range([margin.left, width - margin.right]);
+    const y = d3
+      .scaleBand()
+      .domain(data.map((d) => d.university))
+      .range([margin.top, height - margin.bottom])
+      .padding(0.35);
+
+    const g = svg.append("g");
+
+    g.selectAll("rect.track")
+      .data(data)
+      .join("rect")
+      .attr("class", "track")
+      .attr("x", margin.left)
+      .attr("y", (d) => y(d.university)!)
+      .attr("width", width - margin.left - margin.right)
+      .attr("height", y.bandwidth())
+      .attr("rx", 10)
+      .attr("fill", "rgba(255,255,255,0.03)");
+
+    g.selectAll("rect.bar")
+      .data(data)
+      .join("rect")
+      .attr("class", "bar")
+      .attr("x", margin.left)
+      .attr("y", (d) => y(d.university)!)
+      .attr("height", y.bandwidth())
+      .attr("rx", 10)
+      .attr("fill", (d) => colorScale(d.university))
+      .attr("width", 0)
+      .transition()
+      .duration(700)
+      .ease(d3.easeCubicOut)
+      .attr("width", (d) => Math.max(3, x(d.totalPoints) - margin.left));
+
+    g.selectAll("text.label")
+      .data(data)
+      .join("text")
+      .attr("class", "label")
+      .attr("x", margin.left - 12)
+      .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "end")
+      .attr("fill", "#cbd5e1")
+      .attr("font-size", 12.5)
+      .attr("font-weight", 900)
+      .style("text-transform", "uppercase")
+      .style("letter-spacing", "0.04em")
+      .text((d) => d.university);
+
+    g.selectAll("text.value")
+      .data(data)
+      .join("text")
+      .attr("class", "value")
+      .attr("x", (d) => x(d.totalPoints) + 10)
+      .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("fill", (d) => colorScale(d.university))
+      .attr("font-size", 13)
+      .attr("font-weight", 900)
+      .style("opacity", 0)
+      .text((d) => d.totalPoints)
+      .transition()
+      .delay(450)
+      .duration(300)
+      .style("opacity", 1);
+  }, [data, colorScale]);
+
+  return <svg ref={ref} className="w-full" />;
+}
+
+/* ---------------------------------------------------------------------
+   D3 — Category x University heatmap matrix
+--------------------------------------------------------------------- */
+function CategoryHeatmap({
+  categories,
+  universities,
+  matrix,
+  colorScale,
+}: {
+  categories: string[];
+  universities: string[];
+  matrix: Record<string, Record<string, number>>;
+  colorScale: d3.ScaleOrdinal<string, string>;
+}) {
+  const ref = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!ref.current || categories.length === 0 || universities.length === 0) return;
+    const svg = d3.select(ref.current);
+    svg.selectAll("*").remove();
+
+    const cellW = 92;
+    const cellH = 42;
+    const margin = { top: 34, right: 8, bottom: 8, left: 132 };
+    const width = margin.left + margin.right + cellW * universities.length;
+    const height = margin.top + margin.bottom + cellH * categories.length;
+    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", width);
+
+    const maxByCategory: Record<string, number> = {};
+    categories.forEach((c) => {
+      maxByCategory[c] = Math.max(1, ...universities.map((u) => matrix[u]?.[c] ?? 0));
+    });
+
+    const g = svg.append("g");
+
+    g.selectAll("text.colhead")
+      .data(universities)
+      .join("text")
+      .attr("x", (_d, i) => margin.left + i * cellW + cellW / 2)
+      .attr("y", margin.top - 14)
+      .attr("text-anchor", "middle")
+      .attr("font-size", 10.5)
+      .attr("font-weight", 900)
+      .attr("fill", (d) => colorScale(d))
+      .style("text-transform", "uppercase")
+      .text((d) => d);
+
+    g.selectAll("text.rowhead")
+      .data(categories)
+      .join("text")
+      .attr("x", margin.left - 12)
+      .attr("y", (_d, i) => margin.top + i * cellH + cellH / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "end")
+      .attr("font-size", 11)
+      .attr("font-weight", 700)
+      .attr("fill", "#94a3b8")
+      .text((d) => d);
+
+    categories.forEach((cat, ci) => {
+      universities.forEach((uni, ui) => {
+        const val = matrix[uni]?.[cat] ?? 0;
+        const t = val > 0 ? val / maxByCategory[cat] : 0;
+        const fill = d3.interpolateRgb("#11141c", colorScale(uni))(t);
+        const cellG = g
+          .append("g")
+          .attr("transform", `translate(${margin.left + ui * cellW},${margin.top + ci * cellH})`);
+
+        cellG
+          .append("rect")
+          .attr("width", cellW - 8)
+          .attr("height", cellH - 8)
+          .attr("rx", 8)
+          .attr("fill", val > 0 ? fill : "rgba(255,255,255,0.02)")
+          .attr("stroke", colorScale(uni))
+          .attr("stroke-opacity", val > 0 ? 0.4 : 0.08);
+
+        if (val > 0) {
+          cellG
+            .append("text")
+            .attr("x", (cellW - 8) / 2)
+            .attr("y", (cellH - 8) / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "middle")
+            .attr("font-size", 13)
+            .attr("font-weight", 900)
+            .attr("fill", t > 0.45 ? "#05070d" : "#f1f5f9")
+            .text(val);
+        }
+      });
+    });
+  }, [categories, universities, matrix, colorScale]);
+
+  return <svg ref={ref} />;
+}
+
+/* ---------------------------------------------------------------------
+   D3 — Sets won/lost differential, diverging bar chart
+--------------------------------------------------------------------- */
+function SetsDiffChart({
+  data,
+  colorScale,
+}: {
+  data: UniStanding[];
+  colorScale: d3.ScaleOrdinal<string, string>;
+}) {
+  const ref = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!ref.current || data.length === 0) return;
+    const svg = d3.select(ref.current);
+    svg.selectAll("*").remove();
+
+    const sorted = [...data].sort((a, b) => b.setsWon - b.setsLost - (a.setsWon - a.setsLost));
+    const width = 640;
+    const height = Math.max(160, sorted.length * 52);
+    const margin = { top: 8, right: 16, bottom: 8, left: 96 };
+    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
+
+    const diffs = sorted.map((d) => d.setsWon - d.setsLost);
+    const maxAbs = Math.max(1, d3.max(diffs, (d) => Math.abs(d)) ?? 1);
+    const x = d3
+      .scaleLinear()
+      .domain([-maxAbs, maxAbs])
+      .range([margin.left, width - margin.right]);
+    const y = d3
+      .scaleBand()
+      .domain(sorted.map((d) => d.university))
+      .range([margin.top, height - margin.bottom])
+      .padding(0.35);
+    const zeroX = x(0);
+
+    const g = svg.append("g");
+
+    g.append("line")
+      .attr("x1", zeroX)
+      .attr("x2", zeroX)
+      .attr("y1", margin.top)
+      .attr("y2", height - margin.bottom)
+      .attr("stroke", "rgba(255,255,255,0.15)");
+
+    g.selectAll("text.label")
+      .data(sorted)
+      .join("text")
+      .attr("x", margin.left - 12)
+      .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "end")
+      .attr("fill", "#cbd5e1")
+      .attr("font-size", 11.5)
+      .attr("font-weight", 900)
+      .style("text-transform", "uppercase")
+      .text((d) => d.university);
+
+    const bars = g
+      .selectAll("rect.bar")
+      .data(sorted)
+      .join("rect")
+      .attr("class", "bar")
+      .attr("y", (d) => y(d.university)!)
+      .attr("height", y.bandwidth())
+      .attr("rx", 8)
+      .attr("fill", (d) => colorScale(d.university))
+      .attr("x", zeroX)
+      .attr("width", 0);
+
+    bars
+      .transition()
+      .duration(700)
+      .ease(d3.easeCubicOut)
+      .attr("x", (d) => {
+        const diff = d.setsWon - d.setsLost;
+        return diff >= 0 ? zeroX : x(diff);
+      })
+      .attr("width", (d) => Math.abs(x(d.setsWon - d.setsLost) - zeroX));
+
+    g.selectAll("text.value")
+      .data(sorted)
+      .join("text")
+      .attr("x", (d) => {
+        const diff = d.setsWon - d.setsLost;
+        const bx = x(diff);
+        return diff >= 0 ? bx + 8 : bx - 8;
+      })
+      .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", (d) => (d.setsWon - d.setsLost >= 0 ? "start" : "end"))
+      .attr("fill", "#e2e8f0")
+      .attr("font-size", 11.5)
+      .attr("font-weight", 800)
+      .style("opacity", 0)
+      .text((d) => {
+        const diff = d.setsWon - d.setsLost;
+        return `${diff > 0 ? "+" : ""}${diff} (${d.setsWon}-${d.setsLost})`;
+      })
+      .transition()
+      .delay(450)
+      .duration(300)
+      .style("opacity", 1);
+  }, [data, colorScale]);
+
+  return <svg ref={ref} className="w-full" />;
+}
+
+/* ---------------------------------------------------------------------
+   D3 — Match progress per category, small-multiple radial gauges
+--------------------------------------------------------------------- */
+function ProgressDonuts({ data }: { data: CategoryProgress[] }) {
+  const ref = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!ref.current || data.length === 0) return;
+    const svg = d3.select(ref.current);
+    svg.selectAll("*").remove();
+
+    const cols = Math.min(data.length, 4) || 1;
+    const cell = 140;
+    const rows = Math.ceil(data.length / cols);
+    const width = cell * cols;
+    const height = cell * rows;
+    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
+
+    const radius = 44;
+
+    data.forEach((d, i) => {
+      const cx = (i % cols) * cell + cell / 2;
+      const cy = Math.floor(i / cols) * cell + cell / 2 - 6;
+      const g = svg.append("g").attr("transform", `translate(${cx},${cy})`);
+      const pct = d.total > 0 ? d.finished / d.total : 0;
+
+      const arcBg = d3.arc()({
+        innerRadius: radius - 9,
+        outerRadius: radius,
+        startAngle: 0,
+        endAngle: 2 * Math.PI,
+      } as d3.DefaultArcObject);
+      g.append("path")
+        .attr("d", arcBg as string)
+        .attr("fill", "rgba(255,255,255,0.06)");
+
+      const arcGen = d3
+        .arc()
+        .innerRadius(radius - 9)
+        .outerRadius(radius)
+        .startAngle(0);
+      const path = g
+        .append("path")
+        .datum({ endAngle: 0 })
+        .attr("fill", pct >= 1 ? "#10b981" : "#38bdf8");
+
+      path
+        .transition()
+        .duration(800)
+        .ease(d3.easeCubicOut)
+        .attrTween("d", function (dAnim: any) {
+          const interpolateAngle = d3.interpolate(dAnim.endAngle, 2 * Math.PI * pct);
+          return function (t: number) {
+            dAnim.endAngle = interpolateAngle(t);
+            return arcGen(dAnim) as string;
+          };
+        });
+
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "-0.1em")
+        .attr("font-size", 17)
+        .attr("font-weight", 900)
+        .attr("fill", "#f1f5f9")
+        .text(`${Math.round(pct * 100)}%`);
+
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "1.35em")
+        .attr("font-size", 9)
+        .attr("font-weight", 700)
+        .attr("fill", "#64748b")
+        .text(`${d.finished}/${d.total}`);
+
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", radius + 22)
+        .attr("font-size", 10)
+        .attr("font-weight", 900)
+        .attr("fill", "#94a3b8")
+        .style("text-transform", "uppercase")
+        .text(d.category);
+    });
+  }, [data]);
+
+  return <svg ref={ref} className="w-full" />;
+}
