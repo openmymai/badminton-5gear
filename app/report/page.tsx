@@ -91,6 +91,16 @@ const UNIVERSITY_PALETTE = [
   "#2dd4bf",
 ];
 
+// สีประจำสถาบัน (fix ตายตัว) — ถ้ามีสถาบันอื่นนอกเหนือจากนี้ จะ fallback ไปใช้
+// UNIVERSITY_PALETTE แบบ ordinal ตามเดิม
+const UNIVERSITY_COLOR_MAP: Record<string, string> = {
+  CMU: "#a78bfa", // ม่วง
+  CU: "#f472b6", // ชมพู
+  KKU: "#c2542c", // ดินแดง
+  KU: "#4ade80", // เขียวใบไม้
+  PSU: "#2563eb", // น้ำเงิน
+};
+
 const mergeMatchUpdates = (prev: Match[], updates: Match[]): Match[] => {
   if (updates.length === 0) return prev;
   const map = new Map(prev.map((m) => [m.id, m]));
@@ -132,6 +142,7 @@ export default function ReportPage() {
   const {
     universities,
     categories,
+    heatmapRows,
     categoryPointsMatrix,
     uniStandings,
     categoryProgress,
@@ -149,6 +160,31 @@ export default function ReportPage() {
       (a, b) => categoryOrderIndex(a) - categoryOrderIndex(b) || a.localeCompare(b, "th")
     );
     const universities = Array.from(universitiesSet).sort((a, b) => a.localeCompare(b, "th"));
+
+    // เช็คว่ารุ่นไหนมีสาย A/B (กลุ่ม round-robin) บ้าง — ใช้ร่วมกันทั้งกราฟ
+    // "ความคืบหน้าการแข่งขัน" และ heatmap "คะแนนแยกตามรุ่น x สถาบัน"
+    const categoryGroupsSet: Record<string, Set<string>> = {};
+    matches.forEach((m) => {
+      if (!categoryGroupsSet[m.category]) categoryGroupsSet[m.category] = new Set();
+      categoryGroupsSet[m.category].add((m.group || "").trim().toUpperCase());
+    });
+    const categoryHasAB = (c: string) => {
+      const g = categoryGroupsSet[c];
+      return !!g && (g.has("A") || g.has("B"));
+    };
+
+    // แถวของ heatmap: รุ่นที่มีสาย A/B จะถูกแยกเป็น "70 A" / "70 B" สองแถว
+    // ส่วนรุ่นที่ไม่มีสาย A/B ให้เป็นแถวเดียวตามเดิม
+    const heatmapRows: string[] = [];
+    categories.forEach((c) => {
+      if (categoryHasAB(c)) {
+        (["A", "B"] as const).forEach((g) => {
+          if (categoryGroupsSet[c].has(g)) heatmapRows.push(`${c} ${g}`);
+        });
+      } else {
+        heatmapRows.push(c);
+      }
+    });
 
     const uniMap: Record<string, UniStanding> = {};
     const ensureUni = (u: string): UniStanding => {
@@ -171,8 +207,8 @@ export default function ReportPage() {
     const matrix: Record<string, Record<string, number>> = {};
     universities.forEach((u) => {
       matrix[u] = {};
-      categories.forEach((c) => {
-        matrix[u][c] = 0;
+      heatmapRows.forEach((r) => {
+        matrix[u][r] = 0;
       });
     });
 
@@ -255,7 +291,10 @@ export default function ReportPage() {
         sortedInternal.forEach(([uni], idx) => {
           const pts = Math.max(1, 5 - idx);
           uniMap[uni].totalPoints += pts;
-          matrix[uni][category] = (matrix[uni][category] || 0) + pts;
+          const rowLabel = categoryHasAB(category)
+            ? `${category} ${group.trim().toUpperCase()}`
+            : category;
+          matrix[uni][rowLabel] = (matrix[uni][rowLabel] || 0) + pts;
         });
       }
     });
@@ -274,15 +313,34 @@ export default function ReportPage() {
       progressMap[m.category].total += 1;
       if (m.isFinished) progressMap[m.category].finished += 1;
     });
-    const categoryProgress: CategoryProgress[] = categories.map((c) => ({
-      category: c,
-      total: progressMap[c]?.total ?? 0,
-      finished: progressMap[c]?.finished ?? 0,
-    }));
+
+    const categoryProgress: CategoryProgress[] = [];
+    categories.forEach((c) => {
+      if (categoryHasAB(c)) {
+        (["A", "B"] as const).forEach((g) => {
+          if (!categoryGroupsSet[c].has(g)) return;
+          const inGroup = matches.filter(
+            (m) => m.category === c && (m.group || "").trim().toUpperCase() === g
+          );
+          categoryProgress.push({
+            category: `${c} ${g}`,
+            total: inGroup.length,
+            finished: inGroup.filter((m) => m.isFinished).length,
+          });
+        });
+      } else {
+        categoryProgress.push({
+          category: c,
+          total: progressMap[c]?.total ?? 0,
+          finished: progressMap[c]?.finished ?? 0,
+        });
+      }
+    });
 
     return {
       universities,
       categories,
+      heatmapRows,
       categoryPointsMatrix: matrix,
       uniStandings,
       categoryProgress,
@@ -291,10 +349,11 @@ export default function ReportPage() {
     };
   }, [matches]);
 
-  const colorScale = useMemo(
-    () => d3.scaleOrdinal<string, string>().domain(universities).range(UNIVERSITY_PALETTE),
-    [universities]
-  );
+  const colorScale = useMemo(() => {
+    const unmapped = universities.filter((u) => !UNIVERSITY_COLOR_MAP[u.trim().toUpperCase()]);
+    const fallback = d3.scaleOrdinal<string, string>().domain(unmapped).range(UNIVERSITY_PALETTE);
+    return (u: string) => UNIVERSITY_COLOR_MAP[u.trim().toUpperCase()] ?? fallback(u);
+  }, [universities]);
 
   return (
     <main className="min-h-screen bg-[#05070d] p-6 font-sans text-white">
@@ -411,11 +470,11 @@ export default function ReportPage() {
             {/* Category x university heatmap */}
             <ChartCard
               title="คะแนนแยกตามรุ่น x สถาบัน"
-              subtitle="ยิ่งสีเข้ม ยิ่งได้คะแนนมากในรุ่นนั้น"
+              subtitle="ยิ่งสีเข้ม ยิ่งได้คะแนนมากในรุ่นนั้น (แยกสาย A/B ถ้ามี)"
             >
               <div className="overflow-x-auto">
                 <CategoryHeatmap
-                  categories={categories}
+                  categories={heatmapRows}
                   universities={universities}
                   matrix={categoryPointsMatrix}
                   colorScale={colorScale}
@@ -423,20 +482,18 @@ export default function ReportPage() {
               </div>
             </ChartCard>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {/* Sets differential */}
-              <ChartCard title="ผลต่างเซตชนะ-แพ้" subtitle="ต่อสถาบัน รวมทุกรุ่น-สาย">
-                <SetsDiffChart data={uniStandings} colorScale={colorScale} />
-              </ChartCard>
+            {/* Match progress by category — เต็มความกว้างจอ, แยกสาย A/B ถ้ารุ่นนั้นมี */}
+            <ChartCard
+              title="ความคืบหน้าการแข่งขัน"
+              subtitle="สัดส่วนคู่ที่แข่งจบแล้วในแต่ละรุ่น (แยกสาย A/B ถ้ามี)"
+            >
+              <ProgressDonuts data={categoryProgress} />
+            </ChartCard>
 
-              {/* Match progress by category */}
-              <ChartCard
-                title="ความคืบหน้าการแข่งขัน"
-                subtitle="สัดส่วนคู่ที่แข่งจบแล้วในแต่ละรุ่น"
-              >
-                <ProgressDonuts data={categoryProgress} />
-              </ChartCard>
-            </div>
+            {/* Sets differential — ย้ายลงมาล่างสุด, เต็มความกว้างจอ */}
+            <ChartCard title="ผลต่างเซตชนะ-แพ้" subtitle="ต่อสถาบัน รวมทุกรุ่น-สาย">
+              <SetsDiffChart data={uniStandings} colorScale={colorScale} />
+            </ChartCard>
           </>
         )}
       </div>
@@ -499,7 +556,7 @@ function RankingBarChart({
   colorScale,
 }: {
   data: UniStanding[];
-  colorScale: d3.ScaleOrdinal<string, string>;
+  colorScale: (university: string) => string;
 }) {
   const ref = useRef<SVGSVGElement>(null);
 
@@ -601,7 +658,7 @@ function CategoryHeatmap({
   categories: string[];
   universities: string[];
   matrix: Record<string, Record<string, number>>;
-  colorScale: d3.ScaleOrdinal<string, string>;
+  colorScale: (university: string) => string;
 }) {
   const ref = useRef<SVGSVGElement>(null);
 
@@ -693,7 +750,7 @@ function SetsDiffChart({
   colorScale,
 }: {
   data: UniStanding[];
-  colorScale: d3.ScaleOrdinal<string, string>;
+  colorScale: (university: string) => string;
 }) {
   const ref = useRef<SVGSVGElement>(null);
 
@@ -826,7 +883,7 @@ function ProgressDonuts({ data }: { data: CategoryProgress[] }) {
     const svg = d3.select(ref.current);
     svg.selectAll("*").remove();
 
-    const cols = Math.min(data.length, 4) || 1;
+    const cols = Math.min(data.length, 6) || 1;
     const cell = 140;
     const rows = Math.ceil(data.length / cols);
     const width = cell * cols;
