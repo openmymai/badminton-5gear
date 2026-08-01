@@ -6,7 +6,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import * as d3 from "d3";
 // ต้องติดตั้งเพิ่ม: npm install d3-sankey  (และถ้าใช้ TS เข้มงวด: npm install -D @types/d3-sankey)
-import { sankey, sankeyLinkHorizontal } from "d3-sankey";
+import {
+  sankey,
+  sankeyLinkHorizontal,
+  SankeyGraph,
+  SankeyNodeMinimal,
+  SankeyLinkMinimal,
+} from "d3-sankey";
 import { GiShuttlecock, GiTrophyCup } from "react-icons/gi";
 import Link from "next/link";
 import Image from "next/image";
@@ -469,13 +475,13 @@ export default function ReportPage() {
               <RankingBarChart data={uniStandings} colorScale={colorScale} />
             </ChartCard>
 
-            {/* Category x university sankey */}
+            {/* Category x university heatmap */}
             <ChartCard
               title="คะแนนแยกตามรุ่น x สถาบัน"
-              subtitle="ความหนาของเส้น = คะแนนที่ได้ในรุ่นนั้น (แยกสาย A/B ถ้ามี) — เอาเมาส์ชี้เส้นเพื่อดูตัวเลข"
+              subtitle="ยิ่งสีเข้ม ยิ่งได้คะแนนมากในรุ่นนั้น (แยกสาย A/B ถ้ามี)"
             >
               <div className="overflow-x-auto">
-                <CategorySankey
+                <CategoryHeatmap
                   categories={heatmapRows}
                   universities={universities}
                   matrix={categoryPointsMatrix}
@@ -561,6 +567,7 @@ function RankingBarChart({
   colorScale: (university: string) => string;
 }) {
   const ref = useRef<SVGSVGElement>(null);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     if (!ref.current || data.length === 0) return;
@@ -583,16 +590,17 @@ function RankingBarChart({
       .range([margin.top, height - margin.bottom])
       .padding(0.35);
 
-    // ใช้ persistent <g> เดียว + keyed join แทนการล้างและวาด SVG ใหม่ทั้งหมด
-    // ทุกครั้ง เพื่อให้ element เดิม transition จากค่าปัจจุบัน ไม่กระพริบ/รีเซ็ตจาก 0
-    let g = svg.select<SVGGElement>("g.chart-root");
-    if (g.empty()) g = svg.append("g").attr("class", "chart-root");
+    // Reuse the same <g> across renders instead of wiping the SVG each time —
+    // this lets D3 match existing elements (by key) to the incoming data so it
+    // can transition attributes smoothly rather than delete + recreate them.
+    let g = svg.select<SVGGElement>("g.root");
+    if (g.empty()) g = svg.append("g").attr("class", "root");
 
-    const key = (d: UniStanding) => d.university;
-    const T = () => d3.transition().duration(700).ease(d3.easeCubicOut) as any;
+    const isFirstRender = !initializedRef.current;
+    const dur = isFirstRender ? 700 : 500;
 
     g.selectAll<SVGRectElement, UniStanding>("rect.track")
-      .data(data, key as any)
+      .data(data, (d: any) => d.university)
       .join(
         (enter) =>
           enter
@@ -603,20 +611,23 @@ function RankingBarChart({
             .attr("width", width - margin.left - margin.right)
             .attr("height", y.bandwidth())
             .attr("rx", 10)
-            .attr("fill", "rgba(255,255,255,0.03)"),
+            .attr("fill", "rgba(255,255,255,0.03)")
+            .style("opacity", 0)
+            .call((enter) => enter.transition().duration(dur).style("opacity", 1)),
         (update) =>
-          update.call((u) =>
-            u
-              .transition(T())
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(dur)
+              .ease(d3.easeCubicOut)
               .attr("y", (d) => y(d.university)!)
-              .attr("width", width - margin.left - margin.right)
               .attr("height", y.bandwidth())
           ),
         (exit) => exit.transition().duration(300).style("opacity", 0).remove()
       );
 
     g.selectAll<SVGRectElement, UniStanding>("rect.bar")
-      .data(data, key as any)
+      .data(data, (d: any) => d.university)
       .join(
         (enter) =>
           enter
@@ -630,23 +641,27 @@ function RankingBarChart({
             .attr("width", 0)
             .call((enter) =>
               enter
-                .transition(T())
+                .transition()
+                .duration(dur)
+                .ease(d3.easeCubicOut)
                 .attr("width", (d) => Math.max(3, x(d.totalPoints) - margin.left))
             ),
         (update) =>
-          update.call((u) =>
-            u
-              .transition(T())
+          update.call((update) =>
+            update
+              .transition()
+              .duration(dur)
+              .ease(d3.easeCubicOut)
               .attr("y", (d) => y(d.university)!)
               .attr("height", y.bandwidth())
               .attr("fill", (d) => colorScale(d.university))
               .attr("width", (d) => Math.max(3, x(d.totalPoints) - margin.left))
           ),
-        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
+        (exit) => exit.transition().duration(300).attr("width", 0).remove()
       );
 
     g.selectAll<SVGTextElement, UniStanding>("text.label")
-      .data(data, key as any)
+      .data(data, (d: any) => d.university)
       .join(
         (enter) =>
           enter
@@ -663,16 +678,19 @@ function RankingBarChart({
             .style("letter-spacing", "0.04em")
             .style("opacity", 0)
             .text((d) => d.university)
-            .call((enter) => enter.transition().duration(400).style("opacity", 1)),
+            .call((enter) => enter.transition().duration(dur).style("opacity", 1)),
         (update) =>
-          update
-            .call((u) => u.transition(T()).attr("y", (d) => y(d.university)! + y.bandwidth() / 2))
-            .text((d) => d.university),
-        (exit) => exit.remove()
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(dur)
+              .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
       );
 
     g.selectAll<SVGTextElement, UniStanding>("text.value")
-      .data(data, key as any)
+      .data(data, (d: any) => d.university)
       .join(
         (enter) =>
           enter
@@ -686,50 +704,41 @@ function RankingBarChart({
             .attr("font-weight", 900)
             .style("opacity", 0)
             .text((d) => d.totalPoints)
-            .call((enter) => enter.transition().delay(450).duration(300).style("opacity", 1)),
+            .call((enter) =>
+              enter
+                .transition()
+                .delay(dur - 250)
+                .duration(300)
+                .style("opacity", 1)
+            ),
         (update) =>
-          update
-            .call((u) =>
-              u
-                .transition(T())
-                .attr("x", (d) => x(d.totalPoints) + 10)
-                .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
-                .attr("fill", (d) => colorScale(d.university))
-            )
-            .text((d) => d.totalPoints),
-        (exit) => exit.remove()
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(dur)
+              .attr("x", (d) => x(d.totalPoints) + 10)
+              .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+              .attr("fill", (d) => colorScale(d.university))
+              .textTween(function (d) {
+                const node = this as SVGTextElement;
+                const prev = Number(node.textContent) || d.totalPoints;
+                const interpolateValue = d3.interpolateRound(prev, d.totalPoints);
+                return (t: number) => String(interpolateValue(t));
+              })
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
       );
+
+    initializedRef.current = true;
   }, [data, colorScale]);
 
   return <svg ref={ref} className="w-full" />;
 }
 
 /* ---------------------------------------------------------------------
-   D3 — Category x University sankey (รุ่น ➜ สถาบัน ตามคะแนนที่ได้)
+   D3 — Category x University heatmap matrix
 --------------------------------------------------------------------- */
-// หมายเหตุ: d3-sankey มี generic ของ node/link ที่อ้างอิงกันเอง (circular) การพยายาม
-// ประกาศ type ให้ตรง 100% กับ SankeyNodeMinimal/SankeyLinkMinimal ทำให้ TS งงเปล่าๆ
-// จึงประกาศ shape ของเราเองแบบตรงไปตรงมา แล้วปล่อยให้ sankey() คำนวณ x0/x1/y0/y1 ให้
-type SankeyNodeDatum = {
-  id: string;
-  label: string;
-  kind: "category" | "university";
-  x0?: number;
-  x1?: number;
-  y0?: number;
-  y1?: number;
-};
-type SankeyLinkDatum = {
-  source: number;
-  target: number;
-  value: number;
-  category: string;
-  university: string;
-  points: number;
-  width?: number;
-};
-
-function CategorySankey({
+function CategoryHeatmap({
   categories,
   universities,
   matrix,
@@ -746,162 +755,147 @@ function CategorySankey({
     if (!ref.current || categories.length === 0 || universities.length === 0) return;
     const svg = d3.select(ref.current);
 
-    const width = 860;
-    const rowUnit = 34;
-    const margin = { top: 8, right: 118, bottom: 8, left: 150 };
-    const height = Math.max(
-      340,
-      Math.max(categories.length, universities.length) * rowUnit + margin.top + margin.bottom
-    );
-    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
+    const cellW = 92;
+    const cellH = 42;
+    const margin = { top: 34, right: 8, bottom: 8, left: 132 };
+    const width = margin.left + margin.right + cellW * universities.length;
+    const height = margin.top + margin.bottom + cellH * categories.length;
+    svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", width);
 
-    // สร้าง node: รุ่น (ซ้าย) + สถาบัน (ขวา), link: รุ่น -> สถาบัน น้ำหนัก = คะแนนที่ได้
-    const nodesInput: SankeyNodeDatum[] = [
-      ...categories.map((c) => ({ id: `c::${c}`, label: c, kind: "category" as const })),
-      ...universities.map((u) => ({ id: `u::${u}`, label: u, kind: "university" as const })),
-    ];
-    const nodeIndexOf = new Map(nodesInput.map((n, i) => [n.id, i]));
-
-    const linksInput: SankeyLinkDatum[] = [];
-    categories.forEach((cat) => {
-      universities.forEach((uni) => {
-        const points = matrix[uni]?.[cat] ?? 0;
-        if (points > 0) {
-          linksInput.push({
-            source: nodeIndexOf.get(`c::${cat}`)!,
-            target: nodeIndexOf.get(`u::${uni}`)!,
-            value: points,
-            category: cat,
-            university: uni,
-            points,
-          } as unknown as SankeyLinkDatum);
-        }
-      });
+    const maxByCategory: Record<string, number> = {};
+    categories.forEach((c) => {
+      maxByCategory[c] = Math.max(1, ...universities.map((u) => matrix[u]?.[c] ?? 0));
     });
 
-    let g = svg.select<SVGGElement>("g.sankey-root");
-    if (g.empty()) g = svg.append("g").attr("class", "sankey-root");
+    // Reuse the same <g> across renders (keyed joins below) instead of
+    // wiping the SVG on every socket update — that's what caused the flash.
+    let g = svg.select<SVGGElement>("g.root");
+    if (g.empty()) g = svg.append("g").attr("class", "root");
 
-    if (linksInput.length === 0) {
-      g.selectAll("*").remove();
-      return;
-    }
-
-    const sankeyGen: any = sankey()
-      .nodeWidth(14)
-      .nodePadding(14)
-      .extent([
-        [margin.left, margin.top],
-        [width - margin.right, height - margin.bottom],
-      ]);
-
-    const graph = sankeyGen({
-      nodes: nodesInput.map((d) => ({ ...d })),
-      links: linksInput.map((d) => ({ ...d })),
-    }) as { nodes: SankeyNodeDatum[]; links: SankeyLinkDatum[] };
-
-    const linkPath: any = sankeyLinkHorizontal();
-    const linkKey = (d: SankeyLinkDatum) => `${d.category}__${d.university}`;
-    const T = () => d3.transition().duration(600).ease(d3.easeCubicOut) as any;
-
-    // เส้น flow — interpolate path string ด้วย attrTween กันการ "กระโดด" เวลาคะแนนเปลี่ยน
-    g.selectAll<SVGPathElement, SankeyLinkDatum>("path.link")
-      .data(graph.links, linkKey as any)
-      .join(
-        (enter) =>
-          enter
-            .append("path")
-            .attr("class", "link")
-            .attr("fill", "none")
-            .attr("stroke", (d) => colorScale(d.university))
-            .attr("stroke-width", (d) => Math.max(1, d.width ?? 1))
-            .attr("d", (d) => linkPath(d) as string)
-            .attr("stroke-opacity", 0)
-            .call((enter) => enter.append("title"))
-            .call((enter) => enter.transition().duration(500).attr("stroke-opacity", 0.35)),
-        (update) =>
-          update.call((u) =>
-            u
-              .transition(T())
-              .attr("stroke", (d) => colorScale(d.university))
-              .attr("stroke-width", (d) => Math.max(1, d.width ?? 1))
-              .attr("stroke-opacity", 0.35)
-              .attrTween("d", function (d) {
-                const prev = d3.select(this).attr("d");
-                const next = linkPath(d) as string;
-                return d3.interpolateString(prev, next);
-              })
-          ),
-        (exit) => exit.transition().duration(250).attr("stroke-opacity", 0).remove()
-      )
-      .each(function (d) {
-        // อัปเดตข้อความ tooltip ทุกครั้ง (ทั้ง enter และ update) เพราะ <title> ไม่มี transition
-        d3.select(this).select("title").text(`${d.category} → ${d.university}: ${d.points} คะแนน`);
-      });
-
-    // กล่อง node
-    g.selectAll<SVGRectElement, SankeyNodeDatum>("rect.node")
-      .data(graph.nodes, (d: any) => d.id)
-      .join(
-        (enter) =>
-          enter
-            .append("rect")
-            .attr("class", "node")
-            .attr("x", (d) => d.x0!)
-            .attr("y", (d) => d.y0!)
-            .attr("width", (d) => d.x1! - d.x0!)
-            .attr("height", (d) => Math.max(1, d.y1! - d.y0!))
-            .attr("rx", 3)
-            .attr("fill", (d) => (d.kind === "university" ? colorScale(d.label) : "#475569"))
-            .style("opacity", 0)
-            .call((enter) => enter.transition().duration(400).style("opacity", 1)),
-        (update) =>
-          update.call((u) =>
-            u
-              .transition(T())
-              .attr("x", (d) => d.x0!)
-              .attr("y", (d) => d.y0!)
-              .attr("width", (d) => d.x1! - d.x0!)
-              .attr("height", (d) => Math.max(1, d.y1! - d.y0!))
-              .attr("fill", (d) => (d.kind === "university" ? colorScale(d.label) : "#475569"))
-          ),
-        (exit) => exit.transition().duration(250).style("opacity", 0).remove()
-      );
-
-    // label ของ node — รุ่นชิดซ้ายของกล่อง, สถาบันชิดขวาของกล่อง (สีตามสถาบัน)
-    g.selectAll<SVGTextElement, SankeyNodeDatum>("text.node-label")
-      .data(graph.nodes, (d: any) => d.id)
+    g.selectAll<SVGTextElement, string>("text.colhead")
+      .data(universities, (d) => d)
       .join(
         (enter) =>
           enter
             .append("text")
-            .attr("class", "node-label")
-            .attr("x", (d) => (d.kind === "category" ? d.x0! - 10 : d.x1! + 10))
-            .attr("y", (d) => (d.y0! + d.y1!) / 2)
-            .attr("dy", "0.35em")
-            .attr("text-anchor", (d) => (d.kind === "category" ? "end" : "start"))
-            .attr("font-size", 11)
-            .attr("font-weight", (d) => (d.kind === "category" ? 700 : 900))
-            .attr("fill", (d) => (d.kind === "category" ? "#94a3b8" : colorScale(d.label)))
-            .style("text-transform", (d) => (d.kind === "university" ? "uppercase" : "none"))
+            .attr("class", "colhead")
+            .attr("x", (_d, i) => margin.left + i * cellW + cellW / 2)
+            .attr("y", margin.top - 14)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 10.5)
+            .attr("font-weight", 900)
+            .attr("fill", (d) => colorScale(d))
+            .style("text-transform", "uppercase")
             .style("opacity", 0)
-            .text((d) => d.label)
+            .text((d) => d)
             .call((enter) => enter.transition().duration(400).style("opacity", 1)),
         (update) =>
-          update
-            .call((u) =>
-              u
-                .transition(T())
-                .attr("x", (d) => (d.kind === "category" ? d.x0! - 10 : d.x1! + 10))
-                .attr("y", (d) => (d.y0! + d.y1!) / 2)
-                .attr("fill", (d) => (d.kind === "category" ? "#94a3b8" : colorScale(d.label)))
-            )
-            .text((d) => d.label),
-        (exit) => exit.remove()
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(400)
+              .attr("x", (_d, i) => margin.left + i * cellW + cellW / 2)
+              .attr("fill", (d) => colorScale(d))
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
       );
+
+    g.selectAll<SVGTextElement, string>("text.rowhead")
+      .data(categories, (d) => d)
+      .join(
+        (enter) =>
+          enter
+            .append("text")
+            .attr("class", "rowhead")
+            .attr("x", margin.left - 12)
+            .attr("y", (_d, i) => margin.top + i * cellH + cellH / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "end")
+            .attr("font-size", 11)
+            .attr("font-weight", 700)
+            .attr("fill", "#94a3b8")
+            .style("opacity", 0)
+            .text((d) => d)
+            .call((enter) => enter.transition().duration(400).style("opacity", 1)),
+        (update) =>
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(400)
+              .attr("y", (_d, i) => margin.top + i * cellH + cellH / 2)
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
+      );
+
+    type Cell = { uni: string; cat: string; ci: number; ui: number; val: number };
+    const cells: Cell[] = [];
+    categories.forEach((cat, ci) => {
+      universities.forEach((uni, ui) => {
+        cells.push({ uni, cat, ci, ui, val: matrix[uni]?.[cat] ?? 0 });
+      });
+    });
+
+    const cellGroups = g
+      .selectAll<SVGGElement, Cell>("g.cell")
+      .data(cells, (d: any) => `${d.uni}::${d.cat}`)
+      .join(
+        (enter) => {
+          const eg = enter
+            .append("g")
+            .attr("class", "cell")
+            .attr(
+              "transform",
+              (d) => `translate(${margin.left + d.ui * cellW},${margin.top + d.ci * cellH})`
+            )
+            .style("opacity", 0);
+          eg.append("rect")
+            .attr("width", cellW - 8)
+            .attr("height", cellH - 8)
+            .attr("rx", 8);
+          eg.append("text")
+            .attr("x", (cellW - 8) / 2)
+            .attr("y", (cellH - 8) / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "middle")
+            .attr("font-size", 13)
+            .attr("font-weight", 900);
+          eg.transition().duration(400).style("opacity", 1);
+          return eg;
+        },
+        (update) =>
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(400)
+              .attr(
+                "transform",
+                (d) => `translate(${margin.left + d.ui * cellW},${margin.top + d.ci * cellH})`
+              )
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
+      );
+
+    cellGroups.each(function (d) {
+      const t = d.val > 0 ? d.val / maxByCategory[d.cat] : 0;
+      const fill = d3.interpolateRgb("#11141c", colorScale(d.uni))(t);
+      const cellG = d3.select(this);
+
+      cellG
+        .select<SVGRectElement>("rect")
+        .transition()
+        .duration(400)
+        .attr("fill", d.val > 0 ? fill : "rgba(255,255,255,0.02)")
+        .attr("stroke", colorScale(d.uni))
+        .attr("stroke-opacity", d.val > 0 ? 0.4 : 0.08);
+
+      cellG
+        .select<SVGTextElement>("text")
+        .attr("fill", t > 0.45 ? "#05070d" : "#f1f5f9")
+        .text(d.val > 0 ? d.val : "");
+    });
   }, [categories, universities, matrix, colorScale]);
 
-  return <svg ref={ref} className="w-full" />;
+  return <svg ref={ref} />;
 }
 
 /* ---------------------------------------------------------------------
@@ -942,32 +936,32 @@ function SetsDiffChart({
       .padding(0.35);
     const zeroX = x(0);
 
-    // persistent <g> เดียว + keyed join กันกระพริบ/รีเซ็ตค่าจาก 0 ทุกครั้งที่อัปเดต
-    let g = svg.select<SVGGElement>("g.chart-root");
-    if (g.empty()) g = svg.append("g").attr("class", "chart-root");
+    // Reuse the same <g> and its children across renders (keyed joins below)
+    // instead of wiping the SVG on every socket update.
+    let g = svg.select<SVGGElement>("g.root");
+    if (g.empty()) g = svg.append("g").attr("class", "root");
 
-    g.selectAll<SVGLineElement, null>("line.zero")
-      .data([null])
-      .join("line")
-      .attr("class", "zero")
-      .attr("stroke", "rgba(255,255,255,0.15)")
+    let zeroLine = g.select<SVGLineElement>("line.zero");
+    if (zeroLine.empty()) {
+      zeroLine = g.append("line").attr("class", "zero").attr("stroke", "rgba(255,255,255,0.15)");
+    }
+    zeroLine
       .transition()
-      .duration(400)
+      .duration(500)
       .attr("x1", zeroX)
       .attr("x2", zeroX)
       .attr("y1", margin.top)
       .attr("y2", height - margin.bottom);
 
-    const key = (d: UniStanding) => d.university;
-    const T = () => d3.transition().duration(700).ease(d3.easeCubicOut) as any;
-
+    // ถ้าพื้นที่ระหว่างปลายแท่งกับขอบกราฟไม่พอสำหรับ label (< ~60px) ให้สลับไปวาง
+    // label ไว้ "ในแท่ง" แทน (ชิดปลายแท่งด้านใน, สีอ่อนตัดกับพื้นสี) กันไม่ให้แหว่ง/หลุดขอบ
     const estLabelWidth = 60;
     const barX = (d: UniStanding) => {
       const diff = d.setsWon - d.setsLost;
       return diff >= 0 ? zeroX : x(diff);
     };
     const barWidth = (d: UniStanding) => Math.abs(x(d.setsWon - d.setsLost) - zeroX);
-    const valueX = (d: UniStanding) => {
+    const labelX = (d: UniStanding) => {
       const diff = d.setsWon - d.setsLost;
       const barEndX = x(diff);
       const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
@@ -975,7 +969,7 @@ function SetsDiffChart({
       if (fitsOutside) return diff >= 0 ? barEndX + 8 : barEndX - 8;
       return diff >= 0 ? barEndX - 8 : barEndX + 8;
     };
-    const valueAnchor = (d: UniStanding) => {
+    const labelAnchor = (d: UniStanding) => {
       const diff = d.setsWon - d.setsLost;
       const barEndX = x(diff);
       const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
@@ -983,19 +977,19 @@ function SetsDiffChart({
       if (fitsOutside) return diff >= 0 ? "start" : "end";
       return diff >= 0 ? "end" : "start";
     };
-    const valueFill = (d: UniStanding) => {
+    const labelFill = (d: UniStanding) => {
       const diff = d.setsWon - d.setsLost;
       const barEndX = x(diff);
       const spaceOutside = diff >= 0 ? width - margin.right - barEndX : barEndX - margin.left;
       return spaceOutside >= estLabelWidth ? "#e2e8f0" : "#05070d";
     };
-    const valueText = (d: UniStanding) => {
+    const labelText = (d: UniStanding) => {
       const diff = d.setsWon - d.setsLost;
       return `${diff > 0 ? "+" : ""}${diff} (${d.setsWon}-${d.setsLost})`;
     };
 
     g.selectAll<SVGTextElement, UniStanding>("text.rowlabel")
-      .data(sorted, key as any)
+      .data(sorted, (d: any) => d.university)
       .join(
         (enter) =>
           enter
@@ -1011,16 +1005,19 @@ function SetsDiffChart({
             .style("text-transform", "uppercase")
             .style("opacity", 0)
             .text((d) => d.university)
-            .call((enter) => enter.transition().duration(400).style("opacity", 1)),
+            .call((enter) => enter.transition().duration(500).style("opacity", 1)),
         (update) =>
-          update.call((u) =>
-            u.transition(T()).attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(500)
+              .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
           ),
-        (exit) => exit.remove()
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
       );
 
     g.selectAll<SVGRectElement, UniStanding>("rect.bar")
-      .data(sorted, key as any)
+      .data(sorted, (d: any) => d.university)
       .join(
         (enter) =>
           enter
@@ -1032,51 +1029,58 @@ function SetsDiffChart({
             .attr("fill", (d) => colorScale(d.university))
             .attr("x", zeroX)
             .attr("width", 0)
-            .call((enter) => enter.transition(T()).attr("x", barX).attr("width", barWidth)),
+            .call((enter) =>
+              enter
+                .transition()
+                .duration(700)
+                .ease(d3.easeCubicOut)
+                .attr("x", barX)
+                .attr("width", barWidth)
+            ),
         (update) =>
-          update.call((u) =>
-            u
-              .transition(T())
+          update.call((update) =>
+            update
+              .transition()
+              .duration(500)
+              .ease(d3.easeCubicOut)
               .attr("y", (d) => y(d.university)!)
               .attr("height", y.bandwidth())
               .attr("fill", (d) => colorScale(d.university))
               .attr("x", barX)
               .attr("width", barWidth)
           ),
-        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
+        (exit) => exit.transition().duration(300).attr("width", 0).remove()
       );
 
-    // ถ้าพื้นที่ระหว่างปลายแท่งกับขอบกราฟไม่พอสำหรับ label (< ~60px) ให้สลับไปวาง
-    // label ไว้ "ในแท่ง" แทน (ชิดปลายแท่งด้านใน, สีอ่อนตัดกับพื้นสี) กันไม่ให้แหว่ง/หลุดขอบ
     g.selectAll<SVGTextElement, UniStanding>("text.value")
-      .data(sorted, key as any)
+      .data(sorted, (d: any) => d.university)
       .join(
         (enter) =>
           enter
             .append("text")
             .attr("class", "value")
-            .attr("x", valueX)
+            .attr("x", labelX)
             .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
             .attr("dy", "0.35em")
-            .attr("text-anchor", valueAnchor)
-            .attr("fill", valueFill)
+            .attr("text-anchor", labelAnchor)
+            .attr("fill", labelFill)
             .attr("font-size", 11.5)
             .attr("font-weight", 800)
             .style("opacity", 0)
-            .text(valueText)
+            .text(labelText)
             .call((enter) => enter.transition().delay(450).duration(300).style("opacity", 1)),
         (update) =>
-          update
-            .call((u) =>
-              u
-                .transition(T())
-                .attr("x", valueX)
-                .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
-                .attr("text-anchor", valueAnchor)
-                .attr("fill", valueFill)
-            )
-            .text(valueText),
-        (exit) => exit.remove()
+          update.style("opacity", 1).call((update) =>
+            update
+              .transition()
+              .duration(500)
+              .attr("x", labelX)
+              .attr("y", (d) => y(d.university)! + y.bandwidth() / 2)
+              .attr("text-anchor", labelAnchor)
+              .attr("fill", labelFill)
+              .textTween((d) => () => labelText(d))
+          ),
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
       );
   }, [data, colorScale]);
 
@@ -1088,6 +1092,10 @@ function SetsDiffChart({
 --------------------------------------------------------------------- */
 function ProgressDonuts({ data }: { data: CategoryProgress[] }) {
   const ref = useRef<SVGSVGElement>(null);
+  // Tracks each category's last-drawn angle outside of D3's datum system —
+  // gSel.select("path.fg") below re-binds the parent group's datum onto the
+  // path every render, so a datum() set on the path itself doesn't survive.
+  const anglesRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!ref.current || data.length === 0) return;
@@ -1101,113 +1109,122 @@ function ProgressDonuts({ data }: { data: CategoryProgress[] }) {
     svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%");
 
     const radius = 44;
+    const arcGen = d3
+      .arc()
+      .innerRadius(radius - 9)
+      .outerRadius(radius)
+      .startAngle(0);
     const arcBgPath = d3.arc()({
       innerRadius: radius - 9,
       outerRadius: radius,
       startAngle: 0,
       endAngle: 2 * Math.PI,
     } as d3.DefaultArcObject) as string;
-    const arcGen = d3
-      .arc()
-      .innerRadius(radius - 9)
-      .outerRadius(radius)
-      .startAngle(0);
 
-    // ตำแหน่งอิงตาม index ใน data จริง (ไม่ใช้ index ของ selection ที่ join มา เพราะลำดับ
-    // enter/update อาจไม่ตรงกับลำดับข้อมูล) กันตำแหน่งเพี้ยนเวลาสลับ enter/update
-    const indexByCategory = new Map(data.map((d, i) => [d.category, i]));
-    const transformFor = (d: CategoryProgress) => {
-      const i = indexByCategory.get(d.category) ?? 0;
-      const cx = (i % cols) * cell + cell / 2;
-      const cy = Math.floor(i / cols) * cell + cell / 2 - 6;
-      return `translate(${cx},${cy})`;
-    };
+    const cellPos = (i: number) => ({
+      cx: (i % cols) * cell + cell / 2,
+      cy: Math.floor(i / cols) * cell + cell / 2 - 6,
+    });
 
-    // สำคัญ: ทั้ง transform และ opacity ของ g.donut-cell ต้องอยู่ใน transition เดียวกัน
-    // ต่อ element (ไม่แยกเรียก .transition() ซ้ำบน selection ที่คาบเกี่ยวกัน) เพราะ D3
-    // จะ interrupt transition แบบไม่มีชื่อที่ยิงซ้อนกันบน node เดียวกัน ทำให้ opacity
-    // ค้างที่ 0 (มองไม่เห็นทั้งวงกลมและ label) — นี่คือสาเหตุที่กราฟนี้หายไปก่อนหน้านี้
-    const cellG = svg
-      .selectAll<SVGGElement, CategoryProgress>("g.donut-cell")
-      .data(data, (d) => d.category)
+    // Reuse the same <g> and per-category donut groups across renders instead
+    // of wiping the SVG each time.
+    let g = svg.select<SVGGElement>("g.root");
+    if (g.empty()) g = svg.append("g").attr("class", "root");
+
+    const groups = g
+      .selectAll<SVGGElement, CategoryProgress>("g.donut")
+      .data(data, (d: any) => d.category)
       .join(
         (enter) => {
           const eg = enter
             .append("g")
-            .attr("class", "donut-cell")
-            .attr("transform", transformFor)
+            .attr("class", "donut")
+            .attr("transform", (_d, i) => {
+              const { cx, cy } = cellPos(i);
+              return `translate(${cx},${cy})`;
+            })
             .style("opacity", 0);
 
           eg.append("path")
             .attr("class", "bg")
             .attr("d", arcBgPath)
             .attr("fill", "rgba(255,255,255,0.06)");
-          eg.append("path").attr("class", "progress");
-          eg.append("text").attr("class", "pct").attr("text-anchor", "middle").attr("dy", "-0.1em");
+          eg.append("path").attr("class", "fg").attr("fill", "#38bdf8");
           eg.append("text")
-            .attr("class", "count")
+            .attr("class", "pct")
             .attr("text-anchor", "middle")
-            .attr("dy", "1.35em");
+            .attr("dy", "-0.1em")
+            .attr("font-size", 17)
+            .attr("font-weight", 900)
+            .attr("fill", "#f1f5f9")
+            .text("0%");
           eg.append("text")
-            .attr("class", "cat-label")
+            .attr("class", "frac")
+            .attr("text-anchor", "middle")
+            .attr("dy", "1.35em")
+            .attr("font-size", 9)
+            .attr("font-weight", 700)
+            .attr("fill", "#64748b");
+          eg.append("text")
+            .attr("class", "cat")
             .attr("text-anchor", "middle")
             .attr("y", radius + 22)
             .attr("font-size", 10)
             .attr("font-weight", 900)
             .attr("fill", "#94a3b8")
-            .style("text-transform", "uppercase");
+            .style("text-transform", "uppercase")
+            .text((d) => d.category);
 
-          eg.transition().duration(300).style("opacity", 1);
+          eg.transition().duration(400).style("opacity", 1);
           return eg;
         },
         (update) =>
-          update.call((u) =>
-            u
+          update.style("opacity", 1).call((update) =>
+            update
               .transition()
-              .duration(500)
-              .ease(d3.easeCubicOut)
-              .style("opacity", 1)
-              .attr("transform", transformFor)
+              .duration(400)
+              .attr("transform", (_d, i) => {
+                const { cx, cy } = cellPos(i);
+                return `translate(${cx},${cy})`;
+              })
           ),
-        (exit) => exit.transition().duration(250).style("opacity", 0).remove()
+        (exit) => exit.transition().duration(300).style("opacity", 0).remove()
       );
 
-    cellG.each(function (d) {
+    groups.each(function (d) {
       const pct = d.total > 0 ? d.finished / d.total : 0;
       const targetAngle = 2 * Math.PI * pct;
-      const node = d3.select(this);
+      const prevAngle = anglesRef.current.get(d.category) ?? 0;
+      const gSel = d3.select(this);
 
-      // path.progress เป็นคนละ DOM node กับ g.donut-cell ด้านบน จึง transition ต่อได้
-      // อิสระโดยไม่ไป interrupt transition ของ g แม่
-      node
-        .select<SVGPathElement>("path.progress")
+      gSel
+        .select<SVGPathElement>("path.fg")
         .attr("fill", pct >= 1 ? "#10b981" : "#38bdf8")
         .transition()
-        .duration(700)
+        .duration(800)
         .ease(d3.easeCubicOut)
-        .attrTween("d", function (this: SVGPathElement & { _currentAngle?: number }) {
-          const interpolateAngle = d3.interpolate(this._currentAngle ?? 0, targetAngle);
+        .attrTween("d", () => {
+          const interpolateAngle = d3.interpolate(prevAngle, targetAngle);
           return (t: number) => {
-            this._currentAngle = interpolateAngle(t);
-            return arcGen({ endAngle: interpolateAngle(t) } as d3.DefaultArcObject) as string;
+            const angle = interpolateAngle(t);
+            anglesRef.current.set(d.category, angle);
+            return arcGen({ endAngle: angle } as any) as string;
           };
         });
 
-      node
-        .select("text.pct")
-        .attr("font-size", 17)
-        .attr("font-weight", 900)
-        .attr("fill", "#f1f5f9")
-        .text(`${Math.round(pct * 100)}%`);
+      gSel
+        .select<SVGTextElement>("text.pct")
+        .transition()
+        .duration(500)
+        .textTween(function () {
+          const node = this as SVGTextElement;
+          const prev = Number(String(node.textContent).replace("%", "")) || 0;
+          const interpolateValue = d3.interpolateRound(prev, Math.round(pct * 100));
+          return (t: number) => `${interpolateValue(t)}%`;
+        });
 
-      node
-        .select("text.count")
-        .attr("font-size", 9)
-        .attr("font-weight", 700)
-        .attr("fill", "#64748b")
-        .text(`${d.finished}/${d.total}`);
-
-      node.select("text.cat-label").text(d.category);
+      gSel.select<SVGTextElement>("text.frac").text(`${d.finished}/${d.total}`);
+      gSel.select<SVGTextElement>("text.cat").text(d.category);
     });
   }, [data]);
 

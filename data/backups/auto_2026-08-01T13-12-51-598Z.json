@@ -3710,16 +3710,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 7,
-        "s2a": 21,
-        "s2b": 1
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 51
+      "version": 0
     },
     {
       "id": "M_a90_A_KKU_PSU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1785590082899
+  "lastUpdated": 1785589953525
 }
