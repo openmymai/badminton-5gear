@@ -1020,11 +1020,6 @@ function CategoryHeatmap({
     const height = margin.top + margin.bottom + cellH * categories.length;
     svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", width);
 
-    const maxByCategory: Record<string, number> = {};
-    categories.forEach((c) => {
-      maxByCategory[c] = Math.max(1, ...universities.map((u) => matrix[u]?.[c] ?? 0));
-    });
-
     // Reuse the same <g> across renders (keyed joins below) instead of
     // wiping the SVG on every socket update — that's what caused the flash.
     let g = svg.select<SVGGElement>("g.root");
@@ -1110,13 +1105,6 @@ function CategoryHeatmap({
             .attr("width", cellW - 8)
             .attr("height", cellH - 8)
             .attr("rx", 8);
-          // พื้นหลังโค้งมนสีเทาดำสำหรับตัวเลข ช่วยให้ตัวหนังสือสีขาวอ่านง่ายชัดเจนทุกช่อง
-          // แทนที่การคำนวณสีตัวหนังสือตามความสว่างพื้นหลัง (luminance) แบบเดิม
-          eg.append("rect")
-            .attr("class", "score-badge")
-            .attr("rx", 7)
-            .attr("ry", 7)
-            .attr("fill", "rgba(15, 18, 26, 0.75)");
           eg.append("text")
             .attr("class", "score-text")
             .attr("x", (cellW - 8) / 2)
@@ -1143,37 +1131,21 @@ function CategoryHeatmap({
       );
 
     cellGroups.each(function (d) {
-      const t = d.val > 0 ? d.val / maxByCategory[d.cat] : 0;
-      const fill = d3.interpolateRgb("#11141c", colorScale(d.uni))(t);
       const cellG = d3.select(this);
 
+      // พื้นหลัง cell เป็นสีเข้มของแต่ละสถาบัน (ไม่ไล่ระดับตามค่าคะแนนอีกต่อไป)
+      // เช่น CMU ม่วงเข้ม, CU ชมพูเข้ม, KKU ดินแดงเข้ม, KU เขียวเข้ม, PSU น้ำเงินเข้ม
+      const darkFill = d3.interpolateRgb("#0e1016", colorScale(d.uni))(0.32);
       cellG
         .select<SVGRectElement>("rect")
         .transition()
         .duration(400)
-        .attr("fill", d.val > 0 ? fill : "rgba(255,255,255,0.02)")
+        .attr("fill", d.val > 0 ? darkFill : "rgba(255,255,255,0.02)")
         .attr("stroke", colorScale(d.uni))
         .attr("stroke-opacity", d.val > 0 ? 0.4 : 0.08);
 
-      // ตัวเลขคะแนนใช้สีขาวคงที่เสมอ พร้อม badge พื้นหลังโค้งมนสีเทาดำอยู่ด้านหลัง
-      // เพื่อให้อ่านชัดเจนไม่ว่าพื้น cell ด้านหลังจะเป็นสีอะไรก็ตาม
-      const label = d.val > 0 ? String(d.val) : "";
-      const badgeW = label ? Math.max(22, 12 + label.length * 8.5) : 0;
-      const badgeH = 18;
-      const cx = (cellW - 8) / 2;
-      const cy = (cellH - 8) / 2;
-
-      cellG
-        .select<SVGRectElement>("rect.score-badge")
-        .transition()
-        .duration(400)
-        .attr("x", cx - badgeW / 2)
-        .attr("y", cy - badgeH / 2)
-        .attr("width", badgeW)
-        .attr("height", badgeH)
-        .attr("opacity", label ? 1 : 0);
-
-      cellG.select<SVGTextElement>("text.score-text").text(label);
+      // ตัวเลขคะแนนใช้สีขาวคงที่เสมอ ไม่มีพื้นหลังของ font แล้ว
+      cellG.select<SVGTextElement>("text.score-text").text(d.val > 0 ? String(d.val) : "");
     });
   }, [categories, universities, matrix, colorScale]);
 
