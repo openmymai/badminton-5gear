@@ -1133,14 +1133,13 @@ function CategoryHeatmap({
     cellGroups.each(function (d) {
       const cellG = d3.select(this);
 
-      // พื้นหลัง cell เป็นสีเข้มของแต่ละสถาบัน (ไม่ไล่ระดับตามค่าคะแนนอีกต่อไป)
-      // เช่น CMU ม่วงเข้ม, CU ชมพูเข้ม, KKU ดินแดงเข้ม, KU เขียวเข้ม, PSU น้ำเงินเข้ม
-      const darkFill = d3.interpolateRgb("#0e1016", colorScale(d.uni))(0.32);
+      // ใช้สีเดียวกับ node สถาบันใน Sankey chart ตรง ๆ (colorScale เต็มความสว่าง)
+      // แทนการผสมสีเข้มแบบเดิมที่ทำให้ดูมืดเกินไป
       cellG
         .select<SVGRectElement>("rect")
         .transition()
         .duration(400)
-        .attr("fill", d.val > 0 ? darkFill : "rgba(255,255,255,0.02)")
+        .attr("fill", d.val > 0 ? colorScale(d.uni) : "rgba(255,255,255,0.02)")
         .attr("stroke", colorScale(d.uni))
         .attr("stroke-opacity", d.val > 0 ? 0.4 : 0.08);
 
