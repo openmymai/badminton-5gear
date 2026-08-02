@@ -1110,13 +1110,22 @@ function CategoryHeatmap({
             .attr("width", cellW - 8)
             .attr("height", cellH - 8)
             .attr("rx", 8);
+          // พื้นหลังโค้งมนสีเทาดำสำหรับตัวเลข ช่วยให้ตัวหนังสือสีขาวอ่านง่ายชัดเจนทุกช่อง
+          // แทนที่การคำนวณสีตัวหนังสือตามความสว่างพื้นหลัง (luminance) แบบเดิม
+          eg.append("rect")
+            .attr("class", "score-badge")
+            .attr("rx", 7)
+            .attr("ry", 7)
+            .attr("fill", "rgba(15, 18, 26, 0.75)");
           eg.append("text")
+            .attr("class", "score-text")
             .attr("x", (cellW - 8) / 2)
             .attr("y", (cellH - 8) / 2)
             .attr("dy", "0.35em")
             .attr("text-anchor", "middle")
             .attr("font-size", 13)
-            .attr("font-weight", 900);
+            .attr("font-weight", 900)
+            .style("fill", "#f8fafc");
           eg.transition().duration(400).style("opacity", 1);
           return eg;
         },
@@ -1146,17 +1155,25 @@ function CategoryHeatmap({
         .attr("stroke", colorScale(d.uni))
         .attr("stroke-opacity", d.val > 0 ? 0.4 : 0.08);
 
-      // เลือกสีตัวเลขแบบไดนามิกตามความสว่างของพื้นหลัง cell (relative luminance)
-      // เพราะพื้นไล่จากเกือบดำ (ค่าน้อย) ไปจนถึงสีสดของแต่ละสถาบัน (ค่าเยอะ)
-      // สีตัวหนังสือตายตัวสีเดียวจะอ่านยากในบางช่วง จึงต้องคำนวณ contrast ให้เหมาะทุกช่อง
-      const cellColor = d3.rgb(fill);
-      const luminance = (0.299 * cellColor.r + 0.587 * cellColor.g + 0.114 * cellColor.b) / 255;
-      const textFill = luminance > 0.55 ? "#111827" : "#f8fafc";
+      // ตัวเลขคะแนนใช้สีขาวคงที่เสมอ พร้อม badge พื้นหลังโค้งมนสีเทาดำอยู่ด้านหลัง
+      // เพื่อให้อ่านชัดเจนไม่ว่าพื้น cell ด้านหลังจะเป็นสีอะไรก็ตาม
+      const label = d.val > 0 ? String(d.val) : "";
+      const badgeW = label ? Math.max(22, 12 + label.length * 8.5) : 0;
+      const badgeH = 18;
+      const cx = (cellW - 8) / 2;
+      const cy = (cellH - 8) / 2;
 
       cellG
-        .select<SVGTextElement>("text")
-        .style("fill", textFill)
-        .text(d.val > 0 ? d.val : "");
+        .select<SVGRectElement>("rect.score-badge")
+        .transition()
+        .duration(400)
+        .attr("x", cx - badgeW / 2)
+        .attr("y", cy - badgeH / 2)
+        .attr("width", badgeW)
+        .attr("height", badgeH)
+        .attr("opacity", label ? 1 : 0);
+
+      cellG.select<SVGTextElement>("text.score-text").text(label);
     });
   }, [categories, universities, matrix, colorScale]);
 
