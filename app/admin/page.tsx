@@ -791,19 +791,28 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courtCombos.map((c) => c.key).join(",")]);
 
-  const courtDuplicates = useMemo(() => {
-    const counts: Record<number, number> = {};
+  // เดิมเลขสนามที่ซ้ำกันมากกว่า 1 รุ่น/สาย ถือเป็น "ข้อผิดพลาด" ที่ต้องแก้ก่อนสร้าง
+  // ตารางได้ — แต่ในทางปฏิบัติทัวร์นาเมนต์นี้ต้องการให้หลายรุ่น/สายแข่ง "สนามเดียวกัน
+  // แบบเรียงคิวต่อกัน" ได้ (เช่น สนาม 1 เล่นรุ่นทั่วไป A ให้จบก่อน แล้วต่อด้วยรุ่น 70 A)
+  // จึงเปลี่ยนจาก error ที่บล็อกการสร้างตาราง เป็นแค่ "ป้ายบอกสถานะ" ว่าสนามนี้ถูก
+  // ใช้ร่วมกับรุ่น/สายอื่น — ลำดับคู่แข่งขันจริงจะถูกจัดเรียงต่อกันตามลำดับรุ่นใน
+  // Step 2 โดยอัตโนมัติ (ดู buildAllMatches ด้านล่าง)
+  const courtSharedCombos = useMemo(() => {
+    const groups: Record<number, ComboInfo[]> = {};
     courtCombos.forEach((c) => {
-      counts[c.court] = (counts[c.court] || 0) + 1;
+      (groups[c.court] ||= []).push(c);
     });
-    return new Set(
-      Object.entries(counts)
-        .filter(([, v]) => v > 1)
-        .map(([k]) => Number(k)),
-    );
+    return groups;
   }, [courtCombos]);
 
-  const hasDuplicateCourts = courtMode === "manual" && courtDuplicates.size > 0;
+  const courtDuplicates = useMemo(() => {
+    return new Set(
+      Object.entries(courtSharedCombos)
+        .filter(([, v]) => v.length > 1)
+        .map(([k]) => Number(k)),
+    );
+  }, [courtSharedCombos]);
+
   const courtsUsed = useMemo(
     () => new Set(courtCombos.map((c) => c.court)).size,
     [courtCombos],
@@ -842,11 +851,17 @@ export default function AdminPage() {
   // ผลคือ: คู่ที่มีอยู่แล้วจะไม่ขยับตำแหน่งอีกต่อไปไม่ว่าจะ import ซ้ำกี่รอบ ส่วนคู่
   // ใหม่จะถูกต่อท้ายคิวของสนามเดิมเท่านั้น (ไม่ optimal เท่าจัดใหม่ทั้งกระดาน แต่
   // แลกกับการไม่รบกวนตารางที่แข่งไปแล้ว ซึ่งสำคัญกว่าในสถานการณ์นี้)
+  //
+  // *** เพิ่มเติม: รองรับหลายรุ่น/สายแชร์สนามเดียวกัน ***
+  // เดิมแต่ละสนามมีได้แค่ 1 combo เท่านั้น field `order` จึงนับ 0..n ภายใน combo
+  // นั้นโดยตรง ตอนนี้เมื่อหลาย combo ถูกกำหนดให้ใช้สนามเดียวกัน (courtCombos วิ่ง
+  // ตามลำดับ `categories` ที่ admin จัดไว้ใน Step 2 อยู่แล้ว) จะนำคู่แข่งขันของทุก
+  // combo ที่ใช้สนามเดียวกันมาต่อคิวกัน "ตามลำดับรุ่นใน Step 2" แล้วค่อยเลขลำดับ
+  // (order) ใหม่ให้ต่อเนื่องกันทั้งสนาม เพื่อให้รุ่น/สายที่มาก่อนใน Step 2 เล่นจบ
+  // ก่อนรุ่น/สายถัดไปบนสนามเดียวกันเสมอ
   const buildAllMatches = useCallback(() => {
-    const allMatches: any[] = [];
-
     // จัดกลุ่มคู่แข่งขัน "ปัจจุบัน" (จาก server, currentMatches) ตาม combo key
-    // แล้วเรียงตาม order เดิม — นี่คือ "คิวที่ตรึงไว้แล้ว" ของแต่ละสนาม
+    // แล้วเรียงตาม order เดิม — นี่คือ "คิวที่ตรึงไว้แล้ว" ของแต่ละ combo
     const existingByCombo: Record<string, any[]> = {};
     currentMatches.forEach((m: any) => {
       const key = `${m.category}__${m.group}`;
@@ -855,6 +870,11 @@ export default function AdminPage() {
     Object.values(existingByCombo).forEach((arr) =>
       arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     );
+
+    // คิวของแต่ละ "สนาม" (key = เลขสนาม) — อาจมีหลาย combo ต่อคิวกันอยู่ในนี้
+    // ผลักเข้าตามลำดับที่ courtCombos วิ่ง ซึ่งวิ่งตาม categories (ลำดับ Step 2)
+    // อยู่แล้ว จึงได้ลำดับรุ่น/สายที่ถูกต้องโดยอัตโนมัติ ไม่ต้อง sort เพิ่ม
+    const courtQueues: Record<string, any[]> = {};
 
     courtCombos.forEach((combo) => {
       const teams = entries
@@ -882,7 +902,7 @@ export default function AdminPage() {
         }
       }
 
-      // แยกคู่ "เดิม" (มีอยู่แล้วใน currentMatches ของสนามนี้) ออกมาก่อน ตามลำดับ
+      // แยกคู่ "เดิม" (มีอยู่แล้วใน currentMatches ของ combo นี้) ออกมาก่อน ตามลำดับ
       // เดิมเป๊ะ — คู่กลุ่มนี้คือส่วนที่ต้อง "ไม่ขยับ" เวลาสร้างตารางซ้ำ
       const existingForCombo =
         existingByCombo[`${combo.category}__${combo.group}`] || [];
@@ -901,12 +921,22 @@ export default function AdminPage() {
         keptMatches,
       );
 
-      // ติด "order" (ลำดับคิวภายในสนามนี้) ไปกับแมตช์แต่ละคู่ตรงๆ เพื่อให้หน้าอื่นๆ
-      // sort คิวตามลำดับนี้ได้เสมอ ไม่ต้องพึ่งลำดับ array ที่ได้รับผ่าน socket
-      scheduledCombo.forEach((m, idx) => {
+      // ต่อคิวของ combo นี้เข้าไปในคิวของสนามที่ combo นี้ใช้ (ยังไม่ใส่เลข order
+      // ตอนนี้ เพราะถ้ามี combo อื่นแชร์สนามเดียวกัน ต้องรอต่อคิวให้ครบก่อนค่อยเลข
+      // ลำดับใหม่ให้ต่อเนื่องกันทั้งสนามด้านล่าง)
+      const courtKey = combo.court.toString();
+      (courtQueues[courtKey] ||= []).push(...scheduledCombo);
+    });
+
+    // เลข order สุดท้าย: นับต่อเนื่องกันทั้งสนาม (ไม่ใช่แค่ภายใน combo เดิม) เพื่อให้
+    // หน้า Matches/Live เรียงคิวคู่แข่งขันของสนามที่มีหลายรุ่น/สายแชร์กันได้ถูกต้อง
+    // ตามลำดับรุ่นใน Step 2
+    const allMatches: any[] = [];
+    Object.values(courtQueues).forEach((queue) => {
+      queue.forEach((m, idx) => {
         m.order = idx;
       });
-      allMatches.push(...scheduledCombo);
+      allMatches.push(...queue);
     });
     return allMatches;
   }, [courtCombos, entries, categories, currentMatches]);
@@ -928,12 +958,9 @@ export default function AdminPage() {
       setError("ไม่พบรุ่นการแข่งขันจากข้อมูลที่นำเข้า");
       return;
     }
-    if (hasDuplicateCourts) {
-      setError(
-        "มีสนามถูกกำหนดซ้ำกันมากกว่า 1 รุ่น กรุณาแก้ไขให้ไม่ซ้ำก่อนสร้างตาราง",
-      );
-      return;
-    }
+    // หมายเหตุ: การกำหนดสนามซ้ำกันหลายรุ่น/สายเป็นเรื่องปกติแล้ว (ดูคอมเมนต์ที่
+    // courtDuplicates/courtSharedCombos ด้านบน) จึงไม่บล็อกการสร้างตารางอีกต่อไป
+    // — เฉพาะสนามที่ "ยังไม่ได้กำหนดเลย" (< 1) เท่านั้นที่ยังต้องแก้ก่อน
     const invalidCourt = courtCombos.find((c) => !c.court || c.court < 1);
     if (invalidCourt) {
       setError(
@@ -1323,7 +1350,8 @@ export default function AdminPage() {
             {/* Step 2 — Category order */}
             <WorkflowCard step={2} title="ลำดับการแข่งรุ่น" accent="amber">
               <p className="text-[10px] text-slate-500 mb-3 font-bold uppercase tracking-wide">
-                ลากเพื่อสลับลำดับ (มีผลต่อการจัดสนามอัตโนมัติ)
+                ลากเพื่อสลับลำดับ (มีผลต่อการจัดสนามอัตโนมัติ และลำดับคิวเมื่อ
+                หลายรุ่นแชร์สนามเดียวกัน)
               </p>
               {categories.length === 0 ? (
                 <p className="text-xs text-slate-600 italic py-4 text-center">
@@ -1387,10 +1415,10 @@ export default function AdminPage() {
                 </button>
               )}
 
-              {hasDuplicateCourts && (
-                <div className="mb-3 p-2.5 bg-red-500/10 border border-red-500/30 rounded-xl text-[10px] font-bold text-red-400 flex items-center gap-2">
-                  <FaExclamationTriangle size={11} /> มีสนามถูกใช้ซ้ำกัน —
-                  ต้องแก้ไขก่อนจึงจะสร้างตารางได้
+              {courtMode === "manual" && courtDuplicates.size > 0 && (
+                <div className="mb-3 p-2.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-[10px] font-bold text-blue-300 flex items-center gap-2">
+                  <FaLayerGroup size={11} /> มีบางสนามถูกใช้ร่วมกันหลายรุ่น/สาย
+                  — ระบบจะจัดคิวให้เล่นต่อกันตามลำดับใน Step 2 โดยอัตโนมัติ
                 </div>
               )}
 
@@ -1401,14 +1429,14 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
                   {courtCombos.map((combo) => {
-                    const isDup =
+                    const isShared =
                       courtMode === "manual" &&
                       courtDuplicates.has(combo.court);
                     return (
                       <div
                         key={combo.key}
                         className={`flex items-center justify-between gap-3 bg-black/30 px-3 py-2.5 rounded-xl border transition-colors ${
-                          isDup ? "border-red-500/50" : "border-white/5"
+                          isShared ? "border-blue-500/40" : "border-white/5"
                         }`}
                       >
                         <div className="leading-tight min-w-0">
@@ -1419,6 +1447,11 @@ export default function AdminPage() {
                             สาย {combo.group} · {combo.teamCount} ทีม ·{" "}
                             {combo.matchCount} คู่
                           </p>
+                          {isShared && (
+                            <p className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">
+                              แชร์สนามร่วมกับรุ่นอื่น
+                            </p>
+                          )}
                         </div>
                         {courtMode === "auto" ? (
                           <span className="shrink-0 w-11 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 font-black flex items-center justify-center text-sm tabular-nums">
@@ -1440,8 +1473,8 @@ export default function AdminPage() {
                               }));
                             }}
                             className={`w-14 h-10 shrink-0 rounded-lg bg-black/40 border text-center font-black text-sm focus:outline-none tabular-nums ${
-                              isDup
-                                ? "border-red-500/60 text-red-400"
+                              isShared
+                                ? "border-blue-500/50 text-blue-300"
                                 : "border-white/10 text-blue-400"
                             }`}
                           />
@@ -1456,9 +1489,9 @@ export default function AdminPage() {
             {/* Step 4 — Generate */}
             <button
               onClick={generateMatches}
-              disabled={entries.length === 0 || hasDuplicateCourts}
+              disabled={entries.length === 0}
               className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl ${
-                entries.length === 0 || hasDuplicateCourts
+                entries.length === 0
                   ? "bg-white/5 text-slate-600 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-500 active:scale-[0.98] shadow-blue-500/30"
               }`}
