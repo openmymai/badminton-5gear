@@ -444,10 +444,17 @@ export default function LiveBoardPage() {
                                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[10px] font-black text-amber-400 tabular-nums">
                                   {i + 1}
                                 </span>
-                                <span className="truncate text-xs font-bold text-slate-400 sm:text-sm">
-                                  {m.teamA.university} <span className="text-slate-700">vs</span>{" "}
-                                  {m.teamB.university}
-                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-xs font-bold text-slate-400 sm:text-sm">
+                                    {m.teamA.university} <span className="text-slate-700">vs</span>{" "}
+                                    {m.teamB.university}
+                                  </p>
+                                  {/* รุ่น/สาย ต่อคิว — จำเป็นตอนนี้เพราะสนามเดียวกันอาจมีได้หลายรุ่นแล้ว
+                                      (ไม่งั้นคิวจะดูปนกันไม่รู้ว่าแมตช์ไหนเป็นรุ่นไหน) */}
+                                  <p className="truncate text-[9px] font-bold tracking-wide text-blue-400/70 uppercase">
+                                    รุ่น {m.category} · สาย {m.group}
+                                  </p>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -465,11 +472,16 @@ export default function LiveBoardPage() {
                                 <span className="shrink-0 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[10px] font-black whitespace-nowrap text-amber-400 tabular-nums">
                                   ลำดับที่ {dynamicIndex + 1}/{queued.length}
                                 </span>
-                                <span className="truncate text-sm font-bold text-slate-300 sm:text-base">
-                                  {dynamicMatch.teamA.university}{" "}
-                                  <span className="text-slate-600">vs</span>{" "}
-                                  {dynamicMatch.teamB.university}
-                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-bold text-slate-300 sm:text-base">
+                                    {dynamicMatch.teamA.university}{" "}
+                                    <span className="text-slate-600">vs</span>{" "}
+                                    {dynamicMatch.teamB.university}
+                                  </p>
+                                  <p className="truncate text-[9px] font-bold tracking-wide text-blue-400/70 uppercase">
+                                    รุ่น {dynamicMatch.category} · สาย {dynamicMatch.group}
+                                  </p>
+                                </div>
                               </motion.div>
                             )}
                           </AnimatePresence>
