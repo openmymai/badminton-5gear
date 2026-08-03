@@ -1331,16 +1331,16 @@
         ]
       },
       "score": {
-        "s1a": 15,
-        "s1b": 21,
-        "s2a": 11,
-        "s2b": 21
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 70
+      "version": 0
     },
     {
       "id": "M_a70_A_CMU_KKU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1785646849907
+  "lastUpdated": 1785592753329
 }

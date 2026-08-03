@@ -1270,16 +1270,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 7,
-        "s2a": 21,
-        "s2b": 7
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 57
+      "version": 0
     },
     {
       "id": "M_a70_A_CU_PSU",
@@ -1331,16 +1331,16 @@
         ]
       },
       "score": {
-        "s1a": 15,
-        "s1b": 21,
-        "s2a": 11,
-        "s2b": 21
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 70
+      "version": 0
     },
     {
       "id": "M_a70_A_CMU_KKU",
@@ -2734,16 +2734,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 1,
-        "s2a": 21,
-        "s2b": 4
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 4,
       "isBye": false,
       "byeWinner": null,
-      "version": 51
+      "version": 0
     },
     {
       "id": "M_a80_A_CMU_KKU",
@@ -3105,11 +3105,11 @@
         "s2a": 21,
         "s2b": 12
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 0,
       "isBye": false,
       "byeWinner": null,
-      "version": 64
+      "version": 63
     },
     {
       "id": "M_a80_B_KKU_PSU",
@@ -3161,16 +3161,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 15,
-        "s2a": 10,
-        "s2b": 21
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 1,
       "isBye": false,
       "byeWinner": null,
-      "version": 68
+      "version": 0
     },
     {
       "id": "M_a80_B_CMU_CU",
@@ -3222,16 +3222,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 7,
-        "s2a": 21,
-        "s2b": 7
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 2,
       "isBye": false,
       "byeWinner": null,
-      "version": 58
+      "version": 0
     },
     {
       "id": "M_a80_B_KU_PSU",
@@ -7797,16 +7797,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
-        "s1b": 11,
-        "s2a": 21,
-        "s2b": 3
+        "s1a": 0,
+        "s1b": 0,
+        "s2a": 0,
+        "s2b": 0
       },
-      "isFinished": true,
+      "isFinished": false,
       "order": 7,
       "isBye": false,
       "byeWinner": null,
-      "version": 58
+      "version": 0
     },
     {
       "id": "M_a120_A_KKU_PSU",
@@ -8163,16 +8163,16 @@
         ]
       },
       "score": {
-        "s1a": 21,
+        "s1a": 0,
         "s1b": 0,
-        "s2a": 21,
-        "s2b": 4
+        "s2a": 0,
+        "s2b": 0
       },
       "isFinished": false,
       "order": 3,
       "isBye": false,
       "byeWinner": null,
-      "version": 53
+      "version": 0
     },
     {
       "id": "M_a120_B_KKU_PSU",
@@ -12982,5 +12982,5 @@
       "กิตติมศักดิ์__-": 18
     }
   },
-  "lastUpdated": 1785646849907
+  "lastUpdated": 1785590951990
 }
