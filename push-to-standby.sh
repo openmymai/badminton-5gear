@@ -5,7 +5,7 @@ WIN_USER="your_windows_username"
 WIN_IP="192.168.1.xxx"
 WIN_DEST_PATH="C:/Users/your_windows_username/Desktop/backup_folder" # <--- แก้จุดที่ขาดไป
 
-LOCAL_DATA_PATH="/home/cmuengineer/badminton-5gear" 
+LOCAL_DATA_PATH="/home/cmuengineer/badminton-5gear/data" 
 
 count=0 # <--- กำหนดค่าเริ่มต้น
 
