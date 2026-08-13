@@ -30,3 +30,5 @@ done
 # ฝั่ง Ubuntu: ต้อง เจน SSH Key และก๊อปปี้ไปไว้ที่ Windows เพื่อให้ Ubuntu ล็อกอินเข้า Windows ได้โดยไม่ต้องกรอกรหัสผ่าน:
 # ssh-keygen -t rsa
 # ssh-copy-id WIN_USER@192.168.1.xxx
+# 
+# nohup ./push-to-standby.sh > standby.log 2>&1 &
