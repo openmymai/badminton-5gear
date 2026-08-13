@@ -1,24 +1,24 @@
 #!/bin/bash
 
-# --- ตั้งค่าตัวแปร ---
+# --- ตั้งค่าตัวแปร (ใช้ Absolute Path เพื่อความปลอดภัย) ---
 WIN_USER="your_windows_username"
 WIN_IP="192.168.1.xxx"
+WIN_DEST_PATH="C:/Users/your_windows_username/Desktop/backup_folder" # <--- แก้จุดที่ขาดไป
 
-LOCAL_DATA_PATH="./data"
+LOCAL_DATA_PATH="/home/cmuengineer/badminton-5gear" 
+
+count=0 # <--- กำหนดค่าเริ่มต้น
 
 echo "--- Starting Continuous Sync (Every 10s) ---"
 
 while true; do
-    # 1. เช็คว่าไฟล์ data.json มีการเปลี่ยนแปลงไหม (ใช้ MD5 เช็คเบื้องต้นเพื่อประหยัด bandwidth)
-    # แต่ถ้าเอาแบบง่ายที่สุดคือส่งทับไปเลย
+    # 1. Sync เฉพาะ data.json (rsync จะส่งแค่เมื่อไฟล์มีการเปลี่ยนขนาดหรือเวลา)
+    rsync -az "${LOCAL_DATA_PATH}/data.json" "${WIN_USER}@${WIN_IP}:'${WIN_DEST_PATH}/data.json'"
     
-    # ส่งเฉพาะ data.json (เร็วมาก)
-    scp -q "${LOCAL_DATA_PATH}/data.json" "${WIN_USER}@${WIN_IP}:${WIN_DEST_PATH}/data.json"
-    
-    # 2. ทุกๆ 1 นาที (6 รอบ loop) ค่อยส่งโฟลเดอร์ backups ทั้งหมดหนึ่งครั้ง
-    # เพื่อไม่ให้เครื่องรับภาระหนักเกินไป
+    # 2. ทุกๆ 1 นาที (6 รอบ loop) Sync โฟลเดอร์ backups
+    # (rsync -azq จะส่งเฉพาะไฟล์ใหม่ หรือไฟล์ที่แก้ไขเท่านั้น ไม่ส่งทับทั้งหมดให้เปลืองเน็ต)
     if (( (count % 6) == 0 )); then
-        scp -q -r "${LOCAL_DATA_PATH}/backups" "${WIN_USER}@${WIN_IP}:${WIN_DEST_PATH}/"
+        rsync -azq "${LOCAL_DATA_PATH}/backups/" "${WIN_USER}@${WIN_IP}:'${WIN_DEST_PATH}/backups/'"
         echo "Full backups folder synced at $(date)"
     fi
 
@@ -26,17 +26,7 @@ while true; do
     sleep 10
 done
 
-
-# รันสคริปต์นี้ทิ้งไว้ในโหมด Background
-
-# 0. Change folder name
-# WIN_DEST_PATH="C:/Users/Name/Desktop/badminton-project/data"
-
-# 1.ทำให้ไฟล์รันได้:
-# chmod +x sync-loop.sh
-
-# 2.รันด้วย nohup (เพื่อให้ทำงานแม้จะปิดหน้าจอ Terminal ไปแล้ว):
-# nohup ./sync-loop.sh > sync.log 2>&1 &
-
-# 3.ถ้าต้องการหยุดรัน:
-# pkill -f sync-loop.sh
+# ฝั่ง Windows: ต้องเปิดใช้งาน OpenSSH Server และสร้างโฟลเดอร์ปลายทางไว้รอ
+# ฝั่ง Ubuntu: ต้อง เจน SSH Key และก๊อปปี้ไปไว้ที่ Windows เพื่อให้ Ubuntu ล็อกอินเข้า Windows ได้โดยไม่ต้องกรอกรหัสผ่าน:
+# ssh-keygen -t rsa
+# ssh-copy-id WIN_USER@192.168.1.xxx
