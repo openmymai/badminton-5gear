@@ -43,5 +43,6 @@ next-env.d.ts
 
 data/data.json
 data/data.backup.json
+data/data.json.tmp
 data/backups/
 
