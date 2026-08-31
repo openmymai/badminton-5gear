@@ -611,6 +611,19 @@ export default function AdminPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
+
+    // ถ้ายังไม่เคยได้รับ "roster-updated" ชุดแรกจาก server (ดู hasLoadedRosterRef)
+    // การ setEntries ตอนนี้จะไม่ถูกส่งขึ้น server เลย (useEffect sync ด้านบน
+    // return early) แล้วพอ server ส่งสถานะเริ่มต้นมาทีหลัง ก็จะทับสิ่งที่เพิ่ง
+    // import ไปแบบเงียบๆ โดยไม่มี error ใดๆ ให้เห็น — กันไว้ก่อนตรงนี้แทน
+    if (!hasLoadedRosterRef.current) {
+      setError(
+        "ยังเชื่อมต่อ/โหลดข้อมูลจากเซิร์ฟเวอร์ไม่เสร็จ กรุณารอสักครู่แล้วลองนำเข้าไฟล์ใหม่อีกครั้ง",
+      );
+      e.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
 
     reader.onerror = () =>
@@ -619,6 +632,10 @@ export default function AdminPage() {
     reader.onload = (evt) => {
       try {
         const bstr = evt.target?.result;
+        if (!bstr) {
+          setError("ไม่สามารถอ่านไฟล์ได้ กรุณาลองใหม่อีกครั้ง");
+          return;
+        }
         const wb = XLSX.read(bstr, { type: "array" });
         if (!wb.SheetNames.length) {
           setError("ไฟล์ Excel ไม่มีชีทข้อมูล");
@@ -632,12 +649,18 @@ export default function AdminPage() {
           return;
         }
         const stats = processData(data);
-        let msg = `นำเข้าข้อมูลสำเร็จ · เพิ่มนักกีฬาใหม่ ${stats.added} คน`;
+        const parts: string[] = [];
+        if (stats.added > 0) parts.push(`เพิ่มนักกีฬาใหม่ ${stats.added} คน`);
+        if (stats.updated > 0) parts.push(`อัปเดตชื่อ ${stats.updated} คน`);
         if (stats.skippedRows > 0)
-          msg += ` · ข้ามแถวไม่ถูกต้อง ${stats.skippedRows} แถว`;
+          parts.push(`ข้ามแถวไม่ถูกต้อง ${stats.skippedRows} แถว`);
         if (stats.duplicatePlayers > 0)
-          msg += ` · ข้ามชื่อซ้ำ ${stats.duplicatePlayers} คน`;
-        setSuccess(msg);
+          parts.push(`ข้ามชื่อซ้ำ ${stats.duplicatePlayers} คน`);
+        setSuccess(
+          parts.length
+            ? `นำเข้าข้อมูลสำเร็จ · ${parts.join(" · ")}`
+            : "นำเข้าไฟล์สำเร็จ แต่ไม่มีข้อมูลที่เปลี่ยนแปลง",
+        );
       } catch (err) {
         console.error(err);
         setError(
@@ -650,64 +673,147 @@ export default function AdminPage() {
   };
 
   // Merges newly parsed Excel rows into existing roster.
-  // - Skips rows with an unrecognized university code or missing Category/Group.
-  // - Skips player names already present within the same team (no duplicates).
+  //
+  // เดิมฟังก์ชันนี้ "เติมชื่อเพิ่ม" อย่างเดียว — ถ้าชื่อในคอลัมน์ Player1/Player2/
+  // Substitute ไม่ตรงกับชื่อที่มีอยู่แล้วในทีมนั้นเป๊ะ (เช่นตอนแรกกรอกชื่อเล่น/สะกด
+  // ผิดไว้ก่อน) จะถูกมองว่าเป็นผู้เล่นคนใหม่แล้วเพิ่มเข้าไปอีกคนซ้อนกับของเดิม
+  // ไม่เคย "แก้ไข" ชื่อเดิมให้เลย
+  //
+  // ปัญหาที่ต้องแก้: สร้างทีม/ประกาศตารางแข่งขันไปแล้ว แต่รายชื่อจริงเพิ่งได้มาทีหลัง
+  // จึงต้อง import ซ้ำเพื่อ "อัปเดต" ชื่อผู้เล่นที่มีอยู่แล้วให้ตรงกับ Excel — ไม่ใช่
+  // เพิ่มผู้เล่นซ้อน และห้ามกระทบ id ของทีม/ผู้เล่น เพราะ id คู่แข่งขัน (ดู
+  // buildAllMatches) อิงจาก university/category/group เท่านั้น ไม่ได้อิงชื่อผู้เล่น
+  // แปลว่าการแก้ไขแค่ "ชื่อ" ในนี้จะไม่ทำให้คู่ที่ประกาศไปแล้วหายหรือถูกจัดลำดับใหม่
+  // (ปลอดภัยที่จะกด "สร้างตารางแข่งขัน" ซ้ำอีกครั้งหลัง import นี้ เพื่อดันชื่อที่
+  // อัปเดตแล้วเข้าไปในคู่แข่งขันที่มีอยู่ — ดูคอมเมนต์ที่ buildAllMatches)
+  //
+  // วิธีจับคู่ "แถวไหนอัปเดตผู้เล่นคนไหน": อิงตำแหน่งตามบทบาท — Player1/Player2 ใน
+  // Excel จับคู่กับผู้เล่น role "starter" ตัวที่ 1/2 ของทีมนั้นตามลำดับที่มีอยู่เดิม
+  // และ Substitute จับคู่กับผู้เล่น role "substitute" ตัวแรก ถ้าตำแหน่งนั้นยังไม่มี
+  // ผู้เล่นอยู่เลย (เช่นทีมเดิมมีตัวจริงแค่คนเดียว) จะ "เพิ่ม" ผู้เล่นใหม่ตามชื่อใน
+  // Excel แทนการแก้ไข ส่วนคอลัมน์ที่เว้นว่างไว้จะไม่ไปแตะผู้เล่นเดิมในตำแหน่งนั้น
+  //
+  // ข้อควรระวัง: ถ้า admin เคยลบ/แก้ไขลำดับผู้เล่นในทีมด้วยมือมาก่อน ตำแหน่งอาจไม่
+  // ตรงกับคอลัมน์ Excel อีกต่อไป — แนะนำให้ตรวจสอบผลหลัง import อีกครั้ง หรือแก้ชื่อ
+  // ทีละคนด้วยช่อง input ในตารางแทนถ้าไม่แน่ใจ
   const processData = (rawData: any[]) => {
-    const current = [...entries];
+    // Deep-clone ทั้ง entries และ players array ของแต่ละทีมก่อนแก้ไข — เดิมโค้ดทำ
+    // แค่ shallow copy ([...entries]) แล้ว push เข้า players array เดิมตรงๆ ซึ่งพอ
+    // ใช้ได้ตอน "เพิ่มอย่างเดียว" แต่ตอนนี้ต้อง reassign ชื่อของ object ผู้เล่นเดิม
+    // ด้วย การ mutate object เดิมตรงๆ เสี่ยงชนกับที่อื่นที่อาจถือ reference เดียวกัน
+    // อยู่ (เช่น currentMatches ที่ฝัง teamA/teamB มาจาก buildAllMatches) จึง clone
+    // ให้ปลอดภัยไว้ก่อน
+    const current: TeamEntry[] = entries.map((e) => ({
+      ...e,
+      players: e.players.map((p) => ({ ...p })),
+    }));
+
     let added = 0;
+    let updated = 0;
     let skippedRows = 0;
     let duplicatePlayers = 0;
 
-    rawData.forEach((row) => {
-      const uni = String(row?.University ?? "")
-        .trim()
-        .toUpperCase();
-      const cat = String(row?.Category ?? "").trim();
-      const grp = String(row?.Group ?? "").trim();
-
-      if (!VALID_UNIVERSITIES.includes(uni) || !cat || !grp) {
-        skippedRows++;
-        return;
+    // แปลงค่า cell ของ Excel เป็นชื่อ (string) แบบปลอดภัย — กัน cell ที่เป็นสูตร
+    // error (#REF!, #N/A ที่ xlsx อาจ parse มาเป็น object แทน string/number ตรงๆ)
+    // หรือค่าประหลาดอื่นที่ String() อาจ throw ไม่ให้ทำให้ทั้งแถวพัง
+    const cellToName = (val: unknown): string => {
+      if (val === undefined || val === null) return "";
+      try {
+        return String(val).trim();
+      } catch {
+        return "";
       }
+    };
 
-      let idx = current.findIndex(
-        (e) => e.university === uni && e.category === cat && e.group === grp,
-      );
-      if (idx === -1) {
-        current.push({
-          university: uni,
-          category: cat,
-          group: grp,
-          players: [],
-        });
-        idx = current.length - 1;
-      }
+    rawData.forEach((row, rowIdx) => {
+      // กันไม่ให้ 1 แถวที่ข้อมูลแปลกๆ (เช่น cell เป็น object ที่ทำอะไรก็ throw)
+      // ทำให้ import ทั้งไฟล์หยุดกลางคัน — ข้ามแถวนั้นแล้วนับเป็นแถวที่ข้ามไปแทน
+      try {
+        const uni = cellToName(row?.University).toUpperCase();
+        const cat = cellToName(row?.Category);
+        const grp = cellToName(row?.Group);
 
-      const playerList: { n: any; r: "starter" | "substitute" }[] = [
-        { n: row.Player1, r: "starter" },
-        { n: row.Player2, r: "starter" },
-        { n: row.Substitute, r: "substitute" },
-      ];
-
-      playerList.forEach((p) => {
-        const name =
-          p.n !== undefined && p.n !== null ? String(p.n).trim() : "";
-        if (!name) return;
-        if (current[idx].players.some((ep) => ep.name === name)) {
-          duplicatePlayers++;
+        if (!VALID_UNIVERSITIES.includes(uni) || !cat || !grp) {
+          skippedRows++;
           return;
         }
-        current[idx].players.push({
-          id: Math.random().toString(36).substr(2, 9),
-          name,
-          role: p.r,
-        });
-        added++;
-      });
+
+        let idx = current.findIndex(
+          (e) => e.university === uni && e.category === cat && e.group === grp,
+        );
+        if (idx === -1) {
+          current.push({
+            university: uni,
+            category: cat,
+            group: grp,
+            players: [],
+          });
+          idx = current.length - 1;
+        }
+        const team = current[idx];
+
+        // ชื่อจากคอลัมน์ Excel ตามลำดับ — เว้นว่างได้ (ไม่บังคับกรอกครบทุกคอลัมน์
+        // ทุกแถว) ค่าว่างจะไม่ไปแตะผู้เล่นเดิมในตำแหน่งนั้นเลย
+        const starterNames = [
+          cellToName(row?.Player1),
+          cellToName(row?.Player2),
+        ];
+        const subNames = [cellToName(row?.Substitute)];
+
+        const existingStarters = team.players.filter(
+          (p) => p.role === "starter",
+        );
+        const existingSubs = team.players.filter(
+          (p) => p.role === "substitute",
+        );
+
+        // จับคู่ผู้เล่นเดิม "ตามตำแหน่ง" กับชื่อใหม่จาก Excel แล้วอัปเดต/เพิ่มตามนั้น
+        const reconcile = (
+          existing: Player[],
+          incomingNames: string[],
+          role: "starter" | "substitute",
+        ) => {
+          incomingNames.forEach((name) => {
+            if (!name) return; // คอลัมน์ว่าง — ไม่แตะผู้เล่นเดิมตำแหน่งนี้
+            const match = existing.shift();
+            if (match) {
+              if (match.name === name) return; // ชื่อตรงกันอยู่แล้ว ไม่ต้องทำอะไร
+              // กันชื่อชนกับผู้เล่นคนอื่นในทีมเดียวกัน (ที่ไม่ใช่ตัวเอง)
+              const dupe = team.players.some(
+                (p) => p.id !== match.id && p.name === name,
+              );
+              if (dupe) {
+                duplicatePlayers++;
+                return;
+              }
+              match.name = name; // อัปเดตชื่อเดิม — id เดิม ไม่กระทบคู่แข่งขัน
+              updated++;
+            } else {
+              // ตำแหน่งนี้ยังไม่มีผู้เล่นอยู่ก่อน (เช่นทีมเดิมมีตัวจริงคนเดียว) — เพิ่มใหม่
+              if (team.players.some((p) => p.name === name)) {
+                duplicatePlayers++;
+                return;
+              }
+              team.players.push({
+                id: Math.random().toString(36).slice(2, 11),
+                name,
+                role,
+              });
+              added++;
+            }
+          });
+        };
+
+        reconcile(existingStarters, starterNames, "starter");
+        reconcile(existingSubs, subNames, "substitute");
+      } catch (err) {
+        console.error(`Import แถวที่ ${rowIdx + 2} ผิดพลาด:`, err);
+        skippedRows++;
+      }
     });
 
     setEntries(current);
-    return { added, skippedRows, duplicatePlayers };
+    return { added, updated, skippedRows, duplicatePlayers };
   };
 
   // --- Court combos: one fixed court per (category, group) ---
