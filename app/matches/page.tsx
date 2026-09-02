@@ -178,7 +178,23 @@ export default function MatchesPage() {
   }, []);
 
   const categories = ['All', ...new Set(matches.map(m => m.category))];
-  const filteredMatches = filterCategory === 'All' ? matches : matches.filter(m => m.category === filterCategory);
+
+  // รายการการ์ดหลักของหน้านี้ — เรียงตามคอร์ทก่อน แล้วตามลำดับคิวจริงภายในคอร์ท (order)
+  // เดิมหน้านี้ใช้ `matches` ดิบๆ ตรงนี้ (ไม่ sort) ซึ่งพอมีการจัดลำดับ manual จากหน้า
+  // matchorder ที่ยิง matches-updated เปลี่ยน order หลายคู่พร้อมกัน ลำดับการ์ดในนี้จะ
+  // ไม่ขยับตาม ทั้งที่สถานะ "ต้องประกาศ/รอคิว" (matchStatusMap ด้านล่าง) คำนวณถูกอยู่แล้ว
+  // ทำให้ดูเหมือนการ์ดกับสถานะไม่ตรงกัน — sort ให้ตรงกับ groupMatchesByCourtOrdered ที่ใช้
+  // ในส่วนอื่นของหน้านี้ทุกจุด
+  const filteredMatches = useMemo(() => {
+    const base = filterCategory === 'All' ? matches : matches.filter(m => m.category === filterCategory);
+    return [...base].sort((a, b) => {
+      const na = parseInt(a.court, 10);
+      const nb = parseInt(b.court, 10);
+      const courtCompare = (!isNaN(na) && !isNaN(nb)) ? na - nb : a.court.localeCompare(b.court);
+      if (courtCompare !== 0) return courtCompare;
+      return (a.order ?? 0) - (b.order ?? 0);
+    });
+  }, [matches, filterCategory]);
 
   // คำนวณสถานะของแต่ละคู่ โดยยึดลำดับคิวจริงต่อคอร์ท (field `order` ที่ admin
   // จัดพักทีมไว้) เป็นฐาน แต่ "คู่ที่ต้องประกาศ" ของแต่ละสนามจะเลือกจากคู่ที่เพิ่งถูก

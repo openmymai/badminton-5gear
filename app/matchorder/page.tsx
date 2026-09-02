@@ -1,4 +1,4 @@
-// app/live/page.tsx
+// app/matchorder/page.tsx
 
 "use client";
 
@@ -6,10 +6,12 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
 import { GiShuttlecock } from "react-icons/gi";
 import { FaMapMarkerAlt, FaClock } from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Reorder } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import { FaBars } from "react-icons/fa";
 import { calculateEffectiveSets } from "../../lib/scoring";
+import { useIsAdmin } from "@/lib/useIsAdmin";
 
 interface Player {
   id: string;
@@ -65,31 +67,6 @@ const mergeMatchUpdates = (prev: Match[], updates: Match[]): Match[] => {
 // ทุกกี่วินาทีให้ dynamic mode หมุนไปคิวถัดไปทีละคู่ (ต่อสนาม)
 const DYNAMIC_ROTATE_MS = 4000;
 
-// ตารางเวลาแข่งขันต่อคิว — ใช้ตำแหน่งของแมตช์ในลำดับคิวของสนามนั้น (ตาม order ที่
-// Admin จัดไว้ ไม่ใช่ตำแหน่งที่ถูกดึงขึ้นมาเป็น "คู่ปัจจุบัน" เพราะกรรมการอาจสลับไป
-// แข่งคู่อื่นก่อนโดยไม่กระทบกำหนดเวลาที่วางไว้แต่แรก) เพื่อ map เป็นช่วงเวลาที่ตำแหน่ง
-// นั้นๆ — คิวลำดับที่ 6 (index 5) เว้นพัก 30 นาทีก่อนเริ่ม ดังนั้นแสดง divider
-// "Interval 30 minute" ก่อนคิวนั้น คิวที่เกินตารางนี้ (index >= 10) จะไม่มีป้ายเวลา
-const TIME_SLOTS = [
-  "9:30-10:00",
-  "10:05-10:35",
-  "10:40-11:10",
-  "11:15-11:45",
-  "11:50-12:20",
-  "12:50-13:20",
-  "13:25-13:55",
-  "14:00-14:30",
-  "14:35-15:05",
-  "15:10-15:40",
-];
-// index (0-based ใน TIME_SLOTS) ของคิวแรกหลังพัก — ใช้เช็คว่าต้องแสดง divider ก่อนคิวนี้
-const INTERVAL_BEFORE_SLOT_INDEX = 5;
-const INTERVAL_LABEL = "Interval 30 minute";
-
-// คืนช่วงเวลาของคิวลำดับที่ idx (0-based) หรือ null ถ้าเกินตารางเวลาที่กำหนดไว้
-const timeLabelForSlot = (idx: number): string | null =>
-  idx >= 0 && idx < TIME_SLOTS.length ? TIME_SLOTS[idx] : null;
-
 type DisplayMode = "static" | "dynamic";
 
 export default function LiveBoardPage() {
@@ -97,6 +74,14 @@ export default function LiveBoardPage() {
   const [connected, setConnected] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const isAdmin = useIsAdmin();
+
+  // โหมดจัดลำดับคิว manual — เฉพาะ admin เท่านั้นที่เห็นปุ่มนี้ เพราะบอร์ดนี้เป็น
+  // จอสาธารณะ (ผู้ชมทั่วไปเข้าถึงได้) การลากสลับคิวจึงต้องล็อกไว้หลัง auth เดิมของระบบ
+  const [editMode, setEditMode] = useState(false);
+  // ข้อความ error ล่าสุดจากการจัดลำดับ (เช่น สนามนี้ไม่พบคู่แข่งขันแล้วเพราะเพิ่งจบไป
+  // ระหว่างที่กำลังลากอยู่) — โชว์เป็นแบนเนอร์เล็กๆ แล้วหายเองหลัง 3 วินาที
+  const [reorderError, setReorderError] = useState<string | null>(null);
 
   // static = แสดงคิวทั้งหมดพร้อมกัน, dynamic = หมุนแสดงทีละคู่ต่อสนาม วนตามลำดับ
   const [displayMode, setDisplayMode] = useState<DisplayMode>("dynamic");
@@ -145,10 +130,45 @@ export default function LiveBoardPage() {
       });
     });
 
+    // ผลลัพธ์ error จากการ emit ฝั่งนี้ (ตอนนี้ใช้กับ reorder-matches เท่านั้น) —
+    // แสดงเป็นแบนเนอร์สั้นๆ แทนที่จะเงียบแล้วให้ผู้ใช้งงว่าทำไมลากแล้วไม่เปลี่ยน
+    s.on("action-error", (err: { message?: string }) => {
+      if (err?.message) setReorderError(err.message);
+    });
+
     return () => {
       s.disconnect();
     };
   }, []);
+
+  // เคลียร์แบนเนอร์ error อัตโนมัติหลัง 3 วินาที
+  useEffect(() => {
+    if (!reorderError) return;
+    const t = setTimeout(() => setReorderError(null), 3000);
+    return () => clearTimeout(t);
+  }, [reorderError]);
+
+  // กันเคสสิทธิ์ admin หลุดระหว่างที่ editMode ยังเปิดอยู่ (เช่น cookie หมดอายุ) —
+  // ปิด editMode ทันทีเพื่อไม่ให้ค้างอยู่ในโหมดแก้ไขทั้งที่ปุ่มหายไปแล้ว
+  useEffect(() => {
+    if (!isAdmin && editMode) setEditMode(false);
+  }, [isAdmin, editMode]);
+
+  // ลากสลับลำดับคิวของสนามหนึ่ง — รับลำดับใหม่ "ทั้งชุด" ของสนามนั้น (รวมคู่ที่อยู่
+  // บนสุด/กำลังแข่งอยู่ด้วย ไม่ตรึงแยกอีกต่อไป) แล้วกำหนด order ใหม่ตามตำแหน่งใน
+  // array นี้ อัปเดต state ฝั่ง client ทันที (optimistic) แล้วค่อยส่งไปให้ server บันทึกจริง
+  const handleReorder = (court: string, newOrder: Match[]) => {
+    const orderIndex = new Map(newOrder.map((m, idx) => [m.id, idx]));
+
+    setMatches((prev) =>
+      prev.map((m) => (orderIndex.has(m.id) ? { ...m, order: orderIndex.get(m.id)! } : m))
+    );
+
+    socketRef.current?.emit("reorder-matches", {
+      court,
+      matchIds: newOrder.map((m) => m.id),
+    });
+  };
 
   // Clock — set only on the client to avoid SSR hydration mismatches
   useEffect(() => {
@@ -160,10 +180,11 @@ export default function LiveBoardPage() {
   // Rotator สำหรับ dynamic mode — ทำงานเฉพาะตอนเลือกโหมดนี้เท่านั้น เพื่อไม่ให้
   // re-render โดยไม่จำเป็นตอนอยู่ static mode
   useEffect(() => {
-    if (displayMode !== "dynamic") return;
+    // หยุดหมุนระหว่างกำลังจัดลำดับด้วย เพราะการ์ดคิวจะถูกแทนที่ด้วยรายการลากอยู่แล้ว
+    if (displayMode !== "dynamic" || editMode) return;
     const t = setInterval(() => setDynamicTick((tick) => tick + 1), DYNAMIC_ROTATE_MS);
     return () => clearInterval(t);
-  }, [displayMode]);
+  }, [displayMode, editMode]);
 
   // Group non-finished matches by their court, then sort each court's list by the
   // `order` field the Admin page attaches when it builds the rest-friendly
@@ -210,13 +231,7 @@ export default function LiveBoardPage() {
         // และคาดเดาได้ ไม่กระโดดสลับตำแหน่งกันไปมาทุกครั้งที่มีการกดคะแนน
         const rest = orderedList.filter((m) => m.id !== current.id);
 
-        // ตำแหน่งของแต่ละแมตช์ใน "ตารางเวลาตามคิวจริง" (orderedList อิงตาม order ที่
-        // Admin จัดไว้) — แยกออกจาก current/rest ด้านบนโดยเจตนา เพราะ current อาจถูก
-        // สลับมาแสดงก่อนคิวจากการกดคะแนนนอกลำดับ แต่เวลาที่วางไว้แต่แรกของคู่นั้นไม่ควร
-        // เปลี่ยนตาม
-        const slotIndexById = new Map(orderedList.map((m, idx) => [m.id, idx]));
-
-        return { court, matches: [current, ...rest], slotIndexById };
+        return { court, matches: [current, ...rest] };
       })
       .sort((a, b) => {
         const na = Number(a.court);
@@ -302,6 +317,22 @@ export default function LiveBoardPage() {
               </button>
             </div>
 
+            {/* ปุ่มเปิด/ปิดโหมดจัดลำดับคิว — โชว์เฉพาะ admin เท่านั้น เพราะจอนี้เป็น
+                จอสาธารณะที่ผู้ชมทั่วไปเข้าถึงได้ */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setEditMode((v) => !v)}
+                className={`shrink-0 rounded-xl border px-3 py-1.5 text-[10px] font-black tracking-wider uppercase transition-all ${
+                  editMode
+                    ? "border-amber-400 bg-amber-400 text-black shadow"
+                    : "border-white/10 bg-white/5 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                {editMode ? "เสร็จสิ้น" : "จัดลำดับ"}
+              </button>
+            )}
+
             <div className="hidden shrink-0 items-center gap-2 lg:flex">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]" />
               <span className="text-sm font-bold text-slate-400">
@@ -339,6 +370,13 @@ export default function LiveBoardPage() {
             </div>
           </div>
         </header>
+
+        {/* แบนเนอร์ error จากการจัดลำดับ (ถ้ามี) — หายเองอัตโนมัติ */}
+        {reorderError && (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-bold text-red-400">
+            {reorderError}
+          </div>
+        )}
 
         {/* Court grid — fluid auto-fit columns instead of a fixed 1/2/3-column breakpoint
             cap, so cards stretch to fill the full width available at any screen size
@@ -394,87 +432,133 @@ export default function LiveBoardPage() {
                       </span>
                     </div>
 
-                    {/* Current match */}
-                    <div className="px-5 py-5">
-                      {/* รุ่น/สาย ของคู่ปัจจุบัน — ขยายขนาด font ให้เด่นชัดขึ้น พร้อมป้ายเวลา
-                          ตามตารางที่วางไว้แต่แรก (อิงตำแหน่งคิวจริง ไม่ใช่ตำแหน่งที่ถูกดึง
-                          ขึ้นมาแสดงเป็นคู่ปัจจุบัน) */}
-                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-base font-black tracking-wide text-blue-400/90 uppercase sm:text-lg">
+                    {/* Current match — ซ่อนตอนอยู่ editMode เพราะคู่แรกถูกยุบไปรวมอยู่ใน
+                        ลิสต์ลากสลับลำดับด้านล่างแทน (แก้ตามคำขอ: ให้ลากสลับ "คู่แรก"
+                        ได้ด้วย ไม่ใช่แค่คิวที่เหลือ) */}
+                    {!editMode && (
+                      <div className="px-5 py-5">
+                        {/* รุ่น/สาย ของคู่ปัจจุบัน — ขยายขนาด font ให้เด่นชัดขึ้น */}
+                        <p className="mb-4 text-base font-black tracking-wide text-blue-400/90 uppercase sm:text-lg">
                           รุ่น {current.category} · สาย {current.group}
                         </p>
-                        {(() => {
-                          const t = timeLabelForSlot(group.slotIndexById.get(current.id) ?? -1);
-                          return t ? (
-                            <span className="shrink-0 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[11px] font-black text-amber-400 tabular-nums">
-                              {t}
-                            </span>
-                          ) : null;
-                        })()}
-                      </div>
 
-                      <div className="flex items-center justify-between gap-3">
-                        <TeamBlock team={current.teamA} align="right" color="text-blue-400" />
+                        <div className="flex items-center justify-between gap-3">
+                          <TeamBlock team={current.teamA} align="right" color="text-blue-400" />
 
-                        <div className="flex shrink-0 flex-col items-center rounded-2xl border border-white/10 bg-black/40 px-4 py-2">
-                          <div className="flex items-center gap-2 text-3xl leading-none font-black tabular-nums">
-                            <FlashScore
-                              key={`${current.id}-setsA`}
-                              value={setsA}
-                              colorClass={setsA >= setsB ? "text-blue-400" : "text-slate-600"}
-                            />
-                            <span className="text-lg text-slate-700">–</span>
-                            <FlashScore
-                              key={`${current.id}-setsB`}
-                              value={setsB}
-                              colorClass={setsB >= setsA ? "text-red-400" : "text-slate-600"}
-                            />
+                          <div className="flex shrink-0 flex-col items-center rounded-2xl border border-white/10 bg-black/40 px-4 py-2">
+                            <div className="flex items-center gap-2 text-3xl leading-none font-black tabular-nums">
+                              <FlashScore
+                                key={`${current.id}-setsA`}
+                                value={setsA}
+                                colorClass={setsA >= setsB ? "text-blue-400" : "text-slate-600"}
+                              />
+                              <span className="text-lg text-slate-700">–</span>
+                              <FlashScore
+                                key={`${current.id}-setsB`}
+                                value={setsB}
+                                colorClass={setsB >= setsA ? "text-red-400" : "text-slate-600"}
+                              />
+                            </div>
+                            {/* Per-set scores (s1a-s1b, s2a-s2b) — bumped up from the old
+                                text-[9px] to text-xl/2xl so spectators can actually read
+                                them from a distance. Kept slightly smaller than the 3xl
+                                set-tally above it so the visual hierarchy (sets won > points
+                                in current set) still reads at a glance. */}
+                            <div className="mt-1.5 flex items-center gap-2.5 text-xl font-black text-slate-400 tabular-nums sm:text-2xl">
+                              <span className="flex items-center gap-1">
+                                <FlashScore
+                                  key={`${current.id}-s1a`}
+                                  value={current.score.s1a}
+                                  colorClass="text-slate-400"
+                                />
+                                <span className="text-slate-700">-</span>
+                                <FlashScore
+                                  key={`${current.id}-s1b`}
+                                  value={current.score.s1b}
+                                  colorClass="text-slate-400"
+                                />
+                              </span>
+                              <span className="h-5 w-px bg-white/10" />
+                              <span className="flex items-center gap-1">
+                                <FlashScore
+                                  key={`${current.id}-s2a`}
+                                  value={current.score.s2a}
+                                  colorClass="text-slate-400"
+                                />
+                                <span className="text-slate-700">-</span>
+                                <FlashScore
+                                  key={`${current.id}-s2b`}
+                                  value={current.score.s2b}
+                                  colorClass="text-slate-400"
+                                />
+                              </span>
+                            </div>
                           </div>
-                          {/* Per-set scores (s1a-s1b, s2a-s2b) — bumped up from the old
-                              text-[9px] to text-xl/2xl so spectators can actually read
-                              them from a distance. Kept slightly smaller than the 3xl
-                              set-tally above it so the visual hierarchy (sets won > points
-                              in current set) still reads at a glance. */}
-                          <div className="mt-1.5 flex items-center gap-2.5 text-xl font-black text-slate-400 tabular-nums sm:text-2xl">
-                            <span className="flex items-center gap-1">
-                              <FlashScore
-                                key={`${current.id}-s1a`}
-                                value={current.score.s1a}
-                                colorClass="text-slate-400"
-                              />
-                              <span className="text-slate-700">-</span>
-                              <FlashScore
-                                key={`${current.id}-s1b`}
-                                value={current.score.s1b}
-                                colorClass="text-slate-400"
-                              />
-                            </span>
-                            <span className="h-5 w-px bg-white/10" />
-                            <span className="flex items-center gap-1">
-                              <FlashScore
-                                key={`${current.id}-s2a`}
-                                value={current.score.s2a}
-                                colorClass="text-slate-400"
-                              />
-                              <span className="text-slate-700">-</span>
-                              <FlashScore
-                                key={`${current.id}-s2b`}
-                                value={current.score.s2b}
-                                colorClass="text-slate-400"
-                              />
-                            </span>
-                          </div>
+
+                          <TeamBlock team={current.teamB} align="left" color="text-red-400" />
                         </div>
-
-                        <TeamBlock team={current.teamB} align="left" color="text-red-400" />
                       </div>
-                    </div>
+                    )}
 
                     {/* Queue for this court — layout depends on displayMode.
                         static: full list, each row numbered 1..n.
                         dynamic: one row at a time, crossfading every DYNAMIC_ROTATE_MS,
                         with a "ลำดับที่ X จาก Y" badge showing its real queue position. */}
-                    {queued.length > 0 && (
+                    {editMode ? (
+                      <div className="border-t border-amber-500/20 bg-black/20 px-5 py-4">
+                        <p className="mb-2.5 text-[8px] font-black tracking-widest text-amber-400/80 uppercase">
+                          ลากเพื่อสลับลำดับคิวทั้งหมด ({group.matches.length}) — คู่บนสุดคือคู่แรกที่จะแข่ง
+                        </p>
+                        <Reorder.Group
+                          axis="y"
+                          values={group.matches}
+                          onReorder={(newOrder) => handleReorder(group.court, newOrder)}
+                          className="space-y-2"
+                        >
+                          {group.matches.map((m, i) => (
+                            <Reorder.Item
+                              key={m.id}
+                              value={m}
+                              whileDrag={{
+                                scale: 1.02,
+                                boxShadow: "0 8px 20px rgba(0,0,0,0.45)",
+                              }}
+                              className={`flex cursor-grab items-center gap-2.5 rounded-xl border px-2.5 py-2 active:cursor-grabbing ${
+                                i === 0
+                                  ? "border-amber-400/40 bg-amber-400/10"
+                                  : "border-white/10 bg-white/5"
+                              }`}
+                            >
+                              <FaBars size={11} className="shrink-0 text-slate-600" />
+                              <span
+                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black tabular-nums ${
+                                  i === 0
+                                    ? "border-amber-400/50 bg-amber-400/20 text-amber-300"
+                                    : "border-white/10 bg-white/5 text-amber-400"
+                                }`}
+                              >
+                                {i + 1}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-bold text-slate-300 sm:text-sm">
+                                  {m.teamA.university} <span className="text-slate-700">vs</span>{" "}
+                                  {m.teamB.university}
+                                </p>
+                                <p className="truncate text-[9px] font-bold tracking-wide text-blue-400/70 uppercase">
+                                  รุ่น {m.category} · สาย {m.group}
+                                </p>
+                              </div>
+                              {i === 0 && (
+                                <span className="shrink-0 rounded-full border border-amber-400/40 bg-amber-400/20 px-2 py-0.5 text-[9px] font-black tracking-wide text-amber-300 uppercase">
+                                  กำลังแข่ง
+                                </span>
+                              )}
+                            </Reorder.Item>
+                          ))}
+                        </Reorder.Group>
+                      </div>
+                    ) : (
+                      queued.length > 0 && (
                       <div className="border-t border-white/5 bg-black/20 px-5 py-4">
                         <p className="mb-2.5 text-[8px] font-black tracking-widest text-slate-600 uppercase">
                           คิวถัดไป ({queued.length})
@@ -482,45 +566,24 @@ export default function LiveBoardPage() {
 
                         {displayMode === "static" ? (
                           <div className="space-y-2">
-                            {queued.map((m, i) => {
-                              const slotIndex = group.slotIndexById.get(m.id) ?? -1;
-                              const timeLabel = timeLabelForSlot(slotIndex);
-                              const showIntervalBefore = slotIndex === INTERVAL_BEFORE_SLOT_INDEX;
-                              return (
-                                <React.Fragment key={m.id}>
-                                  {showIntervalBefore && (
-                                    <div className="flex items-center gap-2 py-1">
-                                      <span className="h-px flex-1 bg-white/10" />
-                                      <span className="shrink-0 rounded-full border border-slate-500/30 bg-slate-500/10 px-2.5 py-0.5 text-[9px] font-black tracking-widest text-slate-400 uppercase">
-                                        {INTERVAL_LABEL}
-                                      </span>
-                                      <span className="h-px flex-1 bg-white/10" />
-                                    </div>
-                                  )}
-                                  <div className="flex items-center gap-2.5">
-                                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[10px] font-black text-amber-400 tabular-nums">
-                                      {i + 1}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-xs font-bold text-slate-400 sm:text-sm">
-                                        {m.teamA.university} <span className="text-slate-700">vs</span>{" "}
-                                        {m.teamB.university}
-                                      </p>
-                                      {/* รุ่น/สาย ต่อคิว — จำเป็นตอนนี้เพราะสนามเดียวกันอาจมีได้หลายรุ่นแล้ว
-                                          (ไม่งั้นคิวจะดูปนกันไม่รู้ว่าแมตช์ไหนเป็นรุ่นไหน) */}
-                                      <p className="truncate text-[9px] font-bold tracking-wide text-blue-400/70 uppercase">
-                                        รุ่น {m.category} · สาย {m.group}
-                                      </p>
-                                    </div>
-                                    {timeLabel && (
-                                      <span className="shrink-0 text-[10px] font-black text-slate-500 tabular-nums">
-                                        {timeLabel}
-                                      </span>
-                                    )}
-                                  </div>
-                                </React.Fragment>
-                              );
-                            })}
+                            {queued.map((m, i) => (
+                              <div key={m.id} className="flex items-center gap-2.5">
+                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[10px] font-black text-amber-400 tabular-nums">
+                                  {i + 1}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-xs font-bold text-slate-400 sm:text-sm">
+                                    {m.teamA.university} <span className="text-slate-700">vs</span>{" "}
+                                    {m.teamB.university}
+                                  </p>
+                                  {/* รุ่น/สาย ต่อคิว — จำเป็นตอนนี้เพราะสนามเดียวกันอาจมีได้หลายรุ่นแล้ว
+                                      (ไม่งั้นคิวจะดูปนกันไม่รู้ว่าแมตช์ไหนเป็นรุ่นไหน) */}
+                                  <p className="truncate text-[9px] font-bold tracking-wide text-blue-400/70 uppercase">
+                                    รุ่น {m.category} · สาย {m.group}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <AnimatePresence mode="wait">
@@ -546,21 +609,12 @@ export default function LiveBoardPage() {
                                     รุ่น {dynamicMatch.category} · สาย {dynamicMatch.group}
                                   </p>
                                 </div>
-                                {(() => {
-                                  const t = timeLabelForSlot(
-                                    group.slotIndexById.get(dynamicMatch.id) ?? -1
-                                  );
-                                  return t ? (
-                                    <span className="shrink-0 text-[10px] font-black text-slate-500 tabular-nums">
-                                      {t}
-                                    </span>
-                                  ) : null;
-                                })()}
                               </motion.div>
                             )}
                           </AnimatePresence>
                         )}
                       </div>
+                      )
                     )}
                   </motion.div>
                 );

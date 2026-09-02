@@ -888,6 +888,63 @@ app
         }
       });
 
+      // จัดลำดับคิวแบบ manual ภายในสนามเดียว — รับ id ของทุกแมตช์ที่ยังไม่จบใน
+      // สนามนั้น "เรียงตามลำดับที่ต้องการ" ทั้งชุด (รวมคู่ที่กำลังแข่งอยู่ด้วย ไว้ที่
+      // ตำแหน่งแรกเสมอ) แล้วกำหนด order ใหม่ตามตำแหน่งใน array นี้ (0, 1, 2, ...)
+      // ทับ order เดิม — ใช้ตำแหน่งใน array แทนการรับ order ตัวเลขมาโดยตรง เพื่อไม่ให้
+      // ต้องพึ่งพา client คำนวณเลข order ที่ไม่ชนกับแมตช์อื่นเอง
+      socket.on("reorder-matches", (payload) => {
+        try {
+          if (!isPlainObject(payload)) {
+            socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (reorder-matches)" });
+            return;
+          }
+          const { court, matchIds } = payload;
+          if (
+            (typeof court !== "string" && typeof court !== "number") ||
+            !Array.isArray(matchIds) ||
+            matchIds.length === 0 ||
+            !matchIds.every((id) => typeof id === "string" && id)
+          ) {
+            socket.emit("action-error", { message: "ข้อมูลไม่ถูกต้อง (reorder-matches)" });
+            return;
+          }
+          const courtStr = String(court).trim();
+          if (!courtStr) {
+            socket.emit("action-error", { message: "กรุณาระบุหมายเลขสนาม" });
+            return;
+          }
+
+          const data = readData();
+          const orderIndex = new Map(matchIds.map((id, idx) => [id, idx]));
+          // เก็บเฉพาะแมตช์ที่ถูกแก้ไขจริง (อยู่ในสนามนี้ และอยู่ใน matchIds ที่ส่งมา)
+          // เพื่อ broadcast แบบเจาะจงแทนตารางทั้งชุด — แมตช์ในสนามนี้ที่ไม่ได้ส่งมา
+          // (เช่นเพิ่งจบไปพอดีระหว่างที่กำลังลากอยู่) จะไม่ถูกแตะต้อง
+          const affectedMatches = [];
+          data.matches.forEach((m) => {
+            if (String(m.court) === courtStr && orderIndex.has(m.id)) {
+              m.order = orderIndex.get(m.id);
+              affectedMatches.push(m);
+            }
+          });
+
+          if (affectedMatches.length === 0) {
+            socket.emit("action-error", { message: "ไม่พบคู่แข่งขันที่ต้องการจัดลำดับในสนามนี้" });
+            return;
+          }
+
+          data.lastUpdated = Date.now();
+          if (saveData(data)) {
+            io.emit("matches-updated", affectedMatches);
+          } else {
+            socket.emit("action-error", { message: "บันทึกลำดับไม่สำเร็จ กรุณาลองใหม่" });
+          }
+        } catch (err) {
+          console.error("[Socket] reorder-matches error:", err);
+          socket.emit("action-error", { message: "เกิดข้อผิดพลาดขณะจัดลำดับคิว" });
+        }
+      });
+
       socket.on("get-match-details", (matchId) => {
         try {
           if (typeof matchId !== "string") return;

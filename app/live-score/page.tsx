@@ -25,6 +25,10 @@ interface Match {
   isFinished: boolean;
   isBye?: boolean;
   byeWinner?: 'a' | 'b' | null;
+  // ลำดับคิวภายในสนามนี้ ตามที่หน้า Admin/matchorder จัดไว้ — ใช้เป็นลำดับรอง (หลังจาก
+  // เทียบหมายเลขสนามแล้ว) ตอน sort คู่ที่ยังไม่จบในคอร์ทเดียวกันหลายคู่พร้อมกัน ไม่งั้นจะ
+  // เรียงตามลำดับที่บังเอิญอยู่ใน state array ซึ่งเพี้ยนได้ง่ายหลังมีการจัดลำดับ manual
+  order?: number;
 }
 
 interface H2HEntry {
@@ -326,8 +330,13 @@ export default function LiveScorePage() {
   // 1 ครั้งในเซสชันนี้แล้ว (มีอยู่ใน activationOrder) แยกออกมาให้ admin เห็นภาพรวม
   // ได้เร็วว่ากรรมการกำลังโฟกัสอยู่คู่ไหนบ้าง โดยไม่ต้องไล่หาในตารางรายละเอียดด้านล่าง
   const activeScoringMatches = useMemo(() => {
-    const byCourt = (a: Match, b: Match) =>
-      a.court.localeCompare(b.court, undefined, { numeric: true });
+    const byCourt = (a: Match, b: Match) => {
+      const courtCompare = a.court.localeCompare(b.court, undefined, { numeric: true });
+      if (courtCompare !== 0) return courtCompare;
+      // ลำดับคิวจริงภายในคอร์ทเดียวกัน (order ที่ Admin/matchorder จัดไว้) — ใช้เป็นลำดับ
+      // รองเมื่อคอร์ทตรงกัน กันไม่ให้สุ่มตามลำดับที่บังเอิญอยู่ใน state array
+      return (a.order ?? 0) - (b.order ?? 0);
+    };
     return filteredMatches
       .filter(m => !m.isFinished && Object.prototype.hasOwnProperty.call(activationOrder, m.id))
       .sort((a, b) => {
@@ -345,8 +354,12 @@ export default function LiveScorePage() {
       return true;
     });
 
-    const byCourt = (a: Match, b: Match) =>
-      a.court.localeCompare(b.court, undefined, { numeric: true });
+    const byCourt = (a: Match, b: Match) => {
+      const courtCompare = a.court.localeCompare(b.court, undefined, { numeric: true });
+      if (courtCompare !== 0) return courtCompare;
+      // เหมือนกับ activeScoringMatches ด้านบน — เรียงตามคิวจริงภายในคอร์ทเดียวกันด้วย
+      return (a.order ?? 0) - (b.order ?? 0);
+    };
 
     // toggle "จบล่าสุดก่อน": เรียงคู่ที่จบแล้วด้วย lastUpdateOrder (ลำดับการอัปเดตล่าสุด)
     // จากมากไปน้อย — คู่ที่เพิ่งมีการกดคะแนนครั้งสุดท้าย (ซึ่งก็คือตอนกดจบแมตช์) จะขึ้นก่อน
