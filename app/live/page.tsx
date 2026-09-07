@@ -179,6 +179,20 @@ export default function LiveBoardPage() {
   // Courts with everything finished (or no matches at all) simply don't appear —
   // nothing left to watch there.
   const courtGroups = useMemo(() => {
+    // แมตช์ "ทั้งหมด" ของแต่ละสนาม (รวมที่จบแล้วด้วย) — ใช้แค่หาตำแหน่งคิวจริงตาม
+    // order เพื่อ map เป็น time slot เท่านั้น ไม่ได้ใช้ render คิว เพราะถ้าคำนวณ
+    // ตำแหน่งจากแมตช์ที่ "เหลืออยู่" (กรอง isFinished ออกก่อน) ตำแหน่งของคู่ที่ยังไม่
+    // จบจะถูกนับใหม่ทุกครั้งที่มีคู่ก่อนหน้าจบไป (เริ่มจาก index 0 เสมอ) ทำให้เวลาที่
+    // เคยผูกกับคิวของตัวเอง (เช่น index 1 → 10:05-10:35) หลุดไปกลายเป็นของคิวแรกแทน
+    // (index 0 → 9:30-10:00) ทั้งที่ยังไม่ถึงคิวจริงๆ — ต้องนับตำแหน่งจากแมตช์ทั้งหมด
+    // ของสนามนั้นเพื่อให้แต่ละคู่ "จำ" ตำแหน่ง/เวลาของตัวเองไว้ตลอด ไม่ขยับตามคู่อื่นจบ
+    const allByCourt = new Map<string, Match[]>();
+    matches.forEach((m) => {
+      const list = allByCourt.get(m.court) || [];
+      list.push(m);
+      allByCourt.set(m.court, list);
+    });
+
     const map = new Map<string, Match[]>();
     matches.forEach((m) => {
       if (m.isFinished) return;
@@ -210,11 +224,16 @@ export default function LiveBoardPage() {
         // และคาดเดาได้ ไม่กระโดดสลับตำแหน่งกันไปมาทุกครั้งที่มีการกดคะแนน
         const rest = orderedList.filter((m) => m.id !== current.id);
 
-        // ตำแหน่งของแต่ละแมตช์ใน "ตารางเวลาตามคิวจริง" (orderedList อิงตาม order ที่
-        // Admin จัดไว้) — แยกออกจาก current/rest ด้านบนโดยเจตนา เพราะ current อาจถูก
-        // สลับมาแสดงก่อนคิวจากการกดคะแนนนอกลำดับ แต่เวลาที่วางไว้แต่แรกของคู่นั้นไม่ควร
-        // เปลี่ยนตาม
-        const slotIndexById = new Map(orderedList.map((m, idx) => [m.id, idx]));
+        // ตำแหน่งของแต่ละแมตช์ใน "ตารางเวลาตามคิวจริง" — อิงจากแมตช์ *ทั้งหมด* ของ
+        // สนามนี้ (allByCourt รวมที่จบแล้วด้วย) เรียงตาม order ที่ Admin จัดไว้ ไม่ใช่
+        // แค่ orderedList (ซึ่งกรองคู่ที่จบแล้วออกไปก่อน) เพื่อไม่ให้ตำแหน่ง/เวลาของ
+        // คู่ที่ยังไม่แข่งถูกนับใหม่ทุกครั้งที่คู่ก่อนหน้าจบไป — แยกออกจาก current/rest
+        // ด้านบนโดยเจตนา เพราะ current อาจถูกสลับมาแสดงก่อนคิวจากการกดคะแนนนอกลำดับ
+        // แต่เวลาที่วางไว้แต่แรกของคู่นั้นไม่ควรเปลี่ยนตาม
+        const allOrderedList = [...(allByCourt.get(court) || [])].sort(
+          (a, b) => (a.order ?? 0) - (b.order ?? 0)
+        );
+        const slotIndexById = new Map(allOrderedList.map((m, idx) => [m.id, idx]));
 
         return { court, matches: [current, ...rest], slotIndexById };
       })
